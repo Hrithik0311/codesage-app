@@ -24,13 +24,13 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
       setActiveLessonId(lessonIdFromHash);
     } else if (lessons.length > 0) {
       setActiveLessonId(lessons[0].id);
-      router.replace(\`\${pathname}#\${lessons[0].id}\`, { scroll: false });
+      router.replace(`${pathname}#${lessons[0].id}`, { scroll: false });
     }
   }, [lessons, pathname, router]);
 
   const handleSelectLesson = useCallback((lessonId: string) => {
     setActiveLessonId(lessonId);
-    router.replace(\`\${pathname}#\${lessonId}\`, { scroll: false });
+    router.replace(`${pathname}#${lessonId}`, { scroll: false });
     const mainContent = document.getElementById('lesson-main-content');
     if (mainContent) {
         mainContent.scrollTop = 0;
