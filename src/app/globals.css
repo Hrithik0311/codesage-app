@@ -3,78 +3,79 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow-x: hidden;
+  line-height: 1.6;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --background: 220 4% 5%; /* #0A0A0B */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+    --card: 220 4% 10%; /* Slightly lighter than background for cards */
+    --card-foreground: 0 0% 95%;
+    --popover: 220 4% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 271 100% 25%; /* Deep Indigo #4B0082 */
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 277 100% 60%; /* Lighter purple for secondary elements */
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 220 4% 15%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 277 100% 49%; /* Electric Purple #8F00FF */
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 220 4% 20%;
+    --input: 220 4% 15%;
+    --ring: 277 100% 49%; /* Electric Purple for rings */
+    --chart-1: 271 100% 35%;
+    --chart-2: 277 100% 59%;
+    --chart-3: 280 80% 65%;
+    --chart-4: 260 90% 55%;
+    --chart-5: 290 75% 50%;
+    --radius: 0.5rem;
+    --sidebar-background: 220 4% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 271 100% 25%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 277 100% 49%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 4% 18%;
+    --sidebar-ring: 277 100% 49%;
+  }
+
+  .dark {
+    /* Dark theme is the default, but if explicit .dark class is needed, use same vars */
+    --background: 220 4% 5%;
+    --foreground: 0 0% 100%;
+    --card: 220 4% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 220 4% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 271 100% 25%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 277 100% 60%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 4% 15%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 277 100% 49%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 4% 20%;
+    --input: 220 4% 15%;
+    --ring: 277 100% 49%;
+    --sidebar-background: 220 4% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 271 100% 25%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 277 100% 49%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 4% 18%;
+    --sidebar-ring: 277 100% 49%;
   }
 }
 
@@ -84,5 +85,301 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Enhanced animated background from original CSS */
+.bg-animation-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden; /* Prevent scrollbars from animations */
+}
+
+.bg-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(ellipse at top, hsl(var(--primary) / 0.8) 0%, hsl(var(--background)) 70%),
+    linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--primary) / 0.5) 25%, hsl(var(--primary) / 0.8) 50%, hsl(var(--accent) / 0.6) 75%, hsl(var(--primary) / 0.7) 100%);
+  background-size: 100% 100%, 400% 400%;
+  animation: gradientShift 20s ease infinite;
+}
+
+.bg-animation::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 15% 30%, hsl(var(--accent) / 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, hsl(var(--primary) / 0.3) 0%, transparent 45%),
+    radial-gradient(circle at 70% 80%, hsl(var(--accent) / 0.25) 0%, transparent 35%),
+    radial-gradient(circle at 30% 70%, hsl(var(--secondary) / 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 90% 60%, hsl(var(--destructive) / 0.15) 0%, transparent 40%);
+  animation: float 25s ease-in-out infinite;
+}
+
+.bg-animation::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        hsl(var(--accent) / 0.03) 2px,
+        hsl(var(--accent) / 0.03) 4px
+    ),
+    repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        hsl(var(--primary) / 0.03) 2px,
+        hsl(var(--primary) / 0.03) 4px
+    );
+  animation: gridMove 30s linear infinite;
+}
+
+/* Floating particles */
+.particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: hsl(var(--foreground) / 0.5);
+  border-radius: 50%;
+  animation: particleFloat 15s linear infinite;
+  will-change: transform, opacity;
+}
+
+.particle:nth-child(1) { left: 10%; animation-delay: -5s; animation-duration: 20s; }
+.particle:nth-child(2) { left: 20%; animation-delay: -10s; animation-duration: 18s; }
+.particle:nth-child(3) { left: 30%; animation-delay: -2s; animation-duration: 22s; }
+.particle:nth-child(4) { left: 40%; animation-delay: -8s; animation-duration: 16s; }
+.particle:nth-child(5) { left: 50%; animation-delay: -12s; animation-duration: 25s; }
+.particle:nth-child(6) { left: 60%; animation-delay: -3s; animation-duration: 19s; }
+.particle:nth-child(7) { left: 70%; animation-delay: -15s; animation-duration: 21s; }
+.particle:nth-child(8) { left: 80%; animation-delay: -7s; animation-duration: 17s; }
+.particle:nth-child(9) { left: 90%; animation-delay: -1s; animation-duration: 23s; }
+
+@keyframes gradientShift {
+    0%, 100% { 
+        background-position: 0% 0%, 0% 50%; 
+        filter: hue-rotate(0deg);
+    }
+    25% { 
+        background-position: 0% 0%, 50% 100%; 
+        filter: hue-rotate(90deg);
+    }
+    50% { 
+        background-position: 0% 0%, 100% 50%; 
+        filter: hue-rotate(180deg);
+    }
+    75% { 
+        background-position: 0% 0%, 50% 0%; 
+        filter: hue-rotate(270deg);
+    }
+}
+
+@keyframes float {
+    0%, 100% { 
+        opacity: 0.3; 
+        transform: translateY(0px) rotate(0deg) scale(1); 
+    }
+    25% { 
+        opacity: 0.5; 
+        transform: translateY(-30px) rotate(90deg) scale(1.1); 
+    }
+    50% { 
+        opacity: 0.7; 
+        transform: translateY(-15px) rotate(180deg) scale(0.9); 
+    }
+    75% { 
+        opacity: 0.4; 
+        transform: translateY(-25px) rotate(270deg) scale(1.05); 
+    }
+}
+
+@keyframes gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(100vh) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-10vh) translateX(var(--particle-translateX, 100px)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes textGlow {
+    from { filter: drop-shadow(0 0 10px hsl(var(--primary) / 0.3)) drop-shadow(0 0 20px hsl(var(--accent) / 0.2)); }
+    to { filter: drop-shadow(0 0 20px hsl(var(--primary) / 0.5)) drop-shadow(0 0 30px hsl(var(--accent) / 0.3)); }
+}
+
+.text-glow {
+  animation: textGlow 3s ease-in-out infinite alternate;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--background) / 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--primary)));
+}
+
+/* Additional Keyframes for component animations if needed by tailwind.config.ts */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid hsl(var(--foreground) / 0.3);
+  border-top-color: hsl(var(--primary));
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Ensure a min-height for the body to prevent layout shifts with fixed navbar */
+body {
+  min-height: 100vh;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent;
+}
+
+.hero-title-gradient {
+  @apply bg-gradient-to-r from-primary via-accent to-secondary;
+}
+
+.stat-number-gradient {
+  @apply bg-gradient-to-r from-primary via-accent to-pink-500;
+}
+
+/* Custom animation for navbar entrance */
+.animate-slide-down-navbar {
+  animation: slideDownNav 1s ease-out;
+}
+@keyframes slideDownNav {
+  from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%);
+  }
+  to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Custom animation for hero content entrance */
+.animate-fade-in-up-hero {
+  animation: fadeInUpHero 1.2s ease-out 0.5s both;
+}
+@keyframes fadeInUpHero {
+  from {
+      opacity: 0;
+      transform: translateY(50px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Custom animation for feature cards */
+.animate-slide-in-up-feature {
+  animation: slideInUpFeature 0.8s ease-out forwards;
+}
+@keyframes slideInUpFeature {
+  from {
+      opacity: 0;
+      transform: translateY(50px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Custom animation for stat items */
+.animate-scale-in-stat {
+  animation: scaleInStat 0.8s ease-out forwards;
+}
+@keyframes scaleInStat {
+  from {
+      opacity: 0;
+      transform: scale(0.8);
+  }
+  to {
+      opacity: 1;
+      transform: scale(1);
   }
 }
