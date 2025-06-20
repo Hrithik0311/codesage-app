@@ -4,8 +4,7 @@
 import React from 'react';
 import { Lesson, LessonContentItem, LessonContentType } from '@/data/ftc-java-lessons';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import Link from 'next/link';
-import { Youtube, ListChecks, Code2, FileText, Heading2Icon } from 'lucide-react';
+import { ListChecks, Code2, FileText, Heading2Icon } from 'lucide-react';
 
 interface LessonDisplayProps {
   lesson: Lesson;
@@ -39,31 +38,7 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
           {item.items?.map((li, i) => <li key={i} className="leading-relaxed">{li}</li>)}
         </ul>
       );
-    case LessonContentType.YouTubeLink:
-      return (
-        <div key={index} className="my-6 p-4 md:p-5 bg-muted/40 backdrop-blur-sm rounded-lg shadow-md border border-border/20 hover:shadow-accent/10 transition-shadow duration-300">
-          <div className="flex items-center gap-3 mb-2">
-            <Youtube size={28} className="text-red-500" />
-            {item.text && <p className="text-foreground/80 font-medium text-lg mb-0">{item.text}</p>}
-          </div>
-          <Link href={item.url || '#'} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80 font-semibold underline text-base md:text-lg">
-            {item.title || 'Watch on YouTube'}
-          </Link>
-        </div>
-      );
-    case LessonContentType.Iframe:
-      return (
-         <div key={index} className="my-8 shadow-xl rounded-lg overflow-hidden border border-border/30">
-            {item.title && <h3 className="text-lg font-semibold p-3 bg-muted/30 text-foreground/80 border-b border-border/30">{item.title}</h3>}
-            <iframe
-                src={item.url}
-                title={item.title || 'Lesson Video'}
-                className="w-full aspect-video"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-            ></iframe>
-        </div>
-      );
+    // Cases for YouTubeLink and Iframe are removed
     default:
       return null;
   }
@@ -74,8 +49,6 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson }) => {
 
   React.useEffect(() => {
     // Ensure focus is managed if needed, but avoid overly aggressive focus stealing
-    // If specific focus behavior is desired, it can be re-enabled here.
-    // Example: document.getElementById('lesson-main-content')?.focus();
   }, [lesson]);
   
   return (
@@ -131,3 +104,5 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson }) => {
 };
 
 export default LessonDisplay;
+
+    
