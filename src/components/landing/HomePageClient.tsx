@@ -1,6 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import HeroSection from './HeroSection';
 import FeaturesSection from './FeaturesSection';
@@ -26,6 +28,7 @@ interface ModalState {
 
 const HomePageClient: React.FC = () => {
   const { toast } = useToast();
+  const router = useRouter();
   const [modalState, setModalState] = useState<ModalState>({
     isOpen: false,
     title: '',
@@ -42,7 +45,6 @@ const HomePageClient: React.FC = () => {
     setModalState(prev => ({ ...prev, isOpen: false }));
   };
   
-  // Simulate API calls and loading screens
   const showLoadingScreen = (message: string, callback: () => void, duration: number = 2000) => {
     setLoadingState({ isVisible: true, message });
     setTimeout(() => {
@@ -51,7 +53,6 @@ const HomePageClient: React.FC = () => {
     }, duration);
   };
 
-  // Scroll to section (used by Navbar)
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     if (section) {
@@ -59,7 +60,6 @@ const HomePageClient: React.FC = () => {
     }
   };
   
-  // Original JS logic adapted for React state
   const handleCtaClick = () => {
     const content = (
       <div className="text-left space-y-4">
@@ -87,7 +87,7 @@ const HomePageClient: React.FC = () => {
   };
 
   const startPlatform = (track: string) => {
-    closeModal(); // Close previous modal first
+    closeModal(); 
     const trackNames: { [key: string]: string } = {
       beginner: 'Beginner Development Track',
       advanced: 'Advanced Engineering Track',
@@ -157,28 +157,8 @@ const HomePageClient: React.FC = () => {
 
     switch (feature) {
       case 'learning':
-        modalTitle = '🧠 AI Learning Module';
-        modalContent = (
-          <div className="text-left space-y-4">
-            <h3 className="text-xl font-semibold font-headline text-foreground">Master Java for FTC Robotics</h3>
-            <p className="text-foreground/80">Our AI-powered learning system adapts to your pace and provides:</p>
-            <ul className="list-none space-y-2 text-foreground/90">
-              {["Interactive coding exercises", "Real-time error detection", "FTC-specific patterns", "Strategy tutorials"].map(item => (
-                <li key={item} className="flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500" /> {item}</li>
-              ))}
-            </ul>
-            <div className="pt-2">
-              <h4 className="font-semibold text-foreground mb-2">Choose your starting level:</h4>
-              <div className="flex flex-wrap gap-2">
-                {["Basic Java", "FTC Fundamentals", "Advanced Robotics"].map(level => (
-                   <Button key={level} variant="outline" className="hover:bg-accent/10 hover:border-accent" onClick={() => startLearning(level)}>{level}</Button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-        modalButtons = [...commonButtons, { text: 'Start Free Trial', action: () => startFreeTrial('learning'), isPrimary: true }];
-        break;
+        router.push('/learning');
+        return; 
       case 'analysis':
         modalTitle = '🔍 Code Intelligence Engine';
         modalContent = (
@@ -233,14 +213,9 @@ const HomePageClient: React.FC = () => {
         modalButtons = [...commonButtons, { text: 'Learn More', action: showTeamDemo, variant: 'secondary' }];
         break;
     }
-    openModal(modalTitle, modalContent, modalButtons);
-  };
-
-  const startLearning = (level: string) => {
-    closeModal();
-    showLoadingScreen(`Preparing ${level} curriculum...`, () => {
-      toast({ title: `🎓 ${level} learning path loaded!`, description: "Ready to begin." });
-    });
+    if (modalTitle && modalContent) { // Ensure modal is only opened if content is set
+        openModal(modalTitle, modalContent, modalButtons);
+    }
   };
 
   const startFreeTrial = (feature: string) => {
@@ -288,13 +263,8 @@ const HomePageClient: React.FC = () => {
   };
 
   const startCodeAnalysis = () => {
-    closeModal(); // Close current modal if any
-    // This is where you'd integrate with the AI flow
-    // For now, show a toast.
+    closeModal(); 
     toast({ title: "📤 Code Analysis Initiated", description: "AI Code analysis would start for your uploaded code." });
-    // Example: Call AI flow `aiCodeCompletion` or `generateUnitTests`
-    // This would involve another modal for input, then a loading state, then results.
-    // This part needs more detailed UX flow if AI integration is the goal.
   };
   
   const createTeam = () => {
@@ -404,10 +374,9 @@ const HomePageClient: React.FC = () => {
       ]);
   };
 
-  // Effect for initial page load animation (simulated)
   const [pageLoaded, setPageLoaded] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setPageLoaded(true), 100); // Small delay for styles to apply
+    const timer = setTimeout(() => setPageLoaded(true), 100); 
     return () => clearTimeout(timer);
   }, []);
 
