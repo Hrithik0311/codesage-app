@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -5,10 +6,33 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ShieldCheck, User } from 'lucide-react';
+import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
+
+const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
+  <Link href={href} passHref>
+    <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col group hover:border-accent/70 hover:-translate-y-2 transition-all duration-300">
+      <CardHeader className="flex-shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground group-hover:scale-110 transition-transform duration-300">
+            <Icon size={32} />
+          </div>
+          <CardTitle className="font-headline text-xl">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <p className="text-muted-foreground">{description}</p>
+      </CardContent>
+      <CardFooter>
+        <Button variant="outline" className="w-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors duration-300">
+          {buttonText} <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-300" />
+        </Button>
+      </CardFooter>
+    </Card>
+  </Link>
+);
+
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
@@ -29,7 +53,7 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full flex flex-col items-center min-h-screen">
         <header className="w-full max-w-6xl mx-auto py-4 px-4 md:px-6 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3 text-foreground hover:text-accent transition-colors">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
@@ -40,37 +64,63 @@ export default function DashboardClient() {
             <UserProfile />
         </header>
 
-        <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-md shadow-2xl border-border/50 mt-16">
-            <CardHeader>
-                <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-primary">
-                        {user.photoURL ? (
-                            <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />
-                        ) : (
-                           <User className="h-full w-full p-3 text-muted-foreground" />
-                        )}
-                        <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <CardTitle className="text-2xl font-headline">
-                            {user.displayName || 'Welcome Back!'}
-                        </CardTitle>
-                        <CardDescription>{user.email}</CardDescription>
-                    </div>
+        <main className="w-full max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6 flex-grow">
+          <section className="text-center mb-16 animate-fade-in-up-hero">
+            <h1 className="font-headline text-4xl md:text-5xl font-bold">
+              Welcome back, <span className="gradient-text hero-title-gradient">{user.displayName || user.email?.split('@')[0]}!</span>
+            </h1>
+            <p className="text-foreground/80 mt-4 max-w-2xl mx-auto text-lg">
+              This is your mission control. Pick up where you left off or explore a new feature.
+            </p>
+          </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            <FeatureCard
+              href="/learning"
+              icon={BookOpen}
+              title="Interactive Tutorials"
+              description="Learn Java for FTC with hands-on lessons and quizzes."
+              buttonText="Start Learning"
+            />
+            <FeatureCard
+              href="/code-intelligence"
+              icon={Search}
+              title="AI Code Assistant"
+              description="Analyze, refactor, and improve your code with AI."
+              buttonText="Analyze Code"
+            />
+            <FeatureCard
+              href="/collaboration"
+              icon={Users}
+              title="Cloud IDE & Team Hub"
+              description="Collaborate in real-time and manage your team's code."
+              buttonText="Open Team Hub"
+            />
+          </section>
+
+          <section>
+            <h2 className="font-headline text-3xl font-bold text-center mb-8 gradient-text bg-gradient-to-r from-foreground to-foreground/70">Your Progress</h2>
+            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+              <CardContent className="pt-8 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <Trophy size={40} className="text-accent" />
+                  <p className="text-2xl font-semibold">5 / 10</p>
+                  <p className="text-muted-foreground">Lessons Completed</p>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">This is your personal dashboard. Explore the platform features below.</p>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-                <Button variant="outline" asChild>
-                    <Link href="/learning">Start Learning</Link>
-                </Button>
-                <Button asChild>
-                    <Link href="/code-intelligence">Analyze Code</Link>
-                </Button>
-            </CardFooter>
-        </Card>
+                <div className="flex flex-col items-center gap-3">
+                  <GitCommit size={40} className="text-accent" />
+                  <p className="text-2xl font-semibold">12</p>
+                  <p className="text-muted-foreground">Team Commits</p>
+                </div>
+                <div className="flex flex-col items-center gap-3">
+                  <BarChart size={40} className="text-accent" />
+                  <p className="text-2xl font-semibold">8</p>
+                  <p className="text-muted-foreground">Code Analyses Run</p>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        </main>
     </div>
   );
 }
