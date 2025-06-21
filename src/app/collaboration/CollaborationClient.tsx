@@ -23,7 +23,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, set, get, update, onValue } from 'firebase/database';
+import { ref as dbRef, set, get, update, onValue, push } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -257,15 +257,37 @@ export default function CollaborationClient() {
             rolesData[member.role][member.id] = member.name;
         });
 
+        const announcementsChatRef = push(dbRef(database, 'chats'));
+        const announcementsChatId = announcementsChatRef.key;
+        if (!announcementsChatId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not create team channel.' });
+            return;
+        }
+
+        await set(announcementsChatRef, {
+            metadata: {
+                name: `${values.teamName} Announcements`,
+                type: 'channel',
+                teamId: values.teamCode,
+            },
+        });
+        
         const newTeam = {
             name: values.teamName,
             roles: rolesData,
             pin: values.pin,
             creatorUid: user.uid,
+            announcementsChatId: announcementsChatId,
         };
 
         await set(teamRef, newTeam);
-        await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
+        
+        const userUpdates: { [key: string]: any } = {};
+        values.members.forEach(member => {
+            userUpdates[`/users/${member.id}/teamCode`] = values.teamCode;
+            userUpdates[`/users/${member.id}/chats/${announcementsChatId}`] = true;
+        });
+        await update(dbRef(database), userUpdates);
 
         setTeam({ id: values.teamCode, ...newTeam });
         setIsCreateTeamOpen(false);
@@ -297,17 +319,23 @@ export default function CollaborationClient() {
         const newMemberId = user.uid;
         const isAlreadyMember = Object.values(teamData.roles || {}).some(roleMembers => newMemberId in (roleMembers as object));
 
+        const updates: { [key: string]: any } = {};
+        
         if (isAlreadyMember) {
             toast({ title: "Already a member", description: "You are already a member of this team." });
         } else {
-            const updates: { [key: string]: any } = {};
             const memberName = user.displayName || user.email?.split('@')[0] || 'New Member';
             const memberPath = `teams/${values.teamCode}/roles/Member/${newMemberId}`;
             updates[memberPath] = memberName;
-            await update(dbRef(database), updates);
         }
+
+        updates[`/users/${user.uid}/teamCode`] = values.teamCode;
+        if (teamData.announcementsChatId) {
+            updates[`/users/${user.uid}/chats/${teamData.announcementsChatId}`] = true;
+        }
+
+        await update(dbRef(database), updates);
         
-        await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
         setIsJoinTeamOpen(false);
         joinForm.reset();
         toast({ title: 'Success!', description: `You have joined the team: ${teamData.name}` });

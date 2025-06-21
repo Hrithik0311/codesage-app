@@ -1,14 +1,15 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { database } from '@/lib/firebase';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, equalTo } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
   SidebarTrigger,
-  SidebarInset,
   SidebarHeader,
   SidebarContent,
   SidebarMenu,
@@ -21,57 +22,279 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Bell, Users, Search, Bot } from 'lucide-react';
+import { MessageSquare, Bell, Users, Search, Bot, SendHorizonal, SendHorizontal } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const directMessages = [
-    { id: '1', name: 'Alex Johnson', avatar: 'https://placehold.co/40x40.png', hint: 'person', online: true },
-    { id: '2', name: 'Maria Garcia', avatar: 'https://placehold.co/40x40.png', hint: 'person', online: false },
-];
+interface Chat {
+    id: string;
+    name: string;
+    avatar: string;
+    hint: string;
+    type: 'dm' | 'channel';
+    members?: Record<string, boolean>;
+    notifications?: number;
+}
 
-const updates = [
-    { id: '3', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot', notifications: 2 },
-    { id: '4', name: 'Team Announcements', avatar: 'https://placehold.co/40x40.png', hint: 'megaphone', notifications: 1 },
-];
+interface Message {
+    key: string;
+    text: string;
+    senderId: string;
+    senderName: string;
+    timestamp: number;
+}
 
-const messages = {
-    '1': [
-        { from: 'Alex Johnson', text: "Hey! Did you see the latest commit? I pushed the changes for the new autonomous path.", time: "10:32 AM" },
-        { from: 'You', text: "Just saw it, looks great. I'll pull it now and start testing on the robot.", time: "10:34 AM" },
-    ],
-    '3': [
-        { from: 'CodeSage AI', text: "Your recent analysis on `Drivetrain.java` is complete. 2 performance suggestions and 1 potential bug were found.", time: "Yesterday" },
-    ],
-     '4': [
-        { from: 'Team Announcements', text: "Meeting tomorrow at 4 PM in the lab to discuss strategy for the upcoming scrimmage. Be there!", time: "2 days ago" },
-    ]
+interface TeamMember {
+    id: string;
+    name: string;
+    role: string;
+}
+
+const aiChat: Chat = {
+    id: 'codesage-ai',
+    name: 'CodeSage AI',
+    avatar: 'https://placehold.co/40x40.png',
+    hint: 'robot',
+    type: 'channel'
 };
 
+const aiMessages: Message[] = [
+    { key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Welcome! I'm here to help you with code analysis, suggestions, and more. What can I help you with today?", timestamp: Date.now() - 10000 },
+];
+
+
 export default function NotificationsClient() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [activeChat, setActiveChat] = useState(directMessages[0]);
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [team, setTeam] = useState<any | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       router.push('/auth');
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading || !user) {
+  useEffect(() => {
+    if (!user || !database) return;
+
+    let teamDataRef: any;
+    let userChatsRef: any;
+    let teamUnsubscribe: any;
+    let userChatsUnsubscribe: any;
+
+    const fetchTeamAndChats = async () => {
+        setLoading(true);
+        try {
+            const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+            const teamCodeSnap = await get(userTeamRef);
+            if (!teamCodeSnap.exists()) {
+                setLoading(false);
+                return;
+            }
+            const teamCode = teamCodeSnap.val();
+            
+            teamDataRef = dbRef(database, `teams/${teamCode}`);
+            teamUnsubscribe = onValue(teamDataRef, (snapshot) => {
+                const teamData = snapshot.val();
+                setTeam({ id: teamCode, ...teamData });
+                
+                const members: TeamMember[] = [];
+                if (teamData.roles) {
+                    for (const role in teamData.roles) {
+                        for (const id in teamData.roles[role]) {
+                            members.push({ id, name: teamData.roles[role][id], role });
+                        }
+                    }
+                }
+                setTeamMembers(members);
+            });
+
+            userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+            userChatsUnsubscribe = onValue(userChatsRef, async (snapshot) => {
+                if (!snapshot.exists()) {
+                    setChats([aiChat]);
+                    setLoading(false);
+                    return;
+                }
+                const chatIds = snapshot.val();
+                const chatPromises = Object.keys(chatIds).map(async (chatId) => {
+                    const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
+                    if (!chatSnap.exists()) return null;
+
+                    const chatData = chatSnap.val();
+                    let chatName = chatData.name;
+                    let otherMembers: string[] = [];
+
+                    if (chatData.type === 'dm') {
+                        const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
+                        if(otherUserId) {
+                            const member = teamMembers.find(m => m.id === otherUserId) || (await get(dbRef(database, `users/${otherUserId}/displayName`))).val();
+                            chatName = typeof member === 'string' ? member : member?.name || "Unknown User";
+                            otherMembers.push(otherUserId);
+                        } else {
+                            chatName = "Unknown Chat";
+                        }
+                    }
+
+                    return {
+                        id: chatId,
+                        name: chatName,
+                        avatar: 'https://placehold.co/40x40.png',
+                        hint: chatData.type === 'dm' ? 'person' : 'megaphone',
+                        type: chatData.type,
+                        members: chatData.members,
+                    };
+                });
+                
+                const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+                const finalChats = [aiChat, ...resolvedChats];
+                setChats(finalChats);
+
+                if (!activeChat || !finalChats.some(c => c.id === activeChat.id)) {
+                    setActiveChat(finalChats[0] || null);
+                }
+            });
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load your chats.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    fetchTeamAndChats();
+
+    return () => {
+        if(teamUnsubscribe) teamUnsubscribe();
+        if(userChatsUnsubscribe) userChatsUnsubscribe();
+    }
+  }, [user, teamMembers.length]); // Rerun if team members change to update DM names
+
+  useEffect(() => {
+    if (!activeChat || !database) {
+        setMessages(activeChat?.id === 'codesage-ai' ? aiMessages : []);
+        return;
+    };
+    if (activeChat.id === 'codesage-ai') {
+        setMessages(aiMessages);
+        return;
+    }
+
+    const messagesRef = dbRef(database, `chats/${activeChat.id}/messages`);
+    const unsubscribe = onValue(messagesRef, (snapshot) => {
+        const messagesData: Message[] = [];
+        snapshot.forEach((childSnapshot) => {
+            messagesData.push({ key: childSnapshot.key!, ...childSnapshot.val() });
+        });
+        setMessages(messagesData);
+    });
+
+    return () => unsubscribe();
+  }, [activeChat]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user || !activeChat || activeChat.id === 'codesage-ai' || activeChat.type === 'channel') return;
+
+    const messageData = {
+        text: newMessage,
+        senderId: user.uid,
+        senderName: user.displayName || user.email,
+        timestamp: serverTimestamp(),
+    };
+
+    try {
+        await push(dbRef(database, `chats/${activeChat.id}/messages`), messageData);
+        setNewMessage("");
+    } catch (error) {
+        console.error("Error sending message:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not send message.' });
+    }
+  };
+
+  const handleStartChat = async (member: TeamMember) => {
+      if (!user || !database) return;
+
+      const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
+      if (existingDm) {
+          setActiveChat(existingDm);
+          setSearchTerm("");
+          return;
+      }
+
+      const newChatRef = push(dbRef(database, 'chats'));
+      const newChatId = newChatRef.key;
+      if(!newChatId) return;
+
+      const chatData = {
+          metadata: {
+              type: 'dm',
+              members: {
+                  [user.uid]: true,
+                  [member.id]: true,
+              }
+          }
+      };
+      await set(newChatRef, chatData);
+      
+      const updates: { [key: string]: any } = {};
+      updates[`/users/${user.uid}/chats/${newChatId}`] = true;
+      updates[`/users/${member.id}/chats/${newChatId}`] = true;
+      await update(dbRef(database), updates);
+
+      const newChat: Chat = {
+          id: newChatId,
+          name: member.name,
+          avatar: 'https://placehold.co/40x40.png',
+          hint: 'person',
+          type: 'dm',
+          members: chatData.metadata.members
+      }
+      setChats(prev => [...prev, newChat]);
+      setActiveChat(newChat);
+      setSearchTerm("");
+  };
+
+
+  const filteredUsers = searchTerm ? teamMembers.filter(m => 
+      m.id !== user?.uid && (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.id.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) : [];
+
+  if (authLoading || loading) {
     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-background">
-            <div className="loading-spinner"></div>
+        <div className="flex h-screen w-full bg-background text-foreground">
+            <Sidebar collapsible="icon" className="border-r border-border/50">
+                <SidebarHeader><Skeleton className="h-10 w-full" /></SidebarHeader>
+                <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
+            </Sidebar>
+            <div className="flex flex-col flex-1"><header className="h-[73px] p-4"><Skeleton className="h-full w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
         </div>
     );
   }
+  
+  if (!team) {
+    return <div className="flex items-center justify-center h-screen w-full">You are not part of a team. Please join or create one in the Collaboration Hub.</div>
+  }
 
   const renderMessages = () => {
-    const chatMessages = messages[activeChat.id] || [];
-    if (chatMessages.length === 0) {
+    if (messages.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
                 <MessageSquare size={48} className="mb-4" />
@@ -81,19 +304,19 @@ export default function NotificationsClient() {
         )
     }
 
-    return chatMessages.map((msg, index) => (
-         <div key={index} className={`flex items-start gap-4 ${msg.from === 'You' ? 'flex-row-reverse' : ''}`}>
-            {msg.from !== 'You' && (
+    return messages.map((msg) => (
+         <div key={msg.key} className={`flex items-start gap-4 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
+            {msg.senderId !== user?.uid && (
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} />
-                    <AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback>
+                    <AvatarImage src={activeChat?.avatar} data-ai-hint={activeChat?.hint} />
+                    <AvatarFallback>{activeChat?.name.substring(0, 1)}</AvatarFallback>
                 </Avatar>
             )}
-            <div className={`flex flex-col ${msg.from === 'You' ? 'items-end' : 'items-start'}`}>
-                <div className={`rounded-2xl p-3 max-w-md ${msg.from === 'You' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'}`}>
+            <div className={`flex flex-col ${msg.senderId === user?.uid ? 'items-end' : 'items-start'}`}>
+                <div className={`rounded-2xl p-3 max-w-md ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'}`}>
                     <p className="text-sm">{msg.text}</p>
                 </div>
-                 <p className="text-xs text-muted-foreground mt-1">{msg.time}</p>
+                 <p className="text-xs text-muted-foreground mt-1">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
             </div>
         </div>
     ));
@@ -110,49 +333,68 @@ export default function NotificationsClient() {
                      </div>
                      <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search..." className="pl-9 bg-muted/50 border-border/60" />
+                        <Input placeholder="Search people..." className="pl-9 bg-muted/50 border-border/60" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                      </div>
                 </SidebarHeader>
-                <SidebarContent className="p-2">
-                    <SidebarMenu>
-                        <SidebarGroup>
-                            <SidebarGroupLabel className="flex items-center gap-2"><Users size={16}/> Direct Messages</SidebarGroupLabel>
-                            {directMessages.map((dm) => (
-                                <SidebarMenuItem key={dm.id}>
-                                    <SidebarMenuButton 
-                                        onClick={() => setActiveChat(dm)} 
-                                        isActive={activeChat.id === dm.id}
-                                        className="h-14 justify-start"
-                                    >
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={dm.avatar} data-ai-hint={dm.hint} />
-                                            <AvatarFallback>{dm.name.substring(0, 1)}</AvatarFallback>
-                                            {dm.online && <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />}
-                                        </Avatar>
-                                        <span className="font-semibold">{dm.name}</span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarGroup>
-
-                        <SidebarGroup>
-                            <SidebarGroupLabel className="flex items-center gap-2"><Bell size={16}/> Updates</SidebarGroupLabel>
-                            {updates.map((update) => (
-                                <SidebarMenuItem key={update.id}>
-                                    <SidebarMenuButton onClick={() => setActiveChat(update)} isActive={activeChat.id === update.id} className="h-14 justify-start">
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={update.avatar} data-ai-hint={update.hint} />
-                                             <AvatarFallback>{update.name.substring(0, 1)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex flex-col items-start w-full">
-                                            <span className="font-semibold">{update.name}</span>
-                                        </div>
-                                        {update.notifications > 0 && <Badge className="bg-primary text-primary-foreground">{update.notifications}</Badge>}
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarGroup>
-                    </SidebarMenu>
+                <SidebarContent className="p-0">
+                    {searchTerm ? (
+                        <div className="p-2">
+                             <SidebarGroupLabel>Search Results</SidebarGroupLabel>
+                             {filteredUsers.length > 0 ? (
+                                <SidebarMenu>
+                                    {filteredUsers.map(member => (
+                                        <SidebarMenuItem key={member.id}>
+                                            <SidebarMenuButton onClick={() => handleStartChat(member)} className="h-14 justify-start">
+                                                <Avatar className="h-9 w-9"><AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person" /><AvatarFallback>{member.name.substring(0,1)}</AvatarFallback></Avatar>
+                                                <span>{member.name}</span>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    ))}
+                                </SidebarMenu>
+                             ) : (
+                                <p className="text-sm text-muted-foreground p-2">No users found.</p>
+                             )}
+                        </div>
+                    ) : (
+                        <SidebarMenu>
+                            <SidebarGroup>
+                                <SidebarGroupLabel className="flex items-center gap-2"><Bell size={16}/> Updates</SidebarGroupLabel>
+                                {chats.filter(c => c.type === 'channel').map((chat) => (
+                                    <SidebarMenuItem key={chat.id}>
+                                        <SidebarMenuButton onClick={() => setActiveChat(chat)} isActive={activeChat?.id === chat.id} className="h-14 justify-start">
+                                            <Avatar className="h-9 w-9">
+                                                <AvatarImage src={chat.avatar} data-ai-hint={chat.hint} />
+                                                 <AvatarFallback>{chat.name.substring(0, 1)}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col items-start w-full">
+                                                <span className="font-semibold">{chat.name}</span>
+                                            </div>
+                                            {chat.notifications > 0 && <Badge className="bg-primary text-primary-foreground">{chat.notifications}</Badge>}
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarGroup>
+                            <SidebarGroup>
+                                <SidebarGroupLabel className="flex items-center gap-2"><Users size={16}/> Direct Messages</SidebarGroupLabel>
+                                {chats.filter(c => c.type === 'dm').map((dm) => (
+                                    <SidebarMenuItem key={dm.id}>
+                                        <SidebarMenuButton 
+                                            onClick={() => setActiveChat(dm)} 
+                                            isActive={activeChat?.id === dm.id}
+                                            className="h-14 justify-start"
+                                        >
+                                            <Avatar className="h-9 w-9">
+                                                <AvatarImage src={dm.avatar} data-ai-hint={dm.hint} />
+                                                <AvatarFallback>{dm.name.substring(0, 1)}</AvatarFallback>
+                                                {/* Presence indicator can be added here */}
+                                            </Avatar>
+                                            <span className="font-semibold">{dm.name}</span>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarGroup>
+                        </SidebarMenu>
+                    )}
                 </SidebarContent>
                 <SidebarFooter className="p-2">
                     <UserProfile />
@@ -161,29 +403,40 @@ export default function NotificationsClient() {
 
             <div className="flex flex-col flex-1">
                 <header className="flex items-center justify-between p-4 border-b border-border/50 h-[73px]">
-                     <div className="flex items-center gap-4">
-                        <SidebarTrigger className="md:hidden" />
-                        <Avatar className="h-10 w-10">
-                            <AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} />
-                            <AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback>
-                        </Avatar>
-                        <h2 className="text-xl font-bold font-headline">{activeChat.name}</h2>
-                    </div>
+                    {activeChat ? (
+                         <div className="flex items-center gap-4">
+                            <SidebarTrigger className="md:hidden" />
+                            <Avatar className="h-10 w-10">
+                                <AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} />
+                                <AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback>
+                            </Avatar>
+                            <h2 className="text-xl font-bold font-headline">{activeChat.name}</h2>
+                        </div>
+                    ) : ( <Skeleton className="h-10 w-48" />)}
                 </header>
 
                 <main className="flex-1 p-6 overflow-y-auto">
                     <div className="space-y-6">
-                       {renderMessages()}
+                       {activeChat ? renderMessages() : null}
+                       <div ref={messagesEndRef} />
                     </div>
                 </main>
 
                 <footer className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm">
-                    <div className="relative">
-                        <Input placeholder={`Message ${activeChat.name}`} className="h-12 pr-12" />
-                        <Button size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send-horizontal h-5 w-5"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>
-                        </Button>
-                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+                        <div className="relative">
+                            <Input 
+                                placeholder={activeChat?.type === 'dm' ? `Message ${activeChat.name}` : `You cannot send messages here.`} 
+                                className="h-12 pr-12" 
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                disabled={!activeChat || activeChat.type !== 'dm'}
+                            />
+                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || !activeChat || activeChat.type !== 'dm'}>
+                                <SendHorizontal className="h-5 w-5"/>
+                            </Button>
+                        </div>
+                    </form>
                 </footer>
             </div>
         </div>
