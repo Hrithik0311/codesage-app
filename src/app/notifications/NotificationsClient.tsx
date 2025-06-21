@@ -98,7 +98,6 @@ export default function NotificationsClient() {
     get(userTeamRef).then((teamCodeSnap) => {
         if (!teamCodeSnap.exists()) {
             setTeam(null);
-            // No need to setLoading(false) here, let the chat fetching logic handle it
             return;
         }
         const teamCode = teamCodeSnap.val();
@@ -138,10 +137,13 @@ export default function NotificationsClient() {
   useEffect(() => {
     if (!user || !database || authLoading) return;
     
+    if (authLoading) return;
+
     // If not in a team, just show the AI chat and stop loading.
     if (!team && !loading) {
         setChats([aiChat]);
         setActiveChat(aiChat);
+        setLoading(false);
         return;
     }
 
@@ -164,11 +166,10 @@ export default function NotificationsClient() {
             if (chatData.type === 'dm') {
                 const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
                 if (otherUserId) {
-                    // Find member from the already loaded list
                     const member = teamMembers.find(m => m.id === otherUserId);
                     chatName = member?.name || "Unknown User";
                 } else {
-                    chatName = "Direct Message"; // Fallback for DMs
+                    chatName = "Direct Message"; 
                 }
                  chatHint = 'person';
             }
@@ -231,15 +232,10 @@ export default function NotificationsClient() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !activeChat || activeChat.id === 'codesage-ai' || activeChat.type === 'channel') return;
+    if (!newMessage.trim() || !user || !activeChat || activeChat.id === team?.announcementsChatId) return;
 
     const currentUserMember = teamMembers.find(m => m.id === user.uid);
-    const senderName = currentUserMember?.name || user.displayName || user.email?.split('@')[0];
-
-    if (!senderName) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not identify sender name.' });
-        return;
-    }
+    const senderName = currentUserMember?.name || user.displayName || user.email?.split('@')[0] || 'Anonymous';
 
     const messageData = {
         text: newMessage,
@@ -247,6 +243,21 @@ export default function NotificationsClient() {
         senderName: senderName,
         timestamp: serverTimestamp(),
     };
+
+    if (activeChat.id === 'codesage-ai') {
+        const userMessage = { key: Date.now().toString(), ...messageData, timestamp: Date.now() };
+        const aiResponse = {
+            key: (Date.now() + 1).toString(),
+            senderId: 'ai',
+            senderName: 'CodeSage AI',
+            text: `I've received your message: "${newMessage}". I'm still under development and can't process requests yet.`,
+            timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, userMessage]);
+        setNewMessage("");
+        setTimeout(() => setMessages(prev => [...prev, aiResponse]), 500);
+        return;
+    }
 
     try {
         await push(dbRef(database, `chats/${activeChat.id}/messages`), messageData);
@@ -459,13 +470,18 @@ export default function NotificationsClient() {
                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                         <div className="relative">
                             <Input 
-                                placeholder={activeChat?.type === 'dm' ? `Message ${activeChat.name}` : `You cannot send messages here.`} 
+                                placeholder={
+                                    activeChat?.id === team?.announcementsChatId ? "You cannot send messages here."
+                                    : activeChat?.id === 'codesage-ai' ? "Message CodeSage AI..."
+                                    : activeChat ? `Message ${activeChat.name}`
+                                    : "Select a chat"
+                                }
                                 className="h-12 pr-12" 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                disabled={!activeChat || activeChat.type !== 'dm'}
+                                disabled={!activeChat || activeChat.id === team?.announcementsChatId}
                             />
-                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || !activeChat || activeChat.type !== 'dm'}>
+                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || !activeChat || activeChat.id === team?.announcementsChatId}>
                                 <SendHorizontal className="h-5 w-5"/>
                             </Button>
                         </div>
