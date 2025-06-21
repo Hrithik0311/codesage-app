@@ -39,7 +39,9 @@ const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
-  prompt: `You are a friendly and helpful AI programming tutor. Your task is to analyze the provided code snippet and explain your findings as if you were talking to a 15-year-old who is learning to code.
+  prompt: `You are a friendly and helpful AI programming tutor specializing in FIRST Tech Challenge (FTC) Java code. Your task is to analyze the provided code snippet and explain your findings as if you were talking to a 15-year-old who is learning to code.
+Because this is for FTC, assume the code uses the FTC SDK, so objects like 'gamepad1', 'telemetry', and hardware classes like 'DcMotor' are available.
+
 If the code snippet is trivial, nonsensical (like the word "hi"), or not valid code for the specified language, return empty arrays for all categories.
 Otherwise, categorize your findings into "Performance", "Potential Bugs", and "Suggestions".
 

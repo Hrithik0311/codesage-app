@@ -125,6 +125,14 @@ export default function CodeIntelligenceClient() {
                 programmingLanguage: language,
             });
             setAnalysisResults(results);
+            if (results) {
+                const allIssueIds = [
+                    ...results.performance.map((_, i) => `performance-${i}`),
+                    ...results.bugs.map((_, i) => `bugs-${i}`),
+                    ...results.suggestions.map((_, i) => `suggestions-${i}`)
+                ];
+                setSelectedIssues(allIssueIds);
+            }
             if (results && !results.performance.length && !results.bugs.length && !results.suggestions.length) {
                  toast({
                     title: "Analysis Complete",
