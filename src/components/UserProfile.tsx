@@ -27,9 +27,17 @@ export function UserProfile() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      router.push('/');
+      // Use window.location to force a full page reload.
+      // This prevents a race condition where the homepage might
+      // briefly see the logged-in user and redirect to the dashboard.
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout failed', error);
+      toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
