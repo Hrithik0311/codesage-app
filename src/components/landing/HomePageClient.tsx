@@ -181,7 +181,6 @@ const HomePageClient: React.FC = () => {
   };
 
   const createTeam = () => {
-    closeModal();
     const content = (
       <div className="space-y-4 text-left">
         <h3 className="text-xl font-semibold font-headline text-foreground flex items-center gap-2"><PlusCircle className="text-accent" /> Create a New Team</h3>
@@ -203,13 +202,12 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Create Team Workspace', content, [
-      { text: 'Cancel', action: () => { closeModal(); launchFeatureModal('collaboration'); }, variant: 'ghost' },
+      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
       { text: 'Generate Team PIN', action: finalizeTeamCreation, isPrimary: true },
     ]);
   };
 
   const joinTeam = () => {
-    closeModal();
     const content = (
       <div className="space-y-4 text-left">
         <h3 className="text-xl font-semibold font-headline text-foreground flex items-center gap-2"><LogIn className="text-accent" /> Join an Existing Team</h3>
@@ -227,7 +225,7 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Join Team Workspace', content, [
-      { text: 'Cancel', action: () => { closeModal(); launchFeatureModal('collaboration'); }, variant: 'ghost' },
+      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
       { text: 'Join Team', action: finalizeTeamJoin, isPrimary: true },
     ]);
   };
