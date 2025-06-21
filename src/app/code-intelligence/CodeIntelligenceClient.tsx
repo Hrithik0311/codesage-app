@@ -176,17 +176,13 @@ export default function CodeIntelligenceClient() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="java">Java</SelectItem>
-                                        <SelectItem value="javascript">JavaScript</SelectItem>
-                                        <SelectItem value="typescript">TypeScript</SelectItem>
                                         <SelectItem value="python">Python</SelectItem>
-                                        <SelectItem value="go">Go</SelectItem>
-                                        <SelectItem value="csharp">C#</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <Button onClick={handleAnalyze} disabled={isAnalyzing} className="flex-grow bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
                                    <Search className="mr-2 h-5 w-5" />
                                    {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
-                               </Button>
+                                </Button>
                            </div>
                         </CardContent>
                     </Card>
