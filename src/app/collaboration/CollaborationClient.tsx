@@ -26,7 +26,6 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const initialCommits = [
@@ -566,20 +565,9 @@ export default function CollaborationClient() {
                                                                         <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
                                                                             <FormItem className="w-[150px]">
                                                                                 <FormLabel className="text-xs">Role</FormLabel>
-                                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                                    <FormControl>
-                                                                                        <SelectTrigger>
-                                                                                            <SelectValue placeholder="Select a role" />
-                                                                                        </SelectTrigger>
-                                                                                    </FormControl>
-                                                                                    <SelectContent>
-                                                                                        <SelectItem value="Captain">Captain</SelectItem>
-                                                                                        <SelectItem value="Programmer">Programmer</SelectItem>
-                                                                                        <SelectItem value="Builder">Builder</SelectItem>
-                                                                                        <SelectItem value="Driver">Driver</SelectItem>
-                                                                                        <SelectItem value="Member">Member</SelectItem>
-                                                                                    </SelectContent>
-                                                                                </Select>
+                                                                                <FormControl>
+                                                                                    <Input placeholder="e.g., Programmer" {...field} />
+                                                                                </FormControl>
                                                                                 <FormMessage />
                                                                             </FormItem>
                                                                         )} />
