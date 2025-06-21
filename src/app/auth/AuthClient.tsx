@@ -8,7 +8,8 @@ import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
@@ -21,6 +22,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const signUpSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -43,6 +46,7 @@ export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [authState, setAuthState] = useState<'submitting' | 'idle'>('idle');
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -53,6 +57,31 @@ export default function AuthClient() {
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      if (!auth) {
+        setIsCheckingRedirect(false);
+        return;
+      }
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User has successfully signed in.
+          handleAuthSuccess(result);
+        }
+      } catch (error) {
+        // Handle redirect errors
+        handleAuthError(error);
+      } finally {
+        // Finished checking for redirect result.
+        setIsCheckingRedirect(false);
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
+
 
   const showFirebaseNotConfiguredToast = () => {
     toast({
@@ -68,11 +97,21 @@ export default function AuthClient() {
   };
 
   const handleAuthError = (error: any) => {
-    toast({
-      title: 'Authentication Failed',
-      description: error.message || 'An unexpected error occurred.',
-      variant: 'destructive',
-    });
+    // Specific check for unauthorized domain to give a more helpful message
+    if (error.code === 'auth/unauthorized-domain') {
+        toast({
+          title: 'Domain Not Authorized',
+          description: "This app's domain is not authorized for OAuth operations. Please check your Firebase console settings.",
+          variant: 'destructive',
+          duration: 9000,
+        });
+    } else {
+        toast({
+          title: 'Authentication Failed',
+          description: error.message || 'An unexpected error occurred.',
+          variant: 'destructive',
+        });
+    }
   };
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
@@ -113,18 +152,34 @@ export default function AuthClient() {
       return;
     }
     setAuthState('submitting');
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      handleAuthSuccess(result);
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setAuthState('idle');
-    }
+    const provider = new GoogleAuthProvider();
+    // We don't need a try/catch here because errors will be caught by getRedirectResult on the next page load.
+    await signInWithRedirect(auth, provider);
   };
 
-  const isLoading = authState !== 'idle';
+  const isLoading = authState !== 'idle' || isCheckingRedirect;
+  
+  if (isCheckingRedirect) {
+    return (
+        <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+            <CardHeader className="text-center">
+                <Skeleton className="w-12 h-12 rounded-xl mx-auto mb-4" />
+                <Skeleton className="h-8 w-48 mx-auto" />
+                <Skeleton className="h-4 w-64 mx-auto mt-2" />
+            </CardHeader>
+            <CardContent className="space-y-4 pt-8">
+                 <Skeleton className="h-10 w-full" />
+                 <Skeleton className="h-10 w-full" />
+                 <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
+                 </div>
+                 <Skeleton className="h-10 w-full" />
+            </CardContent>
+        </Card>
+    )
+  }
+
 
   return (
     <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
