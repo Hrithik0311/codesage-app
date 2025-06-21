@@ -18,6 +18,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -443,3 +444,5 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
+
+    
