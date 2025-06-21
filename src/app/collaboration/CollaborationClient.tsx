@@ -14,16 +14,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Settings, UploadCloud, Share2, Circle, GitCommit, Save, PlusCircle, LogIn } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Settings, UploadCloud, Share2, Circle, GitCommit, Save, PlusCircle, LogIn, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, set, get } from 'firebase/database';
+import { ref as dbRef, set, get, update } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const initialCommits = [
@@ -62,9 +62,12 @@ const initialDeploymentSteps = [
 
 const createTeamSchema = z.object({
   teamName: z.string().min(3, "Team name must be at least 3 characters."),
-  memberIds: z.string().min(1, "Please enter at least one Member ID."),
   teamCode: z.string().min(4, "Team code must be at least 4 characters.").regex(/^[a-zA-Z0-9-]+$/, "Team code can only contain letters, numbers, and dashes."),
   pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits.").regex(/^\d{4,6}$/, "PIN must be a 4-6 digit number."),
+  roles: z.array(z.object({
+    roleName: z.string().min(1, "Role name cannot be empty."),
+    memberIds: z.string().optional(),
+  })).min(1, "You must define at least one role."),
 });
 
 const joinTeamSchema = z.object({
@@ -86,14 +89,27 @@ export default function CollaborationClient() {
     const router = useRouter();
 
     const [team, setTeam] = useState<any | null>(null);
-    const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [isLoadingTeam, setIsLoadingTeam] = useState(true);
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
         resolver: zodResolver(createTeamSchema),
-        defaultValues: { teamName: "", memberIds: "", teamCode: "", pin: "" },
+        defaultValues: {
+            teamName: "",
+            teamCode: "",
+            pin: "",
+            roles: [
+                { roleName: "Captain", memberIds: "" },
+                { roleName: "Programmer", memberIds: "" },
+                { roleName: "Builder", memberIds: "" },
+            ],
+        },
+    });
+
+    const { fields: roleFields, append: appendRole, remove: removeRole } = useFieldArray({
+        control: createForm.control,
+        name: "roles",
     });
 
     const joinForm = useForm<z.infer<typeof joinTeamSchema>>({
@@ -130,17 +146,6 @@ export default function CollaborationClient() {
         }
       }, [user, loading, router, toast]);
 
-    useEffect(() => {
-        if (team?.memberIds) {
-            const members = team.memberIds.map((id: string) => ({
-                name: `User...${id.substring(id.length - 6)}`,
-                role: id === team.creatorUid ? 'Team Lead' : 'Member',
-                status: 'Online' // This is placeholder status
-            }));
-            setTeamMembers(members);
-        }
-    }, [team]);
-
     const handleCreateTeam = async (values: z.infer<typeof createTeamSchema>) => {
         if (!user || !database) return;
         
@@ -152,24 +157,40 @@ export default function CollaborationClient() {
         }
 
         const creatorId = user.uid;
-        const memberIdArray = values.memberIds.split(',').map(id => id.trim()).filter(id => id);
-        if (!memberIdArray.includes(creatorId)) {
-            memberIdArray.push(creatorId);
+        const rolesData: { [key: string]: string[] } = {};
+        let creatorInARole = false;
+
+        values.roles.forEach(role => {
+            const memberIdArray = role.memberIds?.split(',').map(id => id.trim()).filter(id => id) || [];
+            if (memberIdArray.includes(creatorId)) {
+                creatorInARole = true;
+            }
+            if(role.roleName) {
+                rolesData[role.roleName] = memberIdArray;
+            }
+        });
+
+        if (!creatorInARole && values.roles.length > 0) {
+            const firstRoleName = values.roles[0].roleName;
+            if (!rolesData[firstRoleName]) {
+                rolesData[firstRoleName] = [];
+            }
+            rolesData[firstRoleName].push(creatorId);
         }
 
         const newTeam = {
             name: values.teamName,
-            memberIds: memberIdArray,
+            roles: rolesData,
             pin: values.pin,
             creatorUid: user.uid,
         };
 
         await set(teamRef, newTeam);
-        const userTeamRef = dbRef(database, `users/${user.uid}`);
-        await set(userTeamRef, { teamCode: values.teamCode });
+        await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
 
         setTeam({ id: values.teamCode, ...newTeam });
         setIsCreateTeamOpen(false);
+        createForm.reset();
         toast({ title: 'Success!', description: 'Your team has been created.' });
     };
 
@@ -193,15 +214,32 @@ export default function CollaborationClient() {
             joinForm.setError("pin", { type: "manual", message: "The PIN for this team is incorrect." });
             return;
         }
+        
+        const newMemberId = user.uid;
+        const isAlreadyMember = Object.values(teamData.roles || {}).flat().includes(newMemberId);
+        
+        if (isAlreadyMember) {
+            toast({ title: "Already a member", description: "You are already a member of this team." });
+        } else {
+            const updates: { [key: string]: any } = {};
+            const memberRolePath = `teams/${values.teamCode}/roles/Member`;
+            
+            const existingMembers = teamData.roles?.Member || [];
+            updates[memberRolePath] = [...existingMembers, newMemberId];
+            
+            await update(dbRef(database), updates);
+            
+            teamData.roles = teamData.roles || {};
+            teamData.roles.Member = updates[memberRolePath];
+        }
 
-        const userTeamRef = dbRef(database, `users/${user.uid}`);
-        await set(userTeamRef, { teamCode: values.teamCode });
+        await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
 
         setTeam({ id: values.teamCode, ...teamData });
         setIsJoinTeamOpen(false);
+        joinForm.reset();
         toast({ title: 'Success!', description: `You have joined the team: ${teamData.name}` });
     };
-
 
     const handleOpenCommitModal = () => setIsCommitModalOpen(true);
 
@@ -288,7 +326,7 @@ export default function CollaborationClient() {
                                     Create a Team
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-2xl">
                                 <DialogHeader>
                                     <DialogTitle>Create a New Team</DialogTitle>
                                     <DialogDescription>Fill out the details below to get your team started.</DialogDescription>
@@ -296,9 +334,25 @@ export default function CollaborationClient() {
                                 <Form {...createForm}>
                                     <form onSubmit={createForm.handleSubmit(handleCreateTeam)} className="space-y-4 py-4">
                                         <FormField control={createForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={createForm.control} name="memberIds" render={({ field }) => (<FormItem><FormLabel>Member IDs</FormLabel><FormControl><Textarea placeholder="Enter comma-separated Member IDs of your teammates" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={createForm.control} name="teamCode" render={({ field }) => (<FormItem><FormLabel>Team Code</FormLabel><FormControl><Input placeholder="Create a unique code for your team" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={createForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={createForm.control} name="teamCode" render={({ field }) => (<FormItem><FormLabel>Team Code</FormLabel><FormControl><Input placeholder="Create a unique code for your team" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={createForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                        <div>
+                                            <FormLabel>Roles & Members</FormLabel>
+                                            <div className="space-y-3 mt-2">
+                                                {roleFields.map((field, index) => (
+                                                    <div key={field.id} className="flex items-end gap-2">
+                                                        <FormField control={createForm.control} name={`roles.${index}.roleName`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Role Name</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`roles.${index}.memberIds`} render={({ field }) => (<FormItem className="flex-grow-[2]"><FormLabel className="text-xs">Member IDs (comma-separated)</FormLabel><FormControl><Input placeholder="Paste Member IDs here" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeRole(index)} disabled={roleFields.length <= 1}><Trash2 className="h-4 w-4" /></Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => appendRole({ roleName: "", memberIds: "" })}>
+                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Role
+                                            </Button>
+                                        </div>
                                         <DialogFooter>
                                             <Button type="submit" disabled={createForm.formState.isSubmitting}>{createForm.formState.isSubmitting ? 'Creating...' : 'Create Team'}</Button>
                                         </DialogFooter>
@@ -405,15 +459,15 @@ export default function CollaborationClient() {
                                         <div className="flex items-center gap-2">
                                             <div className="flex -space-x-2 overflow-hidden">
                                                 <TooltipProvider>
-                                                    {teamMembers.slice(0, 2).map(member => (
-                                                        <Tooltip key={member.name}>
+                                                    {Object.values(team.roles || {}).flat().slice(0, 3).map((memberId: any) => (
+                                                        <Tooltip key={memberId}>
                                                             <TooltipTrigger asChild>
                                                             <Avatar className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
                                                                 <AvatarImage data-ai-hint="person" src={`https://placehold.co/32x32.png`} />
-                                                                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                                                <AvatarFallback>{memberId.substring(0, 1)}</AvatarFallback>
                                                             </Avatar>
                                                             </TooltipTrigger>
-                                                            <TooltipContent>{member.name}</TooltipContent>
+                                                            <TooltipContent>{memberId}</TooltipContent>
                                                         </Tooltip>
                                                     ))}
                                                 </TooltipProvider>
@@ -498,25 +552,29 @@ export default function CollaborationClient() {
                                     <CardDescription>Your current team workspace.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-4">
-                                        {teamMembers.map((member) => (
-                                            <div key={member.name} className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar>
-                                                        <AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} />
-                                                        <AvatarFallback>{member.name.substring(0, 2)}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <p className="font-semibold text-foreground">{member.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{member.role}</p>
-                                                    </div>
+                                    <div className="space-y-6">
+                                        {team.roles && Object.entries(team.roles).map(([roleName, memberIds]: [string, string[]]) => (
+                                            <div key={roleName}>
+                                                <h4 className="font-semibold text-muted-foreground mb-3 px-1">{roleName}</h4>
+                                                <div className="space-y-4">
+                                                    {memberIds.length > 0 ? memberIds.map((memberId) => (
+                                                        <div key={memberId} className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar>
+                                                                    <AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} />
+                                                                    <AvatarFallback>{memberId.substring(0, 2)}</AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex flex-col">
+                                                                    <p className="font-mono text-xs text-foreground truncate max-w-[150px]">{memberId}</p>
+                                                                    {user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}
+                                                                </div>
+                                                            </div>
+                                                            <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">Online</Badge>
+                                                        </div>
+                                                    )) : (
+                                                        <p className="text-sm text-muted-foreground px-2">No members in this role yet.</p>
+                                                    )}
                                                 </div>
-                                                <Badge variant="outline" className={cn(
-                                                    {'bg-green-500/20 text-green-400 border-green-500/30': member.status === 'Online'},
-                                                    {'bg-yellow-500/20 text-yellow-400 border-yellow-500/30': member.status === 'Idle'},
-                                                )}>
-                                                    {member.status}
-                                                </Badge>
                                             </div>
                                         ))}
                                     </div>
