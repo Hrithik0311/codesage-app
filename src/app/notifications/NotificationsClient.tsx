@@ -280,13 +280,15 @@ export default function NotificationsClient() {
 
   if (authLoading || loading) {
     return (
-        <div className="flex h-screen w-full bg-background text-foreground">
-            <Sidebar collapsible="icon" className="border-r border-border/50">
-                <SidebarHeader><Skeleton className="h-10 w-full" /></SidebarHeader>
-                <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
-            </Sidebar>
-            <div className="flex flex-col flex-1"><header className="h-[73px] p-4"><Skeleton className="h-full w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
-        </div>
+        <SidebarProvider>
+            <div className="flex h-screen w-full bg-background text-foreground">
+                <Sidebar collapsible="icon" className="border-r border-border/50">
+                    <SidebarHeader><Skeleton className="h-10 w-full" /></SidebarHeader>
+                    <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
+                </Sidebar>
+                <div className="flex flex-col flex-1"><header className="h-[73px] p-4"><Skeleton className="h-full w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
+            </div>
+        </SidebarProvider>
     );
   }
   
@@ -444,5 +446,3 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
-
-    
