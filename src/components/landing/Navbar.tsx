@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserProfile } from '../UserProfile';
+import { NotificationBell } from '../NotificationBell';
 
 const Navbar: React.FC = () => {
 
@@ -34,6 +35,7 @@ const Navbar: React.FC = () => {
            <Button variant="link" className="hidden sm:inline-flex text-foreground/80 hover:text-foreground px-1" onClick={() => scrollToSection('stats')}>
             Stats
           </Button>
+          <NotificationBell />
           <UserProfile />
         </div>
       </div>

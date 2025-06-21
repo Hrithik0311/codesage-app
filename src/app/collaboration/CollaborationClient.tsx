@@ -26,6 +26,7 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotificationBell } from '@/components/NotificationBell';
 
 
 const initialCommits = [
@@ -409,6 +410,7 @@ export default function CollaborationClient() {
                     </Link>
                     <div className="flex items-center gap-2">
                         <ThemeToggleButton />
+                        <NotificationBell />
                         <UserProfile />
                     </div>
                 </div>
@@ -535,6 +537,7 @@ export default function CollaborationClient() {
                             </div>
                              <div className="flex items-center gap-2">
                                 <ThemeToggleButton />
+                                <NotificationBell />
                                 <UserProfile />
                             </div>
                         </div>

@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
@@ -86,7 +87,10 @@ export default function DashboardClient() {
                 </div>
                 <span className="text-xl font-headline font-bold">CodeSage</span>
             </Link>
-            <UserProfile />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <UserProfile />
+            </div>
         </header>
 
         <main className="w-full max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6 flex-grow">

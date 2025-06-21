@@ -15,6 +15,7 @@ import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-comple
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -201,6 +202,7 @@ export default function CodeIntelligenceClient() {
                         </h1>
                         <div className="flex items-center gap-2">
                             <ThemeToggleButton />
+                            <NotificationBell />
                             <UserProfile />
                         </div>
                     </div>
