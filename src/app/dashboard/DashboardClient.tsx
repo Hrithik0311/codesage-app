@@ -6,32 +6,57 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
-    <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col group hover:border-accent/70 hover:-translate-y-2 transition-all duration-300">
-      <CardHeader className="flex-shrink-0">
+    <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col group hover:border-accent/70 hover:-translate-y-1 transition-all duration-300">
+      <CardHeader>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground group-hover:scale-110 transition-transform duration-300">
-            <Icon size={32} />
+          <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground group-hover:scale-110 transition-transform duration-300">
+            <Icon size={24} />
           </div>
           <CardTitle className="font-headline text-xl">{title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-muted-foreground">{description}</p>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors duration-300">
+        <Button variant="outline" size="sm" className="w-full group-hover:bg-accent group-hover:text-accent-foreground transition-colors duration-300">
           {buttonText} <ArrowRight className="ml-2 h-4 w-4 transform group-hover:translate-x-1 transition-transform duration-300" />
         </Button>
       </CardFooter>
     </Card>
   </Link>
 );
+
+
+const ProgressItem = ({ icon: Icon, label, value, total, unit, indicatorClassName }) => (
+    <div className="space-y-2">
+        <div className="flex items-center justify-between text-muted-foreground text-sm">
+            <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+            </div>
+            <span className="font-bold text-foreground">{value} {total ? `/ ${total}` : ''} {unit}</span>
+        </div>
+        {total && (
+             <Progress value={total ? (value / total) * 100 : 0} className="h-2" indicatorClassName={indicatorClassName} />
+        )}
+    </div>
+);
+
+
+const recentActivities = [
+  { icon: GitCommit, text: "You committed 'Fix: Drivetrain alignment'", time: "2h ago" },
+  { icon: BookOpen, text: "You completed 'Lesson 5: Gamepad Controls'", time: "8h ago" },
+  { icon: Search, text: "You ran an analysis on 'Autonomous.java'", time: "1d ago" },
+  { icon: Users, text: "Maria Garcia pushed a commit to 'main'", time: "2d ago" },
+];
 
 
 export default function DashboardClient() {
@@ -54,7 +79,7 @@ export default function DashboardClient() {
 
   return (
     <div className="w-full flex flex-col items-center min-h-screen">
-        <header className="w-full max-w-6xl mx-auto py-4 px-4 md:px-6 flex items-center justify-between">
+        <header className="w-full max-w-7xl mx-auto py-4 px-4 md:px-6 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3 text-foreground hover:text-accent transition-colors">
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
                     <ShieldCheck size={20} />
@@ -64,62 +89,95 @@ export default function DashboardClient() {
             <UserProfile />
         </header>
 
-        <main className="w-full max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6 flex-grow">
-          <section className="text-center mb-16 animate-fade-in-up-hero">
+        <main className="w-full max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6 flex-grow">
+          <section className="mb-12 animate-fade-in-up-hero">
             <h1 className="font-headline text-4xl md:text-5xl font-bold">
               Welcome back, <span className="gradient-text hero-title-gradient">{user.displayName || user.email?.split('@')[0]}!</span>
             </h1>
-            <p className="text-foreground/80 mt-4 max-w-2xl mx-auto text-lg">
-              This is your mission control. Pick up where you left off or explore a new feature.
+            <p className="text-foreground/80 mt-4 max-w-2xl text-lg">
+              This is your mission control. Let's build something amazing today.
             </p>
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            <FeatureCard
-              href="/learning"
-              icon={BookOpen}
-              title="Interactive Tutorials"
-              description="Learn Java for FTC with hands-on lessons and quizzes."
-              buttonText="Start Learning"
-            />
-            <FeatureCard
-              href="/code-intelligence"
-              icon={Search}
-              title="AI Code Assistant"
-              description="Analyze, refactor, and improve your code with AI."
-              buttonText="Analyze Code"
-            />
-            <FeatureCard
-              href="/collaboration"
-              icon={Users}
-              title="Cloud IDE & Team Hub"
-              description="Collaborate in real-time and manage your team's code."
-              buttonText="Open Team Hub"
-            />
-          </section>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column */}
+            <div className="lg:col-span-2 space-y-8">
+                <section>
+                    <h2 className="font-headline text-2xl font-bold mb-6">Core Tools</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FeatureCard
+                            href="/code-intelligence"
+                            icon={Search}
+                            title="AI Code Assistant"
+                            description="Analyze, refactor, and improve your robot code."
+                            buttonText="Analyze Code"
+                        />
+                         <FeatureCard
+                            href="/collaboration"
+                            icon={Users}
+                            title="Cloud IDE & Team Hub"
+                            description="Collaborate in real-time and manage your code."
+                            buttonText="Open Team Hub"
+                        />
+                    </div>
+                </section>
+                
+                <section>
+                    <h2 className="font-headline text-2xl font-bold mb-6">Recent Activity</h2>
+                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                        <CardContent className="p-0">
+                            <ul className="divide-y divide-border/50">
+                                {recentActivities.map((activity, index) => (
+                                    <li key={index} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <activity.icon className="w-5 h-5 text-muted-foreground" />
+                                            <p className="font-medium">{activity.text}</p>
+                                        </div>
+                                        <span className="text-sm text-muted-foreground flex-shrink-0">{activity.time}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
 
-          <section>
-            <h2 className="font-headline text-3xl font-bold text-center mb-8 gradient-text bg-gradient-to-r from-foreground to-foreground/70">Your Progress</h2>
-            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-              <CardContent className="pt-8 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <Trophy size={40} className="text-accent" />
-                  <p className="text-2xl font-semibold">5 / 10</p>
-                  <p className="text-muted-foreground">Lessons Completed</p>
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <GitCommit size={40} className="text-accent" />
-                  <p className="text-2xl font-semibold">12</p>
-                  <p className="text-muted-foreground">Team Commits</p>
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <BarChart size={40} className="text-accent" />
-                  <p className="text-2xl font-semibold">8</p>
-                  <p className="text-muted-foreground">Code Analyses Run</p>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+            {/* Right Column */}
+            <div className="lg:col-span-1 space-y-8">
+                 <section>
+                    <h2 className="font-headline text-2xl font-bold mb-6">Continue Learning</h2>
+                     <FeatureCard
+                        href="/learning"
+                        icon={BookOpen}
+                        title="Interactive Tutorials"
+                        description="Learn Java for FTC with hands-on lessons and quizzes."
+                        buttonText="Go to Lessons"
+                        />
+                </section>
+                <section>
+                    <h2 className="font-headline text-2xl font-bold mb-6">Your Stats</h2>
+                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                        <CardContent className="p-6 space-y-6">
+                           <ProgressItem icon={Trophy} label="Lessons Completed" value={5} total={10} unit="" indicatorClassName="bg-green-500" />
+                           <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
+                           <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
+                        </CardContent>
+                    </Card>
+                </section>
+                 <section>
+                    <h2 className="font-headline text-2xl font-bold mb-6">Quick Tip</h2>
+                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                        <CardContent className="p-6 flex items-start gap-4">
+                            <Lightbulb className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold text-card-foreground mb-1">Use 'final' for variables</p>
+                                <p className="text-muted-foreground text-sm">In Java, declaring a variable with `final` prevents it from being changed. It's a good practice for configuration values like motor names.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </section>
+            </div>
+          </div>
         </main>
     </div>
   );
