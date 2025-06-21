@@ -127,9 +127,9 @@ export default function CodeIntelligenceClient() {
             setAnalysisResults(results);
             if (results) {
                 const allIssueIds = [
-                    ...results.performance.map((_, i) => `performance-${i}`),
-                    ...results.bugs.map((_, i) => `bugs-${i}`),
-                    ...results.suggestions.map((_, i) => `suggestions-${i}`)
+                    ...results.performance.map((item, i) => `performance-${i}`),
+                    ...results.bugs.map((item, i) => `bugs-${i}`),
+                    ...results.suggestions.map((item, i) => `suggestions-${i}`)
                 ];
                 setSelectedIssues(allIssueIds);
             }
@@ -170,7 +170,7 @@ export default function CodeIntelligenceClient() {
         }
 
         setIsRefactoring(true);
-        setAnalysisResults(null); // Clear analysis view to show refactoring loader
+        setRefactoredCode(null);
 
         const allIssuesWithIds = [
             ...(analysisResults?.performance.map((item, i) => ({ ...item, id: `performance-${i}` })) || []),
@@ -189,6 +189,7 @@ export default function CodeIntelligenceClient() {
                 issuesToFix: issuesToFix,
             });
             setRefactoredCode(result.refactoredCode);
+            setAnalysisResults(null);
             setSelectedIssues([]);
             toast({
                 title: "Refactoring Complete!",
