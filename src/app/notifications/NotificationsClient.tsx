@@ -98,7 +98,7 @@ export default function NotificationsClient() {
     get(userTeamRef).then((teamCodeSnap) => {
         if (!teamCodeSnap.exists()) {
             setTeam(null);
-            setLoading(false);
+            // No need to setLoading(false) here, let the chat fetching logic handle it
             return;
         }
         const teamCode = teamCodeSnap.val();
@@ -107,7 +107,7 @@ export default function NotificationsClient() {
         teamUnsubscribe = onValue(teamDataRef, (snapshot) => {
             if (!snapshot.exists()) {
                 setTeam(null);
-                setLoading(false);
+                setTeamMembers([]);
                 return;
             }
             const teamData = snapshot.val();
@@ -132,52 +132,52 @@ export default function NotificationsClient() {
     return () => {
         if (teamUnsubscribe) teamUnsubscribe();
     };
-  }, [user]);
+  }, [user, toast]);
 
   // Effect 2: Fetch chats, which depends on teamMembers being populated.
   useEffect(() => {
-    if (!user || !database || !teamMembers || teamMembers.length === 0) {
-        if (!authLoading && !team) {
-            setLoading(false);
-        }
+    if (!user || !database || authLoading) return;
+    
+    // If not in a team, just show the AI chat and stop loading.
+    if (!team && !loading) {
+        setChats([aiChat]);
+        setActiveChat(aiChat);
         return;
     }
 
-    setLoading(true);
+    // Wait for team members to be loaded before fetching chats
+    if (team && teamMembers.length === 0) return;
+
     let userChatsUnsubscribe: any;
     const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
 
     userChatsUnsubscribe = onValue(userChatsRef, async (snapshot) => {
-        if (!snapshot.exists()) {
-            setChats([aiChat]);
-            setActiveChat(aiChat);
-            setLoading(false);
-            return;
-        }
-
-        const chatIds = snapshot.val();
+        const chatIds = snapshot.val() || {};
         const chatPromises = Object.keys(chatIds).map(async (chatId) => {
             const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
             if (!chatSnap.exists()) return null;
 
             const chatData = chatSnap.val();
             let chatName = chatData.name;
+            let chatHint = 'megaphone';
 
             if (chatData.type === 'dm') {
                 const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
                 if (otherUserId) {
+                    // Find member from the already loaded list
                     const member = teamMembers.find(m => m.id === otherUserId);
                     chatName = member?.name || "Unknown User";
                 } else {
-                    chatName = "Unknown Chat";
+                    chatName = "Direct Message"; // Fallback for DMs
                 }
+                 chatHint = 'person';
             }
 
             return {
                 id: chatId,
                 name: chatName,
                 avatar: 'https://placehold.co/40x40.png',
-                hint: chatData.type === 'dm' ? 'person' : 'megaphone',
+                hint: chatHint,
                 type: chatData.type,
                 members: chatData.members,
             };
@@ -201,7 +201,7 @@ export default function NotificationsClient() {
     return () => {
         if (userChatsUnsubscribe) userChatsUnsubscribe();
     };
-  }, [user, teamMembers]);
+  }, [user, authLoading, team, teamMembers, toast, activeChat, loading]);
 
 
   useEffect(() => {
@@ -224,7 +224,7 @@ export default function NotificationsClient() {
     });
 
     return () => unsubscribe();
-  }, [activeChat]);
+  }, [activeChat, database]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -234,7 +234,7 @@ export default function NotificationsClient() {
     if (!newMessage.trim() || !user || !activeChat || activeChat.id === 'codesage-ai' || activeChat.type === 'channel') return;
 
     const currentUserMember = teamMembers.find(m => m.id === user.uid);
-    const senderName = currentUserMember?.name || user.displayName || user.email;
+    const senderName = currentUserMember?.name || user.displayName || user.email?.split('@')[0];
 
     if (!senderName) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not identify sender name.' });
@@ -339,10 +339,13 @@ export default function NotificationsClient() {
             {msg.senderId !== user?.uid && (
                 <Avatar className="h-10 w-10">
                     <AvatarImage src={activeChat?.avatar} data-ai-hint={activeChat?.hint} />
-                    <AvatarFallback>{activeChat?.name.substring(0, 1)}</AvatarFallback>
+                    <AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback>
                 </Avatar>
             )}
-            <div className={`flex flex-col ${msg.senderId === user?.uid ? 'items-end' : 'items-start'}`}>
+            <div className={`flex flex-col gap-1 ${msg.senderId === user?.uid ? 'items-end' : 'items-start'}`}>
+                {msg.senderId !== user?.uid && (
+                    <p className="text-sm font-semibold text-foreground">{msg.senderName || 'Unknown User'}</p>
+                )}
                 <div className={`rounded-2xl p-3 max-w-md ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'}`}>
                     <p className="text-sm">{msg.text}</p>
                 </div>
