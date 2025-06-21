@@ -52,7 +52,7 @@ export function NotificationBell() {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs text-primary"
+              className="h-auto p-0 text-xs text-accent hover:text-accent/80"
               onClick={handleMarkAllRead}
               disabled={!hasUnread}
             >
@@ -81,7 +81,7 @@ export function NotificationBell() {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="justify-center p-0">
-          <Button variant="link" className="w-full rounded-none">View more</Button>
+          <Button variant="link" className="w-full rounded-none text-accent hover:text-accent/80">View more</Button>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
