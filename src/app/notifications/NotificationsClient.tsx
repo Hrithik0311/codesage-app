@@ -88,102 +88,120 @@ export default function NotificationsClient() {
     }
   }, [user, authLoading, router]);
 
+  // Effect 1: Fetch team and member data.
   useEffect(() => {
     if (!user || !database) return;
 
-    let teamDataRef: any;
-    let userChatsRef: any;
     let teamUnsubscribe: any;
-    let userChatsUnsubscribe: any;
-
-    const fetchTeamAndChats = async () => {
-        setLoading(true);
-        try {
-            const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
-            const teamCodeSnap = await get(userTeamRef);
-            if (!teamCodeSnap.exists()) {
+    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+    
+    get(userTeamRef).then((teamCodeSnap) => {
+        if (!teamCodeSnap.exists()) {
+            setTeam(null);
+            setLoading(false);
+            return;
+        }
+        const teamCode = teamCodeSnap.val();
+        const teamDataRef = dbRef(database, `teams/${teamCode}`);
+        
+        teamUnsubscribe = onValue(teamDataRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                setTeam(null);
                 setLoading(false);
                 return;
             }
-            const teamCode = teamCodeSnap.val();
+            const teamData = snapshot.val();
+            setTeam({ id: teamCode, ...teamData });
             
-            teamDataRef = dbRef(database, `teams/${teamCode}`);
-            teamUnsubscribe = onValue(teamDataRef, (snapshot) => {
-                const teamData = snapshot.val();
-                setTeam({ id: teamCode, ...teamData });
-                
-                const members: TeamMember[] = [];
-                if (teamData.roles) {
-                    for (const role in teamData.roles) {
-                        for (const id in teamData.roles[role]) {
-                            members.push({ id, name: teamData.roles[role][id], role });
-                        }
+            const members: TeamMember[] = [];
+            if (teamData.roles) {
+                for (const role in teamData.roles) {
+                    for (const id in teamData.roles[role]) {
+                        members.push({ id, name: teamData.roles[role][id], role });
                     }
                 }
-                setTeamMembers(members);
-            });
-
-            userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-            userChatsUnsubscribe = onValue(userChatsRef, async (snapshot) => {
-                if (!snapshot.exists()) {
-                    setChats([aiChat]);
-                    setLoading(false);
-                    return;
-                }
-                const chatIds = snapshot.val();
-                const chatPromises = Object.keys(chatIds).map(async (chatId) => {
-                    const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
-                    if (!chatSnap.exists()) return null;
-
-                    const chatData = chatSnap.val();
-                    let chatName = chatData.name;
-                    let otherMembers: string[] = [];
-
-                    if (chatData.type === 'dm') {
-                        const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
-                        if(otherUserId) {
-                            const member = teamMembers.find(m => m.id === otherUserId) || (await get(dbRef(database, `users/${otherUserId}/displayName`))).val();
-                            chatName = typeof member === 'string' ? member : member?.name || "Unknown User";
-                            otherMembers.push(otherUserId);
-                        } else {
-                            chatName = "Unknown Chat";
-                        }
-                    }
-
-                    return {
-                        id: chatId,
-                        name: chatName,
-                        avatar: 'https://placehold.co/40x40.png',
-                        hint: chatData.type === 'dm' ? 'person' : 'megaphone',
-                        type: chatData.type,
-                        members: chatData.members,
-                    };
-                });
-                
-                const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
-                const finalChats = [aiChat, ...resolvedChats];
-                setChats(finalChats);
-
-                if (!activeChat || !finalChats.some(c => c.id === activeChat.id)) {
-                    setActiveChat(finalChats[0] || null);
-                }
-            });
-
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load your chats.' });
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    fetchTeamAndChats();
+            }
+            setTeamMembers(members);
+        });
+    }).catch(error => {
+        console.error("Error fetching team code:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load team information.' });
+        setLoading(false);
+    });
 
     return () => {
-        if(teamUnsubscribe) teamUnsubscribe();
-        if(userChatsUnsubscribe) userChatsUnsubscribe();
+        if (teamUnsubscribe) teamUnsubscribe();
+    };
+  }, [user]);
+
+  // Effect 2: Fetch chats, which depends on teamMembers being populated.
+  useEffect(() => {
+    if (!user || !database || !team) {
+        // Still waiting for team data from Effect 1
+        if (!authLoading && !team) setLoading(false); // Only stop loading if auth is done and we confirm no team
+        return;
     }
-  }, [user, teamMembers.length]); // Rerun if team members change to update DM names
+
+    setLoading(true);
+    let userChatsUnsubscribe: any;
+    const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+
+    userChatsUnsubscribe = onValue(userChatsRef, async (snapshot) => {
+        if (!snapshot.exists()) {
+            setChats([aiChat]);
+            setActiveChat(aiChat);
+            setLoading(false);
+            return;
+        }
+
+        const chatIds = snapshot.val();
+        const chatPromises = Object.keys(chatIds).map(async (chatId) => {
+            const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
+            if (!chatSnap.exists()) return null;
+
+            const chatData = chatSnap.val();
+            let chatName = chatData.name;
+
+            if (chatData.type === 'dm') {
+                const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
+                if (otherUserId) {
+                    const member = teamMembers.find(m => m.id === otherUserId);
+                    chatName = member?.name || "Unknown User";
+                } else {
+                    chatName = "Unknown Chat";
+                }
+            }
+
+            return {
+                id: chatId,
+                name: chatName,
+                avatar: 'https://placehold.co/40x40.png',
+                hint: chatData.type === 'dm' ? 'person' : 'megaphone',
+                type: chatData.type,
+                members: chatData.members,
+            };
+        });
+        
+        const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+        const finalChats = [aiChat, ...resolvedChats];
+        setChats(finalChats);
+
+        if (!activeChat || !finalChats.some(c => c.id === activeChat.id)) {
+            setActiveChat(finalChats[0] || null);
+        }
+        setLoading(false);
+
+    }, (error) => {
+        console.error("Error fetching user chats:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load your chats.' });
+        setLoading(false);
+    });
+
+    return () => {
+        if (userChatsUnsubscribe) userChatsUnsubscribe();
+    };
+  }, [user, team, teamMembers]);
+
 
   useEffect(() => {
     if (!activeChat || !database) {
@@ -280,7 +298,7 @@ export default function NotificationsClient() {
 
   if (authLoading || loading) {
     return (
-        <SidebarProvider>
+        <SidebarProvider defaultOpen>
             <div className="flex h-screen w-full bg-background text-foreground">
                 <Sidebar collapsible="icon" className="border-r border-border/50">
                     <SidebarHeader><Skeleton className="h-10 w-full" /></SidebarHeader>
@@ -293,7 +311,7 @@ export default function NotificationsClient() {
   }
   
   if (!team) {
-    return <div className="flex items-center justify-center h-screen w-full">You are not part of a team. Please join or create one in the Collaboration Hub.</div>
+    return <div className="flex items-center justify-center h-screen w-full p-4 text-center">You are not part of a team. Please join or create one in the Collaboration Hub.</div>
   }
 
   const renderMessages = () => {
