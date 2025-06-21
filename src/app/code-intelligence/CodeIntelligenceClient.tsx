@@ -6,11 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock } from 'lucide-react';
+import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock, Wand2 } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-completion';
+import { refactorCode } from '@/ai/flows/refactor-code-flow';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -89,6 +92,8 @@ export default function CodeIntelligenceClient() {
     const [language, setLanguage] = useState('java');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResults, setAnalysisResults] = useState<CodeAnalysisOutput | null>(null);
+    const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
+    const [isRefactoring, setIsRefactoring] = useState(false);
     const { toast } = useToast();
 
     const handleAnalyze = async () => {
@@ -103,6 +108,7 @@ export default function CodeIntelligenceClient() {
 
         setIsAnalyzing(true);
         setAnalysisResults(null);
+        setSelectedIssues([]);
         
         try {
             const results = await codeAnalysis({
@@ -127,6 +133,64 @@ export default function CodeIntelligenceClient() {
             setIsAnalyzing(false);
         }
     };
+
+    const handleIssueSelection = (issueId: string) => {
+        setSelectedIssues(prev =>
+            prev.includes(issueId)
+                ? prev.filter(id => id !== issueId)
+                : [...prev, issueId]
+        );
+    };
+
+    const handleRefactor = async () => {
+        if (selectedIssues.length === 0) {
+            toast({
+                title: "No Issues Selected",
+                description: "Please select at least one issue to refactor.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsRefactoring(true);
+
+        const allIssuesWithIds = [
+            ...(analysisResults?.performance.map((item, i) => ({ ...item, id: `performance-${i}` })) || []),
+            ...(analysisResults?.bugs.map((item, i) => ({ ...item, id: `bugs-${i}` })) || []),
+            ...(analysisResults?.suggestions.map((item, i) => ({ ...item, id: `suggestions-${i}` })) || [])
+        ];
+
+        const issuesToFix = allIssuesWithIds
+            .filter(issue => selectedIssues.includes(issue.id))
+            .map(({ id, ...rest }) => rest);
+
+        try {
+            const result = await refactorCode({
+                codeSnippet: code,
+                programmingLanguage: language,
+                issuesToFix: issuesToFix,
+            });
+            setCode(result.refactoredCode);
+            setAnalysisResults(null);
+            setSelectedIssues([]);
+            toast({
+                title: "Code Refactored!",
+                description: "The selected issues have been addressed. You can re-analyze the new code.",
+            });
+        } catch (error) {
+            console.error("Refactoring failed:", error);
+            toast({
+                title: "Refactoring Failed",
+                description: "The AI could not refactor the code. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsRefactoring(false);
+        }
+    };
+
+
+    const hasIssues = analysisResults && (analysisResults.performance.length > 0 || analysisResults.bugs.length > 0 || analysisResults.suggestions.length > 0);
 
     return (
         <div className="min-h-screen flex flex-col text-foreground">
@@ -204,27 +268,68 @@ export default function CodeIntelligenceClient() {
                         )}
                         {analysisResults && (
                             <div className="space-y-6 animate-fade-in-up-hero">
-                                <AnalysisResult 
+                                <AnalysisResult
                                     icon={Zap}
                                     title="Performance"
                                     description="Opportunities to make your code run faster."
                                     colorClass="bg-green-500"
                                     items={analysisResults.performance}
                                 />
-                                <AnalysisResult 
+                                <AnalysisResult
                                     icon={Bug}
                                     title="Potential Bugs"
                                     description="Code patterns that might lead to crashes or unexpected behavior."
                                     colorClass="bg-red-500"
                                     items={analysisResults.bugs}
                                 />
-                                <AnalysisResult 
+                                <AnalysisResult
                                     icon={Lightbulb}
                                     title="Suggestions"
                                     description="Best practices and improvements for code quality."
                                     colorClass="bg-blue-500"
                                     items={analysisResults.suggestions}
                                 />
+                            </div>
+                        )}
+                         {hasIssues && !isAnalyzing && (
+                            <div className="mt-6 animate-fade-in-up-hero">
+                                <Card className="bg-background/30 border-border/40">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2"><Wand2 /> Automated Refactoring</CardTitle>
+                                        <CardDescription>Select the issues you want the AI to fix automatically.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                            {Object.entries(analysisResults).flatMap(([category, items]) =>
+                                                items.map((item, index) => {
+                                                    const issueId = `${category}-${index}`;
+                                                    return (
+                                                        <div key={issueId} className="flex items-start space-x-3 bg-muted/30 p-3 rounded-md border border-border/50">
+                                                            <Checkbox
+                                                                id={issueId}
+                                                                checked={selectedIssues.includes(issueId)}
+                                                                onCheckedChange={() => handleIssueSelection(issueId)}
+                                                                aria-label={`Select issue: ${item.title}`}
+                                                                className="mt-1"
+                                                            />
+                                                            <Label htmlFor={issueId} className="font-semibold text-sm cursor-pointer w-full">
+                                                                {item.title}
+                                                                <p className="font-normal text-xs text-foreground/70 mt-1 whitespace-pre-wrap">{item.details}</p>
+                                                            </Label>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                        <Button
+                                            onClick={handleRefactor}
+                                            disabled={isRefactoring || selectedIssues.length === 0}
+                                            className="w-full mt-6 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
+                                            <Wand2 className="mr-2 h-5 w-5" />
+                                            {isRefactoring ? 'Refactoring...' : `Refactor ${selectedIssues.length} Selected ${selectedIssues.length === 1 ? 'Issue' : 'Issues'}`}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
                             </div>
                         )}
                     </div>
