@@ -8,8 +8,7 @@ import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
@@ -46,7 +45,7 @@ export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [authState, setAuthState] = useState<'submitting' | 'idle'>('idle');
-  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(false);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -57,31 +56,6 @@ export default function AuthClient() {
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: '', password: '' },
   });
-
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      if (!auth) {
-        setIsCheckingRedirect(false);
-        return;
-      }
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          // User has successfully signed in.
-          handleAuthSuccess(result);
-        }
-      } catch (error) {
-        // Handle redirect errors
-        handleAuthError(error);
-      } finally {
-        // Finished checking for redirect result.
-        setIsCheckingRedirect(false);
-      }
-    };
-
-    checkRedirectResult();
-  }, []);
-
 
   const showFirebaseNotConfiguredToast = () => {
     toast({
@@ -153,13 +127,20 @@ export default function AuthClient() {
     }
     setAuthState('submitting');
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+
     try {
-      await signInWithRedirect(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
+    } finally {
       setAuthState('idle');
     }
   };
+
 
   const isLoading = authState !== 'idle' || isCheckingRedirect;
   
