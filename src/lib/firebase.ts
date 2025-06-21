@@ -11,22 +11,17 @@ const firebaseConfig = {
   appId: "1:688308168438:web:44f7f705813649ca48eed7"
 };
 
-// Conditionally initialize Firebase only on the client side.
 let app: FirebaseApp;
 let auth: Auth;
 
-if (typeof window !== "undefined" && !getApps().length) {
-  // This code only runs on the client
-  app = initializeApp(firebaseConfig);
+// This check prevents Firebase from being initialized on the server.
+if (typeof window !== "undefined") {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
   auth = getAuth(app);
-} else if (getApps().length > 0) {
-  // Use the existing app instance
-  app = getApp();
-  auth = getAuth(app);
-} else {
-  // On the server, we cannot initialize auth.
-  // We will rely on client-side components to handle this.
-  // This else block prevents server-side initialization crash.
 }
 
 // @ts-ignore
