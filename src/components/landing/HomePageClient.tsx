@@ -158,32 +158,10 @@ const HomePageClient: React.FC = () => {
     switch (feature) {
       case 'learning':
         router.push('/learning');
-        return; 
+        return;
       case 'analysis':
-        modalTitle = '🔍 Code Intelligence Engine';
-        modalContent = (
-          <div className="text-left space-y-4">
-            <h3 className="text-xl font-semibold font-headline text-foreground">Advanced Code Analysis</h3>
-            <p className="text-foreground/80">Upload your FTC robot code for comprehensive analysis:</p>
-            <Button variant="outline" className="w-full h-auto p-6 flex flex-col items-center gap-2 border-dashed border-2 border-accent/50 hover:bg-accent/10 text-foreground/80" onClick={triggerFileUpload}>
-              <FileUp className="w-10 h-10 text-accent mb-2" />
-              <p>Drag & drop your Java files here or click to browse</p>
-              <small>Supports .java, .zip, and .git repositories</small>
-            </Button>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              {[
-                { icon: Zap, text: "Performance optimization" }, { icon: Bug, text: "Bug detection" },
-                { icon: BarChartBig, text: "Code quality metrics" }, { icon: Trophy, text: "Competition readiness" },
-              ].map(item => (
-                <div key={item.text} className="flex items-center gap-2 p-2 bg-foreground/5 rounded-md">
-                  <item.icon className="w-5 h-5 text-accent" /> <span className="text-sm text-foreground/90">{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-        modalButtons = [...commonButtons, { text: 'Analyze Sample', action: analyzeSampleCode, variant: 'secondary' }, { text: 'Upload My Code', action: startCodeAnalysis, isPrimary: true }];
-        break;
+        router.push('/code-intelligence');
+        return;
       case 'collaboration':
         modalTitle = '🚀 Team Collaboration Hub';
         modalContent = (
