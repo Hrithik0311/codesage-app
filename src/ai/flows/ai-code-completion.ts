@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -20,7 +21,7 @@ export type CodeAnalysisInput = z.infer<typeof CodeAnalysisInputSchema>;
 const AnalysisItemSchema = z.object({
     title: z.string().describe('A short, descriptive title for the issue or suggestion.'),
     details: z.string().describe('A simple, beginner-friendly explanation of the issue or suggestion, including line numbers if applicable.'),
-    suggestedFix: z.string().describe('A specific, technical instruction for an AI on how to fix the code. For example: "Remove the for-loop on lines 19-21." or "Replace `-gamepad1.left_stick_y ;` with `-gamepad1.left_stick_y;` on line 28 to remove trailing whitespace."'),
+    suggestedFix: z.string().describe('A specific, technical, and literal instruction for an automated tool on how to fix the code. It must be unambiguous.'),
 });
 
 const CodeAnalysisOutputSchema = z.object({
@@ -39,15 +40,28 @@ const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
-  prompt: `You are a friendly and helpful AI programming tutor specializing in FIRST Tech Challenge (FTC) Java code. Your task is to analyze the provided code snippet and explain your findings as if you were talking to a 15-year-old who is learning to code.
-Because this is for FTC, assume the code uses the FTC SDK, so objects like 'gamepad1', 'telemetry', and hardware classes like 'DcMotor' are available.
+  prompt: `You are an expert AI programming tutor specializing in FIRST Tech Challenge (FTC) Java code. Your task is to analyze the provided code snippet and explain your findings.
 
-Your analysis must be comprehensive. Aim to identify every potential issue in a single pass to help the user improve their code efficiently.
+**PRIMARY DIRECTIVE:** Your analysis MUST be exhaustive. It is critical that you identify every single potential issue in one pass. An incomplete analysis is a failed analysis. Do not summarize; identify all individual problems.
 
-If the code snippet is trivial, nonsensical (like the word "hi"), or not valid code for the specified language, return empty arrays for all categories.
-Otherwise, categorize your findings into "Performance", "Potential Bugs", and "Suggestions".
+Because this is for FTC, assume the code uses the FTC SDK, so objects like 'gamepad1', 'telemetry', and hardware classes like 'DcMotor' are available and not undefined.
 
-For each issue you identify, provide the three pieces of information as defined in the output schema. The 'details' should be beginner-friendly and explain WHY it's an issue. The 'suggestedFix' must be a precise, literal instruction for another AI.
+If the code snippet is trivial, nonsensical (like the word "hi"), or not valid code for the specified language, return empty arrays for all categories. Otherwise, categorize your findings into "Performance", "Potential Bugs", and "Suggestions".
+
+For each issue you identify, provide the three pieces of information as defined in the output schema:
+1.  \`title\`: A short, descriptive title.
+2.  \`details\`: A simple, beginner-friendly explanation for a 15-year-old, explaining WHY it's an issue.
+3.  \`suggestedFix\`: This is the most critical field. It is machine-read and must be perfect.
+
+**CRITICAL INSTRUCTIONS FOR 'suggestedFix' FIELD:**
+- This field MUST be a literal, unambiguous, and precise command for a non-intelligent text-replacement tool.
+- Good Example: "On line 28, replace '-gamepad1.left_stick_y ;' with '-gamepad1.left_stick_y;'."
+- Bad Example: "Fix the syntax error on line 28."
+- Good Example: "Delete lines 19 through 21."
+- Bad Example: "Remove the inefficient loop."
+- Good Example: "On line 14, change 'DcMotor.Direction.REVERSE' to 'DcMotor.Direction.FORWARD'."
+- Bad Example: "Invert the right motor direction."
+- Be extremely specific. The refactoring AI has no intelligence of its own and will only execute the literal text command you provide.
 
 Programming Language: {{programmingLanguage}}
 
@@ -72,3 +86,5 @@ const codeAnalysisFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
