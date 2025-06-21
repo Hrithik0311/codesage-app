@@ -136,9 +136,10 @@ export default function NotificationsClient() {
 
   // Effect 2: Fetch chats, which depends on teamMembers being populated.
   useEffect(() => {
-    if (!user || !database || !team) {
-        // Still waiting for team data from Effect 1
-        if (!authLoading && !team) setLoading(false); // Only stop loading if auth is done and we confirm no team
+    if (!user || !database || !teamMembers || teamMembers.length === 0) {
+        if (!authLoading && !team) {
+            setLoading(false);
+        }
         return;
     }
 
@@ -200,7 +201,7 @@ export default function NotificationsClient() {
     return () => {
         if (userChatsUnsubscribe) userChatsUnsubscribe();
     };
-  }, [user, team, teamMembers]);
+  }, [user, teamMembers]);
 
 
   useEffect(() => {
@@ -232,10 +233,18 @@ export default function NotificationsClient() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !activeChat || activeChat.id === 'codesage-ai' || activeChat.type === 'channel') return;
 
+    const currentUserMember = teamMembers.find(m => m.id === user.uid);
+    const senderName = currentUserMember?.name || user.displayName || user.email;
+
+    if (!senderName) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not identify sender name.' });
+        return;
+    }
+
     const messageData = {
         text: newMessage,
         senderId: user.uid,
-        senderName: user.displayName || user.email,
+        senderName: senderName,
         timestamp: serverTimestamp(),
     };
 
