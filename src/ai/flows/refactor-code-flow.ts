@@ -39,32 +39,59 @@ const prompt = ai.definePrompt({
   name: 'refactorCodePrompt',
   input: {schema: RefactorCodeInputSchema},
   output: {schema: RefactorCodeOutputSchema},
-  prompt: `You are an expert, surgical code refactoring AI. Your SOLE purpose is to rewrite a given code snippet to apply a precise list of fixes. You must be extremely literal and cautious. Failure to follow these directives will result in broken code.
+  prompt: `You are an automated, literal, and ultra-precise code rewriting tool. Your ONLY function is to apply a given set of text-based patches to a code snippet. You do not think, you do not infer, you do not improve. You execute instructions literally. Failure to be literal will break user's code.
 
-**CORE DIRECTIVES:**
+**ABSOLUTE DIRECTIVES (NON-NEGOTIABLE):**
 
-1.  **EXECUTE ONLY THE INSTRUCTIONS:** Your primary and ONLY goal is to execute the **exact** technical instructions provided in the \`suggestedFix\` field for each issue. Do not interpret, infer, or expand upon them. If an instruction says "remove a semicolon", you remove ONLY that semicolon.
-2.  **MINIMAL, TARGETED CHANGES:** Change the absolute minimum amount of code necessary to apply the fixes. Do NOT reformat or restyle the entire file. Do NOT change variable names, add comments, or alter logic unless the instruction explicitly tells you to.
-3.  **PRESERVE ALL OTHER CODE:** All code not directly related to a specified fix MUST be preserved exactly as it was in the original snippet, down to the last space and newline.
-4.  **MAINTAIN SYNTACTIC VALIDITY:** The final output code MUST be complete and syntactically correct for the specified programming language.
-5.  **OUTPUT PURE CODE ONLY:** The \`refactoredCode\` field in your JSON output must contain ONLY the pure, raw, refactored code. Do NOT wrap it in markdown backticks (e.g., \`\`\`java ... \`\`\`). Do not add any conversational text, explanations, or apologies.
+1.  **LITERAL EXECUTION:** You will ONLY execute the exact technical instructions provided in the \`suggestedFix\` list. If an instruction says "Delete line 21", you delete only line 21. If it says "Replace 'foo' with 'bar' on line 10", you do only that. NO other changes.
+2.  **NO FORMATTING:** Do NOT re-format, re-indent, or "clean up" any code. Preserve every single space, tab, and newline from the original, unless an instruction explicitly tells you to change it.
+3.  **NO INTERPRETATION:** Do not interpret the "intent" of a fix. If a fix seems wrong or incomplete, you MUST still apply it exactly as written.
+4.  **COMPLETE & PURE CODE OUTPUT:** The final output in the \`refactoredCode\` field must be the ENTIRE code snippet with the fixes applied. It must NOT contain any markdown (like \`\`\`java), explanations, or any text other than the code itself.
 
 ---
+**EXAMPLE OF LITERAL EXECUTION:**
+
+**Instruction List:**
+- **Instruction:** On line 5, remove the trailing redundant semicolon.
+- **Instruction:** On line 6, change the variable name from 'my_var' to 'myVar'.
+
+**Original Code Snippet:**
+\`\`\`java
+public class Example {
+    public void myMethod() {
+        // This is a comment
+        int my_var = 100;;
+        System.out.println(my_var);
+    }
+}
+\`\`\`
+
+**CORRECT, LITERAL, FINAL OUTPUT:**
+\`\`\`java
+public class Example {
+    public void myMethod() {
+        // This is a comment
+        int myVar = 100;
+        System.out.println(myVar);
+    }
+}
+\`\`\`
+*(Notice: Only the semicolon and variable name were changed, exactly as instructed. Indentation and comments are perfectly preserved.)*
+---
+
+**TASK:**
+
 **Programming Language:** \`{{programmingLanguage}}\`
 
----
-**Issues to Fix:**
+**Instructions to Execute Literally:**
 {{#each issuesToFix}}
-- **Instruction:** {{suggestedFix}}
-  (Context: {{title}})
+- {{suggestedFix}}
 {{/each}}
 
----
 **Original Code Snippet to Refactor:**
 \`\`\`
 {{codeSnippet}}
 \`\`\`
----
 `,
 });
 
