@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Zap, Brain, Search, Rocket, Users, Target, CheckCircle2, PartyPopper, Laptop, BarChartBig, Handshake, FileUp, Bug, Trophy, PlusCircle, Link as LinkIcon, AlertTriangle, Lightbulb,
+  Zap, Brain, Search, Rocket, Users, Target, CheckCircle2, PartyPopper, Laptop, BarChartBig, Handshake, FileUp, Bug, Trophy, PlusCircle, Link as LinkIcon, AlertTriangle, Lightbulb, LogIn, Shield,
 } from 'lucide-react';
 
 
@@ -157,7 +157,19 @@ const HomePageClient: React.FC = () => {
         router.push('/code-intelligence');
         return;
       case 'collaboration':
-        router.push('/collaboration');
+        const content = (
+          <div className="text-center space-y-6">
+            <Users className="w-16 h-16 text-accent mx-auto" />
+            <h3 className="text-2xl font-semibold font-headline text-foreground">Team Collaboration Hub</h3>
+            <p className="text-foreground/80 max-w-md mx-auto">
+              Create a secure workspace to build with your team, or join an existing project using a team PIN.
+            </p>
+          </div>
+        );
+        openModal('Welcome to the Hub', content, [
+          { text: 'Create New Team', action: createTeam, variant: 'outline', className: 'w-full sm:w-auto' },
+          { text: 'Join Existing Team', action: joinTeam, isPrimary: true, className: 'w-full sm:w-auto' },
+        ]);
         return;
     }
   };
@@ -165,53 +177,80 @@ const HomePageClient: React.FC = () => {
   const createTeam = () => {
     closeModal();
     const content = (
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold font-headline text-foreground">Create New Team</h3>
-        <form className="space-y-3">
-          <div><label htmlFor="teamName" className="block text-sm font-medium text-foreground/80 mb-1">Team Name</label><Input id="teamName" placeholder="Enter your team name" /></div>
-          <div><label htmlFor="teamNumber" className="block text-sm font-medium text-foreground/80 mb-1">Team Number (Optional)</label><Input id="teamNumber" placeholder="FTC Team #" /></div>
+      <div className="space-y-4 text-left">
+        <h3 className="text-xl font-semibold font-headline text-foreground flex items-center gap-2"><PlusCircle className="text-accent" /> Create a New Team</h3>
+        <p className="text-foreground/80">Fill in your team's details to generate a new workspace and a unique PIN for members to join.</p>
+        <form className="space-y-4 pt-2">
           <div>
-            <label htmlFor="teamRegion" className="block text-sm font-medium text-foreground/80 mb-1">Region</label>
-            <Select>
-              <SelectTrigger id="teamRegion"><SelectValue placeholder="Select your region" /></SelectTrigger>
-              <SelectContent>{["North America", "Europe", "Asia Pacific", "Other"].map(r => <SelectItem key={r} value={r.toLowerCase().replace(' ','-')}>{r}</SelectItem>)}</SelectContent>
-            </Select>
+            <label htmlFor="teamName" className="block text-sm font-medium text-foreground/80 mb-1">Team Name</label>
+            <Input id="teamName" placeholder="e.g., The RoboKnights" />
+          </div>
+          <div>
+            <label htmlFor="teamNumber" className="block text-sm font-medium text-foreground/80 mb-1">FTC Team Number (Optional)</label>
+            <Input id="teamNumber" type="number" placeholder="e.g., 12345" />
           </div>
         </form>
       </div>
     );
-    openModal('Create Team', content, [
-      { text: 'Cancel', action: closeModal, variant: 'outline' },
-      { text: 'Create Team', action: finalizeTeamCreation, isPrimary: true },
+    openModal('Create Team Workspace', content, [
+      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
+      { text: 'Generate Team PIN', action: finalizeTeamCreation, isPrimary: true },
     ]);
   };
 
   const joinTeam = () => {
     closeModal();
     const content = (
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold font-headline text-foreground">Join Existing Team</h3>
-        <p className="text-foreground/80">Enter the team code provided by your team leader:</p>
-        <div><Input id="teamCode" placeholder="Enter team code (e.g., ABC-123-XYZ)" className="text-center text-lg tracking-wider" /></div>
+      <div className="space-y-4 text-left">
+        <h3 className="text-xl font-semibold font-headline text-foreground flex items-center gap-2"><LogIn className="text-accent" /> Join an Existing Team</h3>
+        <p className="text-foreground/80">Enter the 6-digit PIN provided by your team lead to get access to the workspace.</p>
+        <div className="pt-2">
+          <label htmlFor="teamCode" className="block text-sm font-medium text-foreground/80 mb-1">Team PIN</label>
+          <Input id="teamCode" placeholder="______" className="text-center text-2xl font-mono tracking-[0.5em]" maxLength={6} />
+        </div>
       </div>
     );
-    openModal('Join Team', content, [
-      { text: 'Cancel', action: closeModal, variant: 'outline' },
+    openModal('Join Team Workspace', content, [
+      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
       { text: 'Join Team', action: finalizeTeamJoin, isPrimary: true },
     ]);
   };
 
   const finalizeTeamCreation = () => {
     closeModal();
-    showLoadingScreen('Creating your team workspace...', () => {
-      toast({ title: "🎉 Team created successfully!", description: "Team code: ABC-123-XYZ. Share this with your team members."});
+    const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+    showLoadingScreen('Generating your secure workspace...', () => {
+      const content = (
+        <div className="text-center space-y-4">
+          <Shield className="w-16 h-16 text-green-500 mx-auto" />
+          <h3 className="text-2xl font-semibold font-headline text-foreground">Workspace Created!</h3>
+          <p className="text-foreground/80">Share this secure PIN with your team members so they can join.</p>
+          <div className="bg-muted p-4 rounded-lg">
+            <p className="text-sm text-muted-foreground">Your Team PIN is:</p>
+            <p className="text-4xl font-bold font-mono tracking-widest text-primary">{newPin}</p>
+          </div>
+          <p className="text-xs text-muted-foreground pt-2">You will be redirected to your new collaboration hub.</p>
+        </div>
+      );
+      openModal('Team Created Successfully', content, [
+        { text: 'Go to Collaboration Hub', action: () => {
+            closeModal();
+            showLoadingScreen('Loading Collaboration Hub...', () => {
+              router.push('/collaboration');
+            });
+        }, isPrimary: true },
+      ]);
     });
   };
 
   const finalizeTeamJoin = () => {
     closeModal();
-    showLoadingScreen('Joining team workspace...', () => {
-      toast({ title: "🤝 Successfully joined Robo Warriors!", description: "Welcome to the team." });
+    showLoadingScreen('Verifying PIN and joining workspace...', () => {
+      toast({
+        title: "✅ Welcome to the Team!",
+        description: "You have successfully joined the workspace.",
+      });
+      router.push('/collaboration');
     });
   };
 
