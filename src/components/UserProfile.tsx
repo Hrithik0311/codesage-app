@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -16,12 +15,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, LogOut, User, ClipboardCopy } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
@@ -30,6 +31,16 @@ export function UserProfile() {
     } catch (error) {
       console.error('Logout failed', error);
     }
+  };
+
+  const handleCopyUid = (e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent menu from closing
+    if (!user) return;
+    navigator.clipboard.writeText(user.uid);
+    toast({
+      title: 'Copied!',
+      description: 'Your Member ID has been copied.',
+    });
   };
 
   if (loading) {
@@ -58,7 +69,7 @@ export function UserProfile() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.displayName || 'User'}</p>
@@ -72,6 +83,19 @@ export function UserProfile() {
                 <span>Dashboard</span>
             </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+         <DropdownMenuLabel className="font-normal !py-0 !px-2">
+            <div className="flex flex-col space-y-1 py-1">
+                <div className="flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground">Member ID</p>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopyUid}>
+                        <ClipboardCopy className="h-3 w-3" />
+                         <span className="sr-only">Copy Member ID</span>
+                    </Button>
+                </div>
+                <p className="font-mono text-xs text-muted-foreground truncate">{user.uid}</p>
+            </div>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
           <LogOut className="mr-2 h-4 w-4" />

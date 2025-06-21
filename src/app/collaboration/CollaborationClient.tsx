@@ -26,13 +26,6 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-const teamMembers = [
-  { name: 'Alex Johnson', role: 'Team Lead', status: 'Online' },
-  { name: 'Maria Garcia', role: 'Lead Programmer', status: 'Online' },
-  { name: 'Sam Lee', role: 'Builder & Designer', status: 'Idle' },
-  { name: 'Casey Smith', role: 'Driver', status: 'Offline' },
-];
-
 const initialCommits = [
   { hash: 'a1b2c3d', message: 'Feat: Implement new intake mechanism control', author: 'Maria Garcia', time: '2 hours ago' },
   { hash: 'e4f5g6h', message: 'Fix: Corrected autonomous pathing error', author: 'Maria Garcia', time: '5 hours ago' },
@@ -69,7 +62,7 @@ const initialDeploymentSteps = [
 
 const createTeamSchema = z.object({
   teamName: z.string().min(3, "Team name must be at least 3 characters."),
-  teamMembers: z.string().min(3, "Please list at least one member."),
+  memberIds: z.string().min(1, "Please enter at least one Member ID."),
   teamCode: z.string().min(4, "Team code must be at least 4 characters.").regex(/^[a-zA-Z0-9-]+$/, "Team code can only contain letters, numbers, and dashes."),
   pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits.").regex(/^\d{4,6}$/, "PIN must be a 4-6 digit number."),
 });
@@ -93,13 +86,14 @@ export default function CollaborationClient() {
     const router = useRouter();
 
     const [team, setTeam] = useState<any | null>(null);
+    const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [isLoadingTeam, setIsLoadingTeam] = useState(true);
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
         resolver: zodResolver(createTeamSchema),
-        defaultValues: { teamName: "", teamMembers: "", teamCode: "", pin: "" },
+        defaultValues: { teamName: "", memberIds: "", teamCode: "", pin: "" },
     });
 
     const joinForm = useForm<z.infer<typeof joinTeamSchema>>({
@@ -136,6 +130,17 @@ export default function CollaborationClient() {
         }
       }, [user, loading, router, toast]);
 
+    useEffect(() => {
+        if (team?.memberIds) {
+            const members = team.memberIds.map((id: string) => ({
+                name: `User...${id.substring(id.length - 6)}`,
+                role: id === team.creatorUid ? 'Team Lead' : 'Member',
+                status: 'Online' // This is placeholder status
+            }));
+            setTeamMembers(members);
+        }
+    }, [team]);
+
     const handleCreateTeam = async (values: z.infer<typeof createTeamSchema>) => {
         if (!user || !database) return;
         
@@ -146,15 +151,21 @@ export default function CollaborationClient() {
             return;
         }
 
+        const creatorId = user.uid;
+        const memberIdArray = values.memberIds.split(',').map(id => id.trim()).filter(id => id);
+        if (!memberIdArray.includes(creatorId)) {
+            memberIdArray.push(creatorId);
+        }
+
         const newTeam = {
             name: values.teamName,
-            members: values.teamMembers,
+            memberIds: memberIdArray,
             pin: values.pin,
             creatorUid: user.uid,
         };
 
         await set(teamRef, newTeam);
-        const userTeamRef = dbRef(database, 'users/' + user.uid);
+        const userTeamRef = dbRef(database, `users/${user.uid}`);
         await set(userTeamRef, { teamCode: values.teamCode });
 
         setTeam({ id: values.teamCode, ...newTeam });
@@ -183,7 +194,7 @@ export default function CollaborationClient() {
             return;
         }
 
-        const userTeamRef = dbRef(database, 'users/' + user.uid);
+        const userTeamRef = dbRef(database, `users/${user.uid}`);
         await set(userTeamRef, { teamCode: values.teamCode });
 
         setTeam({ id: values.teamCode, ...teamData });
@@ -285,7 +296,7 @@ export default function CollaborationClient() {
                                 <Form {...createForm}>
                                     <form onSubmit={createForm.handleSubmit(handleCreateTeam)} className="space-y-4 py-4">
                                         <FormField control={createForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                        <FormField control={createForm.control} name="teamMembers" render={({ field }) => (<FormItem><FormLabel>Team Members</FormLabel><FormControl><Textarea placeholder="List the names of your founding members" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={createForm.control} name="memberIds" render={({ field }) => (<FormItem><FormLabel>Member IDs</FormLabel><FormControl><Textarea placeholder="Enter comma-separated Member IDs of your teammates" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={createForm.control} name="teamCode" render={({ field }) => (<FormItem><FormLabel>Team Code</FormLabel><FormControl><Input placeholder="Create a unique code for your team" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <FormField control={createForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <DialogFooter>
