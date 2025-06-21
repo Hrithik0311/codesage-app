@@ -8,7 +8,9 @@ import LessonNavigation from './LessonNavigation';
 import LessonDisplay from './LessonDisplay';
 import { Zap, BookOpen } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggleButton } from '@/components/ThemeToggleButton'; // Added import
+import { ThemeToggleButton } from '@/components/ThemeToggleButton';
+import { useAuth } from '@/context/AuthContext';
+import { UserProfile } from '../UserProfile';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
@@ -18,7 +20,14 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const { user, loading } = useAuth();
 
+  useEffect(() => {
+    if (!loading && !user) {
+        router.push('/auth');
+    }
+  }, [user, loading, router]);
+  
   useEffect(() => {
     const lessonIdFromHash = window.location.hash.substring(1);
     if (lessonIdFromHash && lessons.find(l => l.id === lessonIdFromHash)) {
@@ -54,6 +63,14 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
 
   const activeLesson = lessons.find(lesson => lesson.id === activeLessonId);
 
+  if (loading || !user) {
+    return (
+        <div className="flex min-h-screen w-full items-center justify-center bg-background">
+            <div className="loading-spinner"></div>
+        </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background/70 backdrop-blur-xl text-foreground">
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-lg shadow-xl border-b border-border/30">
@@ -64,14 +81,17 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
             </div>
             <span className="text-xl font-headline font-bold">CodeSage</span>
             </Link>
-          <div className="flex items-center gap-4"> {/* Increased gap */}
+          <div className="flex items-center gap-4"> 
             <div className="flex items-center gap-2">
               <BookOpen className="text-accent" size={28}/>
               <h1 className="text-xl md:text-2xl font-bold font-headline text-foreground">
                 FTC Java Programming
               </h1>
             </div>
-            <ThemeToggleButton /> {/* Added theme toggle button */}
+            <div className="flex items-center gap-2">
+                <ThemeToggleButton />
+                <UserProfile />
+            </div>
           </div>
         </div>
       </header>

@@ -3,13 +3,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, ShieldCheck, User } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ShieldCheck, User } from 'lucide-react';
 import Link from 'next/link';
+import { UserProfile } from '@/components/UserProfile';
 
 export default function DashboardClient() {
   const { user, loading } = useAuth();
@@ -21,39 +20,12 @@ export default function DashboardClient() {
     }
   }, [user, loading, router]);
 
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      router.push('/');
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
-
-  if (loading) {
+  if (loading || !user) {
     return (
-        <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-md shadow-2xl border-border/50 mt-16">
-            <CardHeader className="flex flex-row items-center gap-4">
-                <Skeleton className="h-16 w-16 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-            </CardContent>
-            <CardFooter className="flex justify-between">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-24" />
-            </CardFooter>
-        </Card>
+        <div className="flex min-h-screen w-full items-center justify-center bg-background">
+            <div className="loading-spinner"></div>
+        </div>
     );
-  }
-
-  if (!user) {
-    return null; // Redirecting
   }
 
   return (
@@ -65,7 +37,7 @@ export default function DashboardClient() {
                 </div>
                 <span className="text-xl font-headline font-bold">CodeSage</span>
             </Link>
-            <Button variant="ghost" onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
+            <UserProfile />
         </header>
 
         <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-md shadow-2xl border-border/50 mt-16">
@@ -81,14 +53,14 @@ export default function DashboardClient() {
                     </Avatar>
                     <div>
                         <CardTitle className="text-2xl font-headline">
-                            {user.displayName || 'Welcome'}
+                            {user.displayName || 'Welcome Back!'}
                         </CardTitle>
                         <CardDescription>{user.email}</CardDescription>
                     </div>
                 </div>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground">This is your personal dashboard. More features coming soon!</p>
+                <p className="text-muted-foreground">This is your personal dashboard. Explore the platform features below.</p>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                 <Button variant="outline" asChild>

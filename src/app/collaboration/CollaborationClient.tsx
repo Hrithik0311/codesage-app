@@ -16,6 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Settings, UploadCloud, Share2, Circle, GitCommit, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { UserProfile } from '@/components/UserProfile';
 
 const teamMembers = [
   { name: 'Alex Johnson', role: 'Team Lead', status: 'Online' },
@@ -97,6 +100,14 @@ export default function CollaborationClient() {
     const [deploymentSteps, setDeploymentSteps] = useState(initialDeploymentSteps);
     const [isDeploying, setIsDeploying] = useState(false);
     const { toast } = useToast();
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/auth');
+        }
+    }, [user, loading, router]);
 
     const handleOpenCommitModal = () => {
         setIsCommitModalOpen(true);
@@ -146,6 +157,14 @@ export default function CollaborationClient() {
         runStep(0);
     };
 
+    if (loading || !user) {
+        return (
+            <div className="flex min-h-screen w-full items-center justify-center bg-background">
+                <div className="loading-spinner"></div>
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="min-h-screen flex flex-col text-foreground">
@@ -161,7 +180,10 @@ export default function CollaborationClient() {
                             <h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">
                                 Team Collaboration Hub
                             </h1>
-                            <ThemeToggleButton />
+                             <div className="flex items-center gap-2">
+                                <ThemeToggleButton />
+                                <UserProfile />
+                            </div>
                         </div>
                     </div>
                 </header>

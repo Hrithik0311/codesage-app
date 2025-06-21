@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,9 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-completion';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { UserProfile } from '@/components/UserProfile';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -92,6 +95,14 @@ export default function CodeIntelligenceClient() {
     const [analysisResults, setAnalysisResults] = useState<Omit<CodeAnalysisOutput, 'refactoredCode'> | null>(null);
     const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
     const { toast } = useToast();
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/auth');
+        }
+    }, [user, loading, router]);
 
     const handleCodeChange = (newCode: string) => {
         setCode(newCode);
@@ -164,6 +175,14 @@ export default function CodeIntelligenceClient() {
         });
     };
 
+    if (loading || !user) {
+        return (
+            <div className="flex min-h-screen w-full items-center justify-center bg-background">
+                <div className="loading-spinner"></div>
+            </div>
+        );
+    }
+
     const hasIssues = analysisResults && (analysisResults.performance.length > 0 || analysisResults.bugs.length > 0 || analysisResults.suggestions.length > 0);
 
     return (
@@ -180,7 +199,10 @@ export default function CodeIntelligenceClient() {
                         <h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">
                             Code Intelligence Suite
                         </h1>
-                        <ThemeToggleButton />
+                        <div className="flex items-center gap-2">
+                            <ThemeToggleButton />
+                            <UserProfile />
+                        </div>
                     </div>
                 </div>
             </header>
