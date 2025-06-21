@@ -8,8 +8,7 @@ import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
@@ -43,7 +42,7 @@ const GoogleIcon = () => (
 export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
-  const [authState, setAuthState] = useState<'checkingRedirect' | 'submitting' | 'idle'>('checkingRedirect');
+  const [authState, setAuthState] = useState<'submitting' | 'idle'>('idle');
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -69,36 +68,12 @@ export default function AuthClient() {
   };
 
   const handleAuthError = (error: any) => {
-     if (error.code === 'auth/no-redirect-operation') {
-        return;
-    }
     toast({
       title: 'Authentication Failed',
       description: error.message || 'An unexpected error occurred.',
       variant: 'destructive',
     });
   };
-
-  useEffect(() => {
-    const checkRedirectResult = async () => {
-      if (!auth) {
-        setAuthState('idle');
-        return;
-      }
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          handleAuthSuccess(result);
-        }
-      } catch (error) {
-        handleAuthError(error);
-      } finally {
-        setAuthState('idle');
-      }
-    };
-
-    checkRedirectResult();
-  }, []);
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     if (!auth) {
@@ -140,9 +115,11 @@ export default function AuthClient() {
     setAuthState('submitting');
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      handleAuthSuccess(result);
     } catch (error) {
       handleAuthError(error);
+    } finally {
       setAuthState('idle');
     }
   };
