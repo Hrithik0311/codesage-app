@@ -180,7 +180,7 @@ export default function CodeIntelligenceClient() {
 
         const issuesToFix = allIssuesWithIds
             .filter(issue => selectedIssues.includes(issue.id))
-            .map(({ id, ...rest }) => rest);
+            .map(issue => issue.title);
 
         try {
             const result = await refactorCode({

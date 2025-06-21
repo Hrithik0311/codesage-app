@@ -12,15 +12,10 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const IssueToFixSchema = z.object({
-  title: z.string().describe('The title of the issue to fix.'),
-  details: z.string().describe('The detailed explanation of the issue to fix.'),
-});
-
 const RefactorCodeInputSchema = z.object({
   codeSnippet: z.string().describe('The code snippet to refactor.'),
   programmingLanguage: z.string().describe('The programming language of the code snippet.'),
-  issuesToFix: z.array(IssueToFixSchema).describe('A list of specific issues that should be fixed in the code.'),
+  issuesToFix: z.array(z.string()).describe('A list of the titles of specific issues that should be fixed in the code.'),
 });
 export type RefactorCodeInput = z.infer<typeof RefactorCodeInputSchema>;
 
@@ -38,23 +33,23 @@ const prompt = ai.definePrompt({
   name: 'refactorCodePrompt',
   input: {schema: RefactorCodeInputSchema},
   output: {schema: RefactorCodeOutputSchema},
-  prompt: `You are an expert programmer tasked with refactoring a code snippet. Your goal is to apply ONLY the specific fixes requested and return the complete, corrected code.
+  prompt: `You are an expert, precise, and literal-minded programmer. Your sole task is to refactor a given code snippet to fix a specific list of issues.
 
 **PRIMARY DIRECTIVE:**
 1.  Read the "Original Code Snippet".
-2.  Read the "List of Issues to Fix".
-3.  Rewrite the entire code snippet, applying ONLY the fixes described in the list.
-4.  DO NOT make any other changes. Do not add new features, do not reformat unrelated code, and do not fix issues that were not in the list.
-5.  The output in the \`refactoredCode\` field must be the complete, pure code. Do not include any explanations, markdown like \`\`\`java, or any other text.
+2.  Read the "List of Issue Titles to Fix". These are concise descriptions of problems.
+3.  Rewrite the entire code snippet, applying ONLY the fixes for the issues listed.
+4.  **DO NOT** make any other changes. Do not add features, do not change formatting, do not alter logic unrelated to the fix. Your changes must be surgical.
+5.  Return the complete, pure code in the \`refactoredCode\` field. Do not add any explanations, notes, or markdown formatting like \`\`\`java.
 
 ---
 **TASK:**
 
 **Programming Language:** \`{{programmingLanguage}}\`
 
-**List of Issues to Fix:**
+**List of Issue Titles to Fix:**
 {{#each issuesToFix}}
-- **{{title}}**: {{details}}
+- {{this}}
 {{/each}}
 
 **Original Code Snippet to Refactor:**
