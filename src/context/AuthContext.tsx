@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -17,19 +18,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Effect to handle basic auth state changes
   useEffect(() => {
     if (!auth) {
       setLoading(false);
       setUser(null);
       return;
     }
-
+    // Listen for changes in authentication state
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+    });
 
-      if (currentUser && database) {
-        const userStatusDatabaseRef = dbRef(database, `/status/${currentUser.uid}`);
+    // Cleanup the auth listener when the component unmounts
+    return () => unsubscribe();
+  }, []);
+
+  // Effect to handle user presence, runs only when the user object changes
+  useEffect(() => {
+    if (user && database) {
+        const userStatusDatabaseRef = dbRef(database, `/status/${user.uid}`);
         const connectedRef = dbRef(database, '.info/connected');
 
         let idleTimer: NodeJS.Timeout;
@@ -62,7 +71,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         });
 
-        // Return a cleanup function that will be called when the user logs out or the component unmounts
+        // This is the cleanup function for THIS effect.
+        // It runs when the user logs out (user becomes null) or the component unmounts.
         return () => {
             connectedSub(); // Detach the '.info/connected' listener
             window.removeEventListener('mousemove', resetIdleTimer);
@@ -78,10 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         };
       }
-    });
-
-    return () => unsubscribe();
-  }, []);
+  }, [user]); // Re-run this effect whenever the user object changes
 
   const value = { user, loading };
 
