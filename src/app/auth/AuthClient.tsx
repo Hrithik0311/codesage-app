@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +8,8 @@ import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
@@ -45,7 +46,7 @@ export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [authState, setAuthState] = useState<'submitting' | 'idle'>('idle');
-  const [isCheckingRedirect, setIsCheckingRedirect] = useState(false);
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -57,25 +58,16 @@ export default function AuthClient() {
     defaultValues: { email: '', password: '' },
   });
 
-  const showFirebaseNotConfiguredToast = () => {
-    toast({
-      title: 'Configuration Error',
-      description: 'Firebase is not configured. Please check your setup.',
-      variant: 'destructive',
-    });
-  };
-
-  const handleAuthSuccess = (userCredential: UserCredential) => {
+  const handleAuthSuccess = useCallback((userCredential: UserCredential) => {
     toast({ title: 'Success!', description: `Welcome, ${userCredential.user.email}` });
     router.push('/dashboard');
-  };
+  }, [router, toast]);
 
-  const handleAuthError = (error: any) => {
-    // Specific check for unauthorized domain to give a more helpful message
+  const handleAuthError = useCallback((error: any) => {
     if (error.code === 'auth/unauthorized-domain') {
         toast({
           title: 'Domain Not Authorized',
-          description: "This app's domain is not authorized for OAuth operations. Please check your Firebase console settings.",
+          description: "This app's domain is not authorized. Please check your Firebase and Google Cloud console settings.",
           variant: 'destructive',
           duration: 9000,
         });
@@ -86,6 +78,35 @@ export default function AuthClient() {
           variant: 'destructive',
         });
     }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!auth) {
+      setIsCheckingRedirect(false);
+      return;
+    }
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          handleAuthSuccess(result);
+        }
+      })
+      .catch((error) => {
+        handleAuthError(error);
+      })
+      .finally(() => {
+        setIsCheckingRedirect(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const showFirebaseNotConfiguredToast = () => {
+    toast({
+      title: 'Configuration Error',
+      description: 'Firebase is not configured. Please check your setup.',
+      variant: 'destructive',
+    });
   };
 
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
@@ -127,16 +148,10 @@ export default function AuthClient() {
     }
     setAuthState('submitting');
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
     try {
-      const userCredential = await signInWithPopup(auth, provider);
-      handleAuthSuccess(userCredential);
+      await signInWithRedirect(auth, provider);
     } catch (error) {
       handleAuthError(error);
-    } finally {
       setAuthState('idle');
     }
   };
