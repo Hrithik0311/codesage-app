@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, equalTo } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
@@ -24,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Bell, Users, Search, Bot, SendHorizonal, SendHorizontal } from 'lucide-react';
+import { MessageSquare, Bell, Users, Search, SendHorizontal } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
@@ -62,11 +62,6 @@ const aiChat: Chat = {
     type: 'channel'
 };
 
-const aiMessages: Message[] = [
-    { key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Welcome! I'm here to help you with code analysis, suggestions, and more. What can I help you with today?", timestamp: Date.now() - 10000 },
-];
-
-
 export default function NotificationsClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -82,78 +77,74 @@ export default function NotificationsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth');
-    }
-  }, [user, authLoading, router]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
 
-  // Effect 1: Fetch team and member data.
+  // Effect 1: Fetch team data. This is the first step after auth is confirmed.
   useEffect(() => {
     if (!user || !database) return;
-
-    let teamUnsubscribe: any;
-    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
     
-    get(userTeamRef).then((teamCodeSnap) => {
-        if (!teamCodeSnap.exists()) {
+    setIsLoadingTeam(true);
+    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+    let teamUnsubscribe: (() => void) | null = null;
+    
+    get(userTeamRef).then((snapshot) => {
+        if (!snapshot.exists()) {
             setTeam(null);
+            setTeamMembers([]);
+            setIsLoadingTeam(false);
             return;
         }
-        const teamCode = teamCodeSnap.val();
+        const teamCode = snapshot.val();
         const teamDataRef = dbRef(database, `teams/${teamCode}`);
         
-        teamUnsubscribe = onValue(teamDataRef, (snapshot) => {
-            if (!snapshot.exists()) {
-                setTeam(null);
-                setTeamMembers([]);
-                return;
-            }
-            const teamData = snapshot.val();
-            setTeam({ id: teamCode, ...teamData });
-            
-            const members: TeamMember[] = [];
-            if (teamData.roles) {
-                for (const role in teamData.roles) {
-                    for (const id in teamData.roles[role]) {
-                        members.push({ id, name: teamData.roles[role][id], role });
+        teamUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
+            if (teamSnapshot.exists()) {
+                const teamData = teamSnapshot.val();
+                setTeam({ id: teamCode, ...teamData });
+                
+                const members: TeamMember[] = [];
+                if (teamData.roles) {
+                    for (const role in teamData.roles) {
+                        for (const id in teamData.roles[role]) {
+                            members.push({ id, name: teamData.roles[role][id], role });
+                        }
                     }
                 }
+                setTeamMembers(members);
+            } else {
+                setTeam(null);
+                setTeamMembers([]);
             }
-            setTeamMembers(members);
+            setIsLoadingTeam(false);
+        }, (error) => {
+            console.error("Error fetching team data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+            setIsLoadingTeam(false);
         });
     }).catch(error => {
-        console.error("Error fetching team code:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load team information.' });
-        setLoading(false);
+        console.error("Error fetching user team data:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+        setIsLoadingTeam(false);
     });
 
     return () => {
         if (teamUnsubscribe) teamUnsubscribe();
     };
-  }, [user, toast]);
+  }, [user, database, toast]);
 
-  // Effect 2: Fetch chats, which depends on teamMembers being populated.
+  // Effect 2: Fetch chats. This runs only after team loading is complete.
   useEffect(() => {
-    if (!user || !database || authLoading) return;
-    
-    if (authLoading) return;
+    if (isLoadingTeam || !user || !database) return;
 
-    // If not in a team, just show the AI chat and stop loading.
-    if (!team && !loading) {
+    if (!team) {
         setChats([aiChat]);
-        setActiveChat(aiChat);
+        if (!activeChat) setActiveChat(aiChat);
         setLoading(false);
         return;
     }
 
-    // Wait for team members to be loaded before fetching chats
-    if (team && teamMembers.length === 0) return;
-
-    let userChatsUnsubscribe: any;
     const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-
-    userChatsUnsubscribe = onValue(userChatsRef, async (snapshot) => {
+    const unsubscribe = onValue(userChatsRef, async (snapshot) => {
         const chatIds = snapshot.val() || {};
         const chatPromises = Object.keys(chatIds).map(async (chatId) => {
             const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
@@ -166,12 +157,13 @@ export default function NotificationsClient() {
             if (chatData.type === 'dm') {
                 const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
                 if (otherUserId) {
+                    // teamMembers is guaranteed to be available here because of the isLoadingTeam check
                     const member = teamMembers.find(m => m.id === otherUserId);
-                    chatName = member?.name || "Unknown User";
+                    chatName = member?.name || 'Unknown User';
                 } else {
                     chatName = "Direct Message"; 
                 }
-                 chatHint = 'person';
+                chatHint = 'person';
             }
 
             return {
@@ -199,19 +191,20 @@ export default function NotificationsClient() {
         setLoading(false);
     });
 
-    return () => {
-        if (userChatsUnsubscribe) userChatsUnsubscribe();
-    };
-  }, [user, authLoading, team, teamMembers, toast, activeChat, loading]);
+    return () => unsubscribe();
+  }, [user, database, isLoadingTeam, team, teamMembers, activeChat, toast]);
 
 
+  // Effect 3: Fetch messages for the active chat
   useEffect(() => {
     if (!activeChat || !database) {
-        setMessages(activeChat?.id === 'codesage-ai' ? aiMessages : []);
+        setMessages([]);
         return;
     };
     if (activeChat.id === 'codesage-ai') {
-        setMessages(aiMessages);
+        setMessages([
+          { key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Welcome! I'm here to help you with code analysis, suggestions, and more. What can I help you with today?", timestamp: Date.now() - 10000 },
+        ]);
         return;
     }
 
@@ -226,14 +219,27 @@ export default function NotificationsClient() {
 
     return () => unsubscribe();
   }, [activeChat, database]);
+  
+  // Effect 4: Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth');
+    }
+  }, [user, authLoading, router]);
 
+  // Effect 5: Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !activeChat || activeChat.id === team?.announcementsChatId) return;
+    if (!newMessage.trim() || !user || !activeChat) return;
 
+    if (activeChat.id === team?.announcementsChatId && team.creatorUid !== user.uid) {
+        toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only the team creator can send announcements.' });
+        return;
+    }
+    
     const currentUserMember = teamMembers.find(m => m.id === user.uid);
     const senderName = currentUserMember?.name || user.displayName || user.email?.split('@')[0] || 'Anonymous';
 
@@ -245,13 +251,13 @@ export default function NotificationsClient() {
     };
 
     if (activeChat.id === 'codesage-ai') {
-        const userMessage = { key: Date.now().toString(), ...messageData, timestamp: Date.now() };
-        const aiResponse = {
+        const userMessage: Message = { key: Date.now().toString(), ...messageData, timestamp: Date.now() };
+        const aiResponse: Message = {
             key: (Date.now() + 1).toString(),
             senderId: 'ai',
             senderName: 'CodeSage AI',
             text: `I've received your message: "${newMessage}". I'm still under development and can't process requests yet.`,
-            timestamp: Date.now()
+            timestamp: Date.now() + 500
         };
         setMessages(prev => [...prev, userMessage]);
         setNewMessage("");
@@ -269,7 +275,7 @@ export default function NotificationsClient() {
   };
 
   const handleStartChat = async (member: TeamMember) => {
-      if (!user || !database) return;
+      if (!user || !database || !team) return;
 
       const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
       if (existingDm) {
@@ -293,21 +299,11 @@ export default function NotificationsClient() {
       };
       await set(newChatRef, chatData);
       
-      const updates: { [key: string]: any } = {};
+      const updates: { [key:string]: any } = {};
       updates[`/users/${user.uid}/chats/${newChatId}`] = true;
       updates[`/users/${member.id}/chats/${newChatId}`] = true;
       await update(dbRef(database), updates);
-
-      const newChat: Chat = {
-          id: newChatId,
-          name: member.name,
-          avatar: 'https://placehold.co/40x40.png',
-          hint: 'person',
-          type: 'dm',
-          members: chatData.metadata.members
-      }
-      setChats(prev => [...prev, newChat]);
-      setActiveChat(newChat);
+      
       setSearchTerm("");
   };
 
@@ -330,8 +326,16 @@ export default function NotificationsClient() {
     );
   }
   
-  if (!team) {
-    return <div className="flex items-center justify-center h-screen w-full p-4 text-center">You are not part of a team. Please join or create one in the Collaboration Hub.</div>
+  if (!team && !isLoadingTeam) {
+    return (
+        <div className="w-full min-h-screen p-4 flex flex-col items-center justify-center text-center">
+            <h2 className="text-2xl font-bold font-headline mb-2">Collaboration Hub Not Found</h2>
+            <p className="max-w-md text-muted-foreground mb-6">
+                You are not part of a team yet. Please join an existing team or create a new one to access chat and other collaborative features.
+            </p>
+            <Button onClick={() => router.push('/collaboration')}>Go to Collaboration Hub</Button>
+        </div>
+    )
   }
 
   const renderMessages = () => {
@@ -349,7 +353,7 @@ export default function NotificationsClient() {
          <div key={msg.key} className={`flex items-start gap-4 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
             {msg.senderId !== user?.uid && (
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={activeChat?.avatar} data-ai-hint={activeChat?.hint} />
+                    <AvatarImage src={'https://placehold.co/40x40.png'} data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} />
                     <AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback>
                 </Avatar>
             )}
@@ -365,6 +369,14 @@ export default function NotificationsClient() {
         </div>
     ));
   }
+
+  const isMessageInputDisabled = !activeChat || (activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid);
+  const messageInputPlaceholder =
+      !activeChat ? "Select a chat"
+    : activeChat.id === 'codesage-ai' ? "Message CodeSage AI..."
+    : activeChat.id === team?.announcementsChatId && team.creatorUid !== user.uid ? "Only the team creator can post here."
+    : `Message ${activeChat.name}`;
+
 
   return (
     <SidebarProvider defaultOpen>
@@ -430,7 +442,6 @@ export default function NotificationsClient() {
                                             <Avatar className="h-9 w-9">
                                                 <AvatarImage src={dm.avatar} data-ai-hint={dm.hint} />
                                                 <AvatarFallback>{dm.name.substring(0, 1)}</AvatarFallback>
-                                                {/* Presence indicator can be added here */}
                                             </Avatar>
                                             <span className="font-semibold">{dm.name}</span>
                                         </SidebarMenuButton>
@@ -470,18 +481,13 @@ export default function NotificationsClient() {
                     <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                         <div className="relative">
                             <Input 
-                                placeholder={
-                                    activeChat?.id === team?.announcementsChatId ? "You cannot send messages here."
-                                    : activeChat?.id === 'codesage-ai' ? "Message CodeSage AI..."
-                                    : activeChat ? `Message ${activeChat.name}`
-                                    : "Select a chat"
-                                }
+                                placeholder={messageInputPlaceholder}
                                 className="h-12 pr-12" 
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                disabled={!activeChat || activeChat.id === team?.announcementsChatId}
+                                disabled={isMessageInputDisabled}
                             />
-                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || !activeChat || activeChat.id === team?.announcementsChatId}>
+                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}>
                                 <SendHorizontal className="h-5 w-5"/>
                             </Button>
                         </div>
