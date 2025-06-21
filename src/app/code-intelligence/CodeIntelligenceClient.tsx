@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-completion';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -63,43 +66,66 @@ const AnalysisResult = ({ icon: Icon, title, description, colorClass, items }) =
         </CardHeader>
         <CardContent>
             <p className="text-foreground/80 mb-4">{description}</p>
-            <Accordion type="single" collapsible className="w-full space-y-2">
-                {items.map((item, index) => (
-                     <AccordionItem key={index} value={`item-${index}`} className="bg-muted/30 border-border/50 rounded-md">
-                        <AccordionTrigger className="hover:no-underline px-4 text-left">{item.title}</AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4">
-                            <p className="text-foreground/90">{item.details}</p>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))}
-            </Accordion>
+            {items && items.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full space-y-2">
+                    {items.map((item, index) => (
+                         <AccordionItem key={index} value={`item-${index}`} className="bg-muted/30 border-border/50 rounded-md">
+                            <AccordionTrigger className="hover:no-underline px-4 text-left font-semibold">{item.title}</AccordionTrigger>
+                            <AccordionContent className="px-4 pb-4">
+                                <p className="text-foreground/90 whitespace-pre-wrap">{item.details}</p>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            ) : (
+                <p className="text-foreground/70 text-center py-4">No issues found in this category.</p>
+            )}
         </CardContent>
     </Card>
 );
 
 export default function CodeIntelligenceClient() {
     const [code, setCode] = useState(sampleCode);
+    const [language, setLanguage] = useState('java');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisResults, setAnalysisResults] = useState(null);
+    const [analysisResults, setAnalysisResults] = useState<CodeAnalysisOutput | null>(null);
+    const { toast } = useToast();
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
+        if (!code.trim()) {
+            toast({
+                title: "No Code Provided",
+                description: "Please enter some code to analyze.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsAnalyzing(true);
         setAnalysisResults(null);
-        setTimeout(() => {
-            setAnalysisResults({
-                performance: [
-                    { title: 'Inefficient Loop', details: 'The for-loop in `runOpMode` runs 100 times during initialization, which could slow down OpMode start time. Consider moving it or removing if unnecessary.' },
-                    { title: 'Telemetry Update Frequency', details: '`telemetry.update()` is called on every loop cycle. For high-frequency loops, consider updating telemetry less frequently to reduce CPU load on the Robot Controller.' }
-                ],
-                bugs: [
-                    { title: 'Potential Null Pointer', details: '`leftDrive` and `rightDrive` are not checked for null after `hardwareMap.get()`. If the configuration names are wrong, this will crash the OpMode.' }
-                ],
-                suggestions: [
-                    { title: 'Add Input Scaling', details: 'Joystick inputs are linear. Applying a curve (e.g., squaring the input) can provide finer control at lower speeds.' },
-                ]
+        
+        try {
+            const results = await codeAnalysis({
+                codeSnippet: code,
+                programmingLanguage: language,
             });
+            setAnalysisResults(results);
+            if (results && !results.performance.length && !results.bugs.length && !results.suggestions.length) {
+                 toast({
+                    title: "Analysis Complete",
+                    description: "No major issues were found in your code.",
+                });
+            }
+        } catch (error) {
+            console.error("Analysis failed:", error);
+            toast({
+                title: "Analysis Failed",
+                description: "The AI analysis could not be completed. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
             setIsAnalyzing(false);
-        }, 2500);
+        }
     };
 
     return (
@@ -125,7 +151,7 @@ export default function CodeIntelligenceClient() {
                 <section className="text-center mb-12 animate-fade-in-up-hero">
                     <h2 className="font-headline text-4xl md:text-5xl font-bold gradient-text hero-title-gradient">Analyze and Elevate Your Code</h2>
                     <p className="text-foreground/80 mt-4 max-w-3xl mx-auto text-lg">
-                        Paste your Java code below to receive AI-powered static analysis, performance tuning suggestions, and automated refactoring recommendations.
+                        Paste your code below to receive AI-powered static analysis, performance tuning suggestions, and automated refactoring recommendations.
                     </p>
                 </section>
 
@@ -134,7 +160,7 @@ export default function CodeIntelligenceClient() {
                     <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 lg:col-span-1 min-h-[600px] flex flex-col">
                         <CardHeader className="flex-shrink-0">
                             <CardTitle className="flex items-center gap-2"><Cpu /> Your Code</CardTitle>
-                            <CardDescription>Paste your FTC Java OpMode here.</CardDescription>
+                            <CardDescription>Paste your code and select the language to analyze.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow flex flex-col p-4 pt-0">
                            <Textarea
@@ -143,15 +169,30 @@ export default function CodeIntelligenceClient() {
                                 placeholder="Paste your code here..."
                                 className="flex-grow w-full font-mono text-sm bg-muted/50 border-border/60 resize-none"
                            />
-                           <Button onClick={handleAnalyze} disabled={isAnalyzing} className="w-full mt-4 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
-                               <Search className="mr-2 h-5 w-5" />
-                               {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
-                           </Button>
+                           <div className="flex items-center gap-4 mt-4">
+                                <Select value={language} onValueChange={setLanguage}>
+                                    <SelectTrigger className="w-[200px] bg-muted/50 border-border/60">
+                                        <SelectValue placeholder="Select Language" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="java">Java</SelectItem>
+                                        <SelectItem value="javascript">JavaScript</SelectItem>
+                                        <SelectItem value="typescript">TypeScript</SelectItem>
+                                        <SelectItem value="python">Python</SelectItem>
+                                        <SelectItem value="go">Go</SelectItem>
+                                        <SelectItem value="csharp">C#</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handleAnalyze} disabled={isAnalyzing} className="flex-grow bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
+                                   <Search className="mr-2 h-5 w-5" />
+                                   {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
+                               </Button>
+                           </div>
                         </CardContent>
                     </Card>
 
                     {/* Analysis Results Panel */}
-                    <div className="lg:col-span-1 min-h-[600px] max-h-[600px] overflow-y-auto pr-2 rounded-lg">
+                    <div className="lg:col-span-1 min-h-[600px] max-h-[80vh] overflow-y-auto pr-2 rounded-lg">
                         {isAnalyzing && (
                             <div className="flex flex-col items-center justify-center h-full bg-card/80 backdrop-blur-md shadow-2xl border-border/50 rounded-lg">
                                 <div className="loading-spinner"></div>
@@ -203,32 +244,38 @@ export default function CodeIntelligenceClient() {
                                 <div className="w-16 h-16 mb-4 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
                                     <BarChart size={32} />
                                 </div>
-                                <CardTitle>Static Analysis</CardTitle>
+                                <CardTitle className="font-headline text-xl">Comprehensive Reporting</CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
-                                <p className="text-foreground/70">Detects bugs, code smells, and security vulnerabilities without executing the code.</p>
+                                <p className="text-foreground/70">
+                                    Generate detailed reports on code quality, performance metrics, and improvement areas.
+                                </p>
                             </CardContent>
                         </Card>
-                         <Card className="bg-background/20 backdrop-blur-lg border-border/50 text-center p-8 rounded-2xl shadow-xl hover:shadow-accent/20 transition-all duration-300 transform hover:-translate-y-2">
-                            <CardHeader className="items-center p-0 mb-4">
-                                <div className="w-16 h-16 mb-4 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
-                                    <Clock size={32} />
-                                </div>
-                                <CardTitle>Performance Tuning</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <p className="text-foreground/70">Identifies performance bottlenecks and suggests optimizations for faster execution.</p>
-                            </CardContent>
-                        </Card>
-                         <Card className="bg-background/20 backdrop-blur-lg border-border/50 text-center p-8 rounded-2xl shadow-xl hover:shadow-accent/20 transition-all duration-300 transform hover:-translate-y-2">
+                        <Card className="bg-background/20 backdrop-blur-lg border-border/50 text-center p-8 rounded-2xl shadow-xl hover:shadow-accent/20 transition-all duration-300 transform hover:-translate-y-2">
                             <CardHeader className="items-center p-0 mb-4">
                                 <div className="w-16 h-16 mb-4 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
                                     <GitPullRequest size={32} />
                                 </div>
-                                <CardTitle>Automated Refactoring</CardTitle>
+                                <CardTitle className="font-headline text-xl">Automated Refactoring</CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
-                                <p className="text-foreground/70">Recommends and applies code transformations to improve readability and maintainability.</p>
+                                <p className="text-foreground/70">
+                                    Apply AI-suggested refactors with a single click to instantly improve your codebase.
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-background/20 backdrop-blur-lg border-border/50 text-center p-8 rounded-2xl shadow-xl hover:shadow-accent/20 transition-all duration-300 transform hover:-translate-y-2">
+                            <CardHeader className="items-center p-0 mb-4">
+                                <div className="w-16 h-16 mb-4 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground">
+                                    <Clock size={32} />
+                                </div>
+                                <CardTitle className="font-headline text-xl">Real-time Analysis</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <p className="text-foreground/70">
+                                    Get instant feedback and suggestions as you type, integrated directly into your workflow.
+                                </p>
                             </CardContent>
                         </Card>
                     </div>
