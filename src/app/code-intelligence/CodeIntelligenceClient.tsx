@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock, Wand2, Copy } from 'lucide-react';
+import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock, Wand2, Copy, AlertTriangle } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -290,6 +290,16 @@ export default function CodeIntelligenceClient() {
                                 <p className="text-foreground/70 mt-2">Click "Run Analysis" to get a report and the refactored code.</p>
                             </Card>
                         )}
+                    </div>
+                </div>
+
+                <div className="my-12 flex items-start gap-4 rounded-lg border border-yellow-500/30 bg-yellow-900/20 p-4 text-yellow-200">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-400 mt-1" />
+                    <div>
+                        <h4 className="font-bold text-yellow-100">AI is a work in progress</h4>
+                        <p className="text-sm mt-1">
+                            Please double-check the AI's suggestions. While we strive for accuracy, it may make mistakes or produce incorrect code. Always verify the output before use.
+                        </p>
                     </div>
                 </div>
 
