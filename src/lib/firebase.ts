@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -11,21 +11,8 @@ const firebaseConfig = {
   appId: "1:688308168438:web:44f7f705813649ca48eed7"
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-
-// Check if the essential Firebase config values are present.
-// This prevents crashes if the environment variables are not set.
-if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-  } catch (e) {
-    console.error('Firebase initialization error', e);
-    // If initialization fails, ensure app and auth are null.
-    app = null;
-    auth = null;
-  }
-}
+// Initialize Firebase using the standard pattern to prevent re-initialization.
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
 
 export { app, auth };
