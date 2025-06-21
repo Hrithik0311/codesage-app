@@ -13,9 +13,15 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
-// Initialize Firebase only if the API key and Project ID are provided.
-// This prevents server-side rendering errors when keys are missing.
-if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+// Check if the firebase config has been set. The default values are placeholders.
+// We need to check for both existence and if they are still the placeholder values.
+const isFirebaseConfigured = 
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  !firebaseConfig.apiKey.startsWith('YOUR_') && 
+  !firebaseConfig.projectId.startsWith('YOUR_');
+
+if (isFirebaseConfigured) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
