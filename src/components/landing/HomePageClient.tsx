@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Zap, Brain, Search, Rocket, Users, Target, CheckCircle2, PartyPopper, Laptop, BarChartBig, Handshake, FileUp, Bug, Trophy, PlusCircle, Link as LinkIcon, AlertTriangle, Lightbulb, LogIn, Shield,
 } from 'lucide-react';
@@ -36,6 +37,11 @@ const HomePageClient: React.FC = () => {
     buttons: [],
   });
   const [loadingState, setLoadingState] = useState({ isVisible: false, message: '' });
+
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamMembers, setNewTeamMembers] = useState('');
+  const [joinUserName, setJoinUserName] = useState('');
+  const [createdTeamDetails, setCreatedTeamDetails] = useState<{name: string, pin: string} | null>(null);
 
   const openModal = (title: string, content: React.ReactNode, buttons: ModalButton[]) => {
     setModalState({ isOpen: true, title, content, buttons });
@@ -183,11 +189,15 @@ const HomePageClient: React.FC = () => {
         <form className="space-y-4 pt-2">
           <div>
             <label htmlFor="teamName" className="block text-sm font-medium text-foreground/80 mb-1">Team Name</label>
-            <Input id="teamName" placeholder="e.g., The RoboKnights" />
+            <Input id="teamName" placeholder="e.g., The RoboKnights" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
           </div>
           <div>
             <label htmlFor="teamNumber" className="block text-sm font-medium text-foreground/80 mb-1">FTC Team Number (Optional)</label>
             <Input id="teamNumber" type="number" placeholder="e.g., 12345" />
+          </div>
+          <div>
+            <label htmlFor="teamMembers" className="block text-sm font-medium text-foreground/80 mb-1">Team Members (comma-separated)</label>
+            <Textarea id="teamMembers" placeholder="e.g., Alex, Maria, Sam" value={newTeamMembers} onChange={(e) => setNewTeamMembers(e.target.value)} rows={3}/>
           </div>
         </form>
       </div>
@@ -203,10 +213,16 @@ const HomePageClient: React.FC = () => {
     const content = (
       <div className="space-y-4 text-left">
         <h3 className="text-xl font-semibold font-headline text-foreground flex items-center gap-2"><LogIn className="text-accent" /> Join an Existing Team</h3>
-        <p className="text-foreground/80">Enter the 6-digit PIN provided by your team lead to get access to the workspace.</p>
-        <div className="pt-2">
-          <label htmlFor="teamCode" className="block text-sm font-medium text-foreground/80 mb-1">Team PIN</label>
-          <Input id="teamCode" placeholder="______" className="text-center text-2xl font-mono tracking-[0.5em]" maxLength={6} />
+        <p className="text-foreground/80">Enter your name and the 6-digit PIN provided by your team lead to get access to the workspace.</p>
+        <div className="pt-2 space-y-4">
+          <div>
+            <label htmlFor="userName" className="block text-sm font-medium text-foreground/80 mb-1">Your Name</label>
+            <Input id="userName" placeholder="e.g., Alex Johnson" value={joinUserName} onChange={(e) => setJoinUserName(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="teamCode" className="block text-sm font-medium text-foreground/80 mb-1">Team PIN</label>
+            <Input id="teamCode" placeholder="______" className="text-center text-2xl font-mono tracking-[0.5em]" maxLength={6} />
+          </div>
         </div>
       </div>
     );
@@ -217,13 +233,19 @@ const HomePageClient: React.FC = () => {
   };
 
   const finalizeTeamCreation = () => {
+    if (!newTeamName.trim()) {
+      toast({ title: "Team Name Required", description: "Please enter a name for your team.", variant: "destructive" });
+      createTeam();
+      return;
+    }
     closeModal();
     const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+    setCreatedTeamDetails({ name: newTeamName, pin: newPin });
     showLoadingScreen('Generating your secure workspace...', () => {
       const content = (
         <div className="text-center space-y-4">
           <Shield className="w-16 h-16 text-green-500 mx-auto" />
-          <h3 className="text-2xl font-semibold font-headline text-foreground">Workspace Created!</h3>
+          <h3 className="text-2xl font-semibold font-headline text-foreground">Workspace for "{newTeamName}" Created!</h3>
           <p className="text-foreground/80">Share this secure PIN with your team members so they can join.</p>
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-sm text-muted-foreground">Your Team PIN is:</p>
@@ -232,7 +254,7 @@ const HomePageClient: React.FC = () => {
           <p className="text-xs text-muted-foreground pt-2">You will be redirected to your new collaboration hub.</p>
         </div>
       );
-      openModal('Team Created Successfully', content, [
+      openModal(`Team "${newTeamName}" Created`, content, [
         { text: 'Go to Collaboration Hub', action: () => {
             closeModal();
             showLoadingScreen('Loading Collaboration Hub...', () => {
@@ -244,11 +266,17 @@ const HomePageClient: React.FC = () => {
   };
 
   const finalizeTeamJoin = () => {
+    if (!joinUserName.trim()) {
+      toast({ title: "Your Name is Required", description: "Please enter your name to join the team.", variant: "destructive" });
+      joinTeam();
+      return;
+    }
     closeModal();
     showLoadingScreen('Verifying PIN and joining workspace...', () => {
+      const teamNameToJoin = createdTeamDetails?.name || "the Team";
       toast({
-        title: "✅ Welcome to the Team!",
-        description: "You have successfully joined the workspace.",
+        title: `✅ Welcome to ${teamNameToJoin}!`,
+        description: `You have successfully joined the workspace, ${joinUserName}.`,
       });
       router.push('/collaboration');
     });
@@ -336,3 +364,5 @@ const HomePageClient: React.FC = () => {
 };
 
 export default HomePageClient;
+
+    
