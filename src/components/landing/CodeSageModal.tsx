@@ -52,7 +52,7 @@ const CodeSageModal: React.FC<CodeSageModalProps> = ({ isOpen, onClose, title, c
               <Button
                 key={index}
                 variant={btn.isPrimary ? 'default' : (btn.variant || 'outline')}
-                onClick={() => { btn.action(); if(btn.text.toLowerCase() !== "cancel") onClose();}} // Auto-close unless explicitly handled
+                onClick={btn.action}
                 className={`${btn.className || ''} ${btn.isPrimary ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90' : 'bg-foreground/10 hover:bg-foreground/20 border-border text-foreground'}`}
               >
                 {btn.text}

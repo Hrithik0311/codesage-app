@@ -82,7 +82,7 @@ const HomePageClient: React.FC = () => {
     );
     openModal('Launch Platform', content, [
       { text: 'Cancel', action: closeModal, variant: 'outline' },
-      { text: 'Get Started', action: showWelcome, isPrimary: true },
+      { text: 'Get Started', action: () => { closeModal(); showWelcome(); }, isPrimary: true },
     ]);
   };
 
@@ -106,8 +106,8 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Track Selected', content, [
-      { text: 'Back', action: handleCtaClick, variant: 'outline' },
-      { text: 'Start Now', action: completeRegistration, isPrimary: true },
+      { text: 'Back', action: () => { closeModal(); handleCtaClick(); }, variant: 'outline' },
+      { text: 'Start Now', action: () => { closeModal(); completeRegistration(); }, isPrimary: true },
     ]);
   };
 
@@ -132,7 +132,7 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Account Created', content, [
-      { text: 'Go to Dashboard', action: goToDashboard, isPrimary: true },
+      { text: 'Go to Dashboard', action: () => { closeModal(); goToDashboard(); }, isPrimary: true },
     ]);
   };
   
@@ -193,7 +193,7 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Create Team Workspace', content, [
-      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
+      { text: 'Cancel', action: () => { closeModal(); launchFeatureModal('collaboration'); }, variant: 'ghost' },
       { text: 'Generate Team PIN', action: finalizeTeamCreation, isPrimary: true },
     ]);
   };
@@ -211,7 +211,7 @@ const HomePageClient: React.FC = () => {
       </div>
     );
     openModal('Join Team Workspace', content, [
-      { text: 'Cancel', action: () => launchFeatureModal('collaboration'), variant: 'ghost' },
+      { text: 'Cancel', action: () => { closeModal(); launchFeatureModal('collaboration'); }, variant: 'ghost' },
       { text: 'Join Team', action: finalizeTeamJoin, isPrimary: true },
     ]);
   };
@@ -271,7 +271,7 @@ const HomePageClient: React.FC = () => {
         </ul>
         <p className="text-foreground/80">Contact us to learn more about how CodeSage can empower your entire organization.</p>
     </div>, 
-    [{ text: 'Close', action: closeModal, variant: 'outline' }, {text: 'Contact Sales', action: showContactForm, isPrimary: true}]);
+    [{ text: 'Close', action: closeModal, variant: 'outline' }, {text: 'Contact Sales', action: () => { closeModal(); showContactForm(); }, isPrimary: true}]);
   };
 
   const showContactForm = () => {
