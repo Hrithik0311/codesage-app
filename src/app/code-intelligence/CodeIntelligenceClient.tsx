@@ -296,9 +296,8 @@ export default function CodeIntelligenceClient() {
                 <div className="my-12 flex items-start gap-4 rounded-lg border border-yellow-500/30 bg-yellow-900/20 p-4 text-yellow-200">
                     <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-400 mt-1" />
                     <div>
-                        <h4 className="font-bold text-yellow-100">AI is a work in progress</h4>
-                        <p className="text-sm mt-1">
-                            Please double-check the AI's suggestions. While we strive for accuracy, it may make mistakes or produce incorrect code. Always verify the output before use.
+                        <p className="text-sm font-semibold text-yellow-100">
+                            Gemini can make mistakes, so please double-check it.
                         </p>
                     </div>
                 </div>
