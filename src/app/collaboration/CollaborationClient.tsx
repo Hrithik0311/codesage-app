@@ -23,7 +23,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, set, get, update } from 'firebase/database';
+import { ref as dbRef, set, get, update, onValue } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const initialCommits = [
@@ -69,7 +69,7 @@ const memberSchema = z.object({
 const createTeamSchema = z.object({
   teamName: z.string().min(3, "Team name must be at least 3 characters."),
   teamCode: z.string().min(4, "Team code must be at least 4 characters.").regex(/^[a-zA-Z0-9-]+$/, "Team code can only contain letters, numbers, and dashes."),
-  pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits.").regex(/^\d{4,6}$/, "PIN must be a 4-6 digit number."),
+  pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digit number.").regex(/^\d{4,6}$/, "PIN must be a 4-6 digit number."),
   members: z.array(memberSchema).min(1, "You must add at least one member."),
 });
 
@@ -78,6 +78,23 @@ const joinTeamSchema = z.object({
   teamCode: z.string().min(1, "Please enter the team code."),
   pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits."),
 });
+
+const StatusBadge = ({ status }: { status?: string }) => {
+  const statusConfig: { [key: string]: { text: string; className: string } } = {
+    online: { text: 'Online', className: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    idle: { text: 'Idle', className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    offline: { text: 'Offline', className: 'bg-muted/30 text-muted-foreground border-border/50' },
+  };
+
+  const currentStatus = status && statusConfig[status] ? status : 'offline';
+  const { text, className } = statusConfig[currentStatus];
+
+  return (
+    <Badge variant="outline" className={cn('transition-colors duration-300', className)}>
+      {text}
+    </Badge>
+  );
+};
 
 
 export default function CollaborationClient() {
@@ -95,6 +112,8 @@ export default function CollaborationClient() {
     const [isLoadingTeam, setIsLoadingTeam] = useState(true);
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
+    const [memberStatuses, setMemberStatuses] = useState<Record<string, { state: string }>>({});
+
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
         resolver: zodResolver(createTeamSchema),
@@ -154,6 +173,29 @@ export default function CollaborationClient() {
           });
         }
       }, [user, loading, router, toast]);
+
+    useEffect(() => {
+        if (!team || !database) return;
+
+        const allMemberIds = Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers));
+        if (allMemberIds.length === 0) return;
+
+        const statusRef = dbRef(database, 'status');
+        const unsubscribe = onValue(statusRef, (snapshot) => {
+            const allStatuses = snapshot.val() || {};
+            const teamStatuses: Record<string, { state: string }> = {};
+            
+            allMemberIds.forEach(id => {
+                if (allStatuses[id]) {
+                    teamStatuses[id] = allStatuses[id];
+                }
+            });
+            setMemberStatuses(teamStatuses);
+        });
+
+        return () => unsubscribe();
+    }, [team, database]);
+
 
     const handleCreateTeam = async (values: z.infer<typeof createTeamSchema>) => {
         if (!user || !database) return;
@@ -584,7 +626,7 @@ export default function CollaborationClient() {
                                                                     {user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}
                                                                 </div>
                                                             </div>
-                                                            <Badge variant="outline" className="bg-green-500/20 text-green-400 border-green-500/30">Online</Badge>
+                                                            <StatusBadge status={memberStatuses[memberId]?.state} />
                                                         </div>
                                                     )) : (
                                                         <p className="text-sm text-muted-foreground px-2">No members in this role yet.</p>
