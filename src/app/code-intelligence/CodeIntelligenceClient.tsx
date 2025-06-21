@@ -293,13 +293,8 @@ export default function CodeIntelligenceClient() {
                     </div>
                 </div>
 
-                <div className="my-12 flex items-start gap-4 rounded-lg border border-yellow-500/30 bg-yellow-900/20 p-4 text-yellow-200">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0 text-yellow-400 mt-1" />
-                    <div>
-                        <p className="text-sm font-semibold text-yellow-100">
-                            Gemini can make mistakes, so please double-check it.
-                        </p>
-                    </div>
+                <div className="my-12 text-center text-sm text-muted-foreground">
+                    <p>The AI can make mistakes, so please double-check it.</p>
                 </div>
 
                 <section id="features" className="py-24">
