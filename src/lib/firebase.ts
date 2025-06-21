@@ -1,5 +1,6 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
+import { getDatabase, type Database } from "firebase/database";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -15,6 +16,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 let auth: Auth;
+let database: Database;
 
 // This check prevents Firebase from being initialized on the server.
 if (typeof window !== "undefined") {
@@ -24,7 +26,8 @@ if (typeof window !== "undefined") {
     app = getApp();
   }
   auth = getAuth(app);
+  database = getDatabase(app);
 }
 
 // @ts-ignore
-export { app, auth };
+export { app, auth, database };
