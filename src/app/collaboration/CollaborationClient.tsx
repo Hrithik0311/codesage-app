@@ -532,62 +532,6 @@ export default function CollaborationClient() {
                                 <h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">
                                     {team.name} Hub
                                 </h1>
-                                {user?.uid === team.creatorUid && (
-                                    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <Settings className="h-5 w-5" />
-                                                <span className="sr-only">Team Settings</span>
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-4xl">
-                                            <DialogHeader>
-                                                <DialogTitle>Team Settings</DialogTitle>
-                                                <DialogDescription>Manage your team's information and members.</DialogDescription>
-                                            </DialogHeader>
-                                            <Form {...settingsForm}>
-                                                <form onSubmit={settingsForm.handleSubmit(handleUpdateTeamSettings)}>
-                                                    <Tabs defaultValue="general" className="mt-4">
-                                                        <TabsList>
-                                                            <TabsTrigger value="general">General</TabsTrigger>
-                                                            <TabsTrigger value="members">Members</TabsTrigger>
-                                                        </TabsList>
-                                                        <TabsContent value="general" className="space-y-6 py-6">
-                                                            <FormField control={settingsForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                            <FormField control={settingsForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        </TabsContent>
-                                                        <TabsContent value="members" className="py-6 max-h-[50vh] overflow-y-auto">
-                                                            <div className="space-y-4">
-                                                                {settingsMemberFields.map((field, index) => (
-                                                                    <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
-                                                                        <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} readOnly={user?.uid !== team.creatorUid} /></FormControl><FormMessage /></FormItem>)} />
-                                                                        <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
-                                                                        <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
-                                                                            <FormItem className="w-[150px]">
-                                                                                <FormLabel className="text-xs">Role</FormLabel>
-                                                                                <FormControl>
-                                                                                    <Input placeholder="e.g., Programmer" {...field} />
-                                                                                </FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )} />
-                                                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeSettingsMember(index)} disabled={field.id === team.creatorUid}><Trash2 className="h-4 w-4" /></Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member" })}>
-                                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Member
-                                                            </Button>
-                                                        </TabsContent>
-                                                    </Tabs>
-                                                    <DialogFooter className="mt-6">
-                                                        <Button type="submit" disabled={settingsForm.formState.isSubmitting}>{settingsForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
-                                                    </DialogFooter>
-                                                </form>
-                                            </Form>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
                             </div>
                              <div className="flex items-center gap-2">
                                 <ThemeToggleButton />
@@ -707,9 +651,67 @@ export default function CollaborationClient() {
 
                             {/* Team Members Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle>
-                                    <CardDescription>Your current team workspace.</CardDescription>
+                                <CardHeader className="flex flex-row items-start justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle>
+                                        <CardDescription>Your current team workspace.</CardDescription>
+                                    </div>
+                                    {user?.uid === team.creatorUid && (
+                                        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <Settings className="h-5 w-5" />
+                                                    <span className="sr-only">Team Settings</span>
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-4xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>Team Settings</DialogTitle>
+                                                    <DialogDescription>Manage your team's information and members.</DialogDescription>
+                                                </DialogHeader>
+                                                <Form {...settingsForm}>
+                                                    <form onSubmit={settingsForm.handleSubmit(handleUpdateTeamSettings)}>
+                                                        <Tabs defaultValue="general" className="mt-4">
+                                                            <TabsList>
+                                                                <TabsTrigger value="general">General</TabsTrigger>
+                                                                <TabsTrigger value="members">Members</TabsTrigger>
+                                                            </TabsList>
+                                                            <TabsContent value="general" className="space-y-6 py-6">
+                                                                <FormField control={settingsForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                                <FormField control={settingsForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                            </TabsContent>
+                                                            <TabsContent value="members" className="py-6 max-h-[50vh] overflow-y-auto">
+                                                                <div className="space-y-4">
+                                                                    {settingsMemberFields.map((field, index) => (
+                                                                        <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
+                                                                            <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} readOnly={user?.uid !== team.creatorUid} /></FormControl><FormMessage /></FormItem>)} />
+                                                                            <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                                                            <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
+                                                                                <FormItem className="w-[150px]">
+                                                                                    <FormLabel className="text-xs">Role</FormLabel>
+                                                                                    <FormControl>
+                                                                                        <Input placeholder="e.g., Programmer" {...field} />
+                                                                                    </FormControl>
+                                                                                    <FormMessage />
+                                                                                </FormItem>
+                                                                            )} />
+                                                                            <Button type="button" variant="destructive" size="icon" onClick={() => removeSettingsMember(index)} disabled={field.id === team.creatorUid}><Trash2 className="h-4 w-4" /></Button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member" })}>
+                                                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Member
+                                                                </Button>
+                                                            </TabsContent>
+                                                        </Tabs>
+                                                        <DialogFooter className="mt-6">
+                                                            <Button type="submit" disabled={settingsForm.formState.isSubmitting}>{settingsForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                                                        </DialogFooter>
+                                                    </form>
+                                                </Form>
+                                            </DialogContent>
+                                        </Dialog>
+                                    )}
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
