@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,6 +15,12 @@ const HomePageClient: React.FC = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
@@ -47,6 +54,17 @@ const HomePageClient: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // If we are still checking for a user, or if a user is found (and we are about to redirect),
+  // show a loading screen to prevent the homepage from flashing.
+  if (loading || user) {
+    return (
+        <div className="flex min-h-screen w-full items-center justify-center bg-background">
+            <div className="loading-spinner"></div>
+        </div>
+    );
+  }
+
+  // Only render the homepage if loading is complete and there is no user.
   return (
     <div className={`transition-opacity duration-500 ease-in-out ${pageLoaded ? 'opacity-100' : 'opacity-0'}`}>
       <Navbar />
