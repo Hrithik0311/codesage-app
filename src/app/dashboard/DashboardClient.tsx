@@ -99,83 +99,82 @@ export default function DashboardClient() {
             </p>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
-                <section>
-                    <h2 className="font-headline text-2xl font-bold mb-6">Core Tools</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FeatureCard
-                            href="/code-intelligence"
-                            icon={Search}
-                            title="AI Code Assistant"
-                            description="Analyze, refactor, and improve your robot code."
-                            buttonText="Analyze Code"
-                        />
-                         <FeatureCard
-                            href="/collaboration"
-                            icon={Users}
-                            title="Cloud IDE & Team Hub"
-                            description="Collaborate in real-time and manage your code."
-                            buttonText="Open Team Hub"
-                        />
-                    </div>
-                </section>
-                
-                <section>
-                    <h2 className="font-headline text-2xl font-bold mb-6">Recent Activity</h2>
-                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
-                        <CardContent className="p-0">
-                            <ul className="divide-y divide-border/50">
-                                {recentActivities.map((activity, index) => (
-                                    <li key={index} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <activity.icon className="w-5 h-5 text-muted-foreground" />
-                                            <p className="font-medium">{activity.text}</p>
-                                        </div>
-                                        <span className="text-sm text-muted-foreground flex-shrink-0">{activity.time}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                </section>
-            </div>
-
-            {/* Right Column */}
-            <div className="lg:col-span-1 space-y-8">
-                 <section>
-                    <h2 className="font-headline text-2xl font-bold mb-6">Continue Learning</h2>
-                     <FeatureCard
+          <div className="space-y-8">
+            <section>
+                <h2 className="font-headline text-2xl font-bold mb-6">Core Tools</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <FeatureCard
                         href="/learning"
                         icon={BookOpen}
                         title="Interactive Tutorials"
                         description="Learn Java for FTC with hands-on lessons and quizzes."
                         buttonText="Go to Lessons"
-                        />
-                </section>
-                <section>
-                    <h2 className="font-headline text-2xl font-bold mb-6">Your Stats</h2>
-                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
-                        <CardContent className="p-6 space-y-6">
-                           <ProgressItem icon={Trophy} label="Lessons Completed" value={5} total={10} unit="" indicatorClassName="bg-green-500" />
-                           <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
-                           <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
-                        </CardContent>
-                    </Card>
-                </section>
-                 <section>
-                    <h2 className="font-headline text-2xl font-bold mb-6">Quick Tip</h2>
-                    <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
-                        <CardContent className="p-6 flex items-start gap-4">
-                            <Lightbulb className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
-                            <div>
-                                <p className="font-semibold text-card-foreground mb-1">Use 'final' for variables</p>
-                                <p className="text-muted-foreground text-sm">In Java, declaring a variable with `final` prevents it from being changed. It's a good practice for configuration values like motor names.</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </section>
+                    />
+                    <FeatureCard
+                        href="/code-intelligence"
+                        icon={Search}
+                        title="AI Code Assistant"
+                        description="Analyze, refactor, and improve your robot code."
+                        buttonText="Analyze Code"
+                    />
+                     <FeatureCard
+                        href="/collaboration"
+                        icon={Users}
+                        title="Cloud IDE & Team Hub"
+                        description="Collaborate in real-time and manage your code."
+                        buttonText="Open Team Hub"
+                    />
+                </div>
+            </section>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column */}
+                <div className="lg:col-span-2 space-y-8">
+                    <section>
+                        <h2 className="font-headline text-2xl font-bold mb-6">Recent Activity</h2>
+                        <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                            <CardContent className="p-0">
+                                <ul className="divide-y divide-border/50">
+                                    {recentActivities.map((activity, index) => (
+                                        <li key={index} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <activity.icon className="w-5 h-5 text-muted-foreground" />
+                                                <p className="font-medium">{activity.text}</p>
+                                            </div>
+                                            <span className="text-sm text-muted-foreground flex-shrink-0">{activity.time}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    </section>
+                </div>
+
+                {/* Right Column */}
+                <div className="lg:col-span-1 space-y-8">
+                    <section>
+                        <h2 className="font-headline text-2xl font-bold mb-6">Your Stats</h2>
+                        <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                            <CardContent className="p-6 space-y-6">
+                               <ProgressItem icon={Trophy} label="Lessons Completed" value={5} total={10} unit="" indicatorClassName="bg-green-500" />
+                               <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
+                               <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
+                            </CardContent>
+                        </Card>
+                    </section>
+                     <section>
+                        <h2 className="font-headline text-2xl font-bold mb-6">Quick Tip</h2>
+                        <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                            <CardContent className="p-6 flex items-start gap-4">
+                                <Lightbulb className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
+                                <div>
+                                    <p className="font-semibold text-card-foreground mb-1">Use 'final' for variables</p>
+                                    <p className="text-muted-foreground text-sm">In Java, declaring a variable with `final` prevents it from being changed. It's a good practice for configuration values like motor names.</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </section>
+                </div>
             </div>
           </div>
         </main>
