@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 
 export function NotificationBell() {
@@ -81,7 +82,9 @@ export function NotificationBell() {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="justify-center p-0">
-          <Button variant="link" className="w-full rounded-none text-accent hover:text-accent/80">View more</Button>
+          <Button asChild variant="link" className="w-full rounded-none text-accent hover:text-accent/80">
+            <Link href="/notifications">View more</Link>
+          </Button>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
