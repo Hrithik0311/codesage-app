@@ -6,7 +6,7 @@ const firebaseConfig = {
   authDomain: "contact-connectlocal.firebaseapp.com",
   databaseURL: "https://contact-connectlocal-default-rtdb.firebaseio.com",
   projectId: "contact-connectlocal",
-  storageBucket: "contact-connectlocal.appspot.com",
+  storageBucket: "contact-connectlocal.firebasestorage.app",
   messagingSenderId: "688308168438",
   appId: "1:688308168438:web:44f7f705813649ca48eed7"
 };
