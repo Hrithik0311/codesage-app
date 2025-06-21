@@ -1,14 +1,15 @@
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyC2_N-mx5S7aMCKbG1F-KUFGEa8m-1r044",
-  authDomain: "contact-connectlocal.firebaseapp.com",
-  databaseURL: "https://contact-connectlocal-default-rtdb.firebaseio.com",
-  projectId: "contact-connectlocal",
-  storageBucket: "contact-connectlocal.firebasestorage.app",
-  messagingSenderId: "688308168438",
-  appId: "1:688308168438:web:44f7f705813649ca48eed7"
+  apiKey: "AIzaSyANXI_daofPZ9TOwAEBKsV0xAc3RzPi0KU",
+  authDomain: "work-ftc.firebaseapp.com",
+  projectId: "work-ftc",
+  storageBucket: "work-ftc.firebasestorage.app",
+  messagingSenderId: "899528797860",
+  appId: "1:899528797860:web:68a1a471d44192738d4031",
+  measurementId: "G-9L13PTJ89L"
 };
 
 
