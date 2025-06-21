@@ -10,11 +10,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Zap, ShieldCheck, Cpu, GitPullRequest, Search, BarChart, Bug, Lightbulb, Clock, Wand2, Copy } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-completion';
-import { refactorCode } from '@/ai/flows/refactor-code-flow';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -92,16 +89,13 @@ export default function CodeIntelligenceClient() {
     const [code, setCode] = useState(sampleCode);
     const [language, setLanguage] = useState('java');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisResults, setAnalysisResults] = useState<CodeAnalysisOutput | null>(null);
-    const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
-    const [isRefactoring, setIsRefactoring] = useState(false);
+    const [analysisResults, setAnalysisResults] = useState<Omit<CodeAnalysisOutput, 'refactoredCode'> | null>(null);
     const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
     const { toast } = useToast();
 
     const handleCodeChange = (newCode: string) => {
         setCode(newCode);
         setAnalysisResults(null);
-        setSelectedIssues([]);
         setRefactoredCode(null);
     };
 
@@ -117,7 +111,6 @@ export default function CodeIntelligenceClient() {
 
         setIsAnalyzing(true);
         setAnalysisResults(null);
-        setSelectedIssues([]);
         setRefactoredCode(null);
         
         try {
@@ -125,19 +118,21 @@ export default function CodeIntelligenceClient() {
                 codeSnippet: code,
                 programmingLanguage: language,
             });
-            setAnalysisResults(results);
-            if (results) {
-                const allIssueIds = [
-                    ...results.performance.map((item, i) => `performance-${i}`),
-                    ...results.bugs.map((item, i) => `bugs-${i}`),
-                    ...results.suggestions.map((item, i) => `suggestions-${i}`)
-                ];
-                setSelectedIssues(allIssueIds);
-            }
-            if (results && !results.performance.length && !results.bugs.length && !results.suggestions.length) {
+
+            const { refactoredCode, ...analysis } = results;
+
+            setAnalysisResults(analysis);
+            setRefactoredCode(refactoredCode);
+
+            if (analysis && !analysis.performance.length && !analysis.bugs.length && !analysis.suggestions.length) {
                  toast({
                     title: "Analysis Complete",
                     description: "No major issues were found in your code.",
+                });
+            } else {
+                 toast({
+                    title: "Analysis Complete!",
+                    description: "The AI has analyzed and refactored your code.",
                 });
             }
         } catch (error) {
@@ -149,62 +144,6 @@ export default function CodeIntelligenceClient() {
             });
         } finally {
             setIsAnalyzing(false);
-        }
-    };
-
-    const handleIssueSelection = (issueId: string) => {
-        setSelectedIssues(prev =>
-            prev.includes(issueId)
-                ? prev.filter(id => id !== issueId)
-                : [...prev, issueId]
-        );
-    };
-
-    const handleRefactor = async () => {
-        if (selectedIssues.length === 0) {
-            toast({
-                title: "No Issues Selected",
-                description: "Please select at least one issue to refactor.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        setIsRefactoring(true);
-        setRefactoredCode(null);
-
-        const allIssuesWithIds = [
-            ...(analysisResults?.performance.map((item, i) => ({ ...item, id: `performance-${i}` })) || []),
-            ...(analysisResults?.bugs.map((item, i) => ({ ...item, id: `bugs-${i}` })) || []),
-            ...(analysisResults?.suggestions.map((item, i) => ({ ...item, id: `suggestions-${i}` })) || [])
-        ];
-
-        const instructions = allIssuesWithIds
-            .filter(issue => selectedIssues.includes(issue.id))
-            .map(issue => issue.technicalInstruction);
-
-        try {
-            const result = await refactorCode({
-                codeSnippet: code,
-                programmingLanguage: language,
-                instructions: instructions,
-            });
-            setRefactoredCode(result.refactoredCode);
-            setAnalysisResults(null);
-            setSelectedIssues([]);
-            toast({
-                title: "Refactoring Complete!",
-                description: "The AI has generated the updated code. You can now copy it.",
-            });
-        } catch (error) {
-            console.error("Refactoring failed:", error);
-            toast({
-                title: "Refactoring Failed",
-                description: "The AI could not refactor the code. Please try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsRefactoring(false);
         }
     };
 
@@ -250,7 +189,7 @@ export default function CodeIntelligenceClient() {
                 <section className="text-center mb-12 animate-fade-in-up-hero">
                     <h2 className="font-headline text-4xl md:text-5xl font-bold gradient-text hero-title-gradient">Analyze and Elevate Your Code</h2>
                     <p className="text-foreground/80 mt-4 max-w-3xl mx-auto text-lg">
-                        Paste your code below for a comprehensive, AI-powered analysis. Get instant feedback on performance, bugs, and best practices.
+                        Paste your code below for a comprehensive, AI-powered analysis and instant refactoring.
                     </p>
                 </section>
 
@@ -278,7 +217,7 @@ export default function CodeIntelligenceClient() {
                                         <SelectItem value="python">Python</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Button onClick={handleAnalyze} disabled={isAnalyzing || isRefactoring} className="flex-grow bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
+                                <Button onClick={handleAnalyze} disabled={isAnalyzing} className="flex-grow bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
                                    <Search className="mr-2 h-5 w-5" />
                                    {isAnalyzing ? 'Analyzing...' : 'Run Analysis'}
                                 </Button>
@@ -288,103 +227,67 @@ export default function CodeIntelligenceClient() {
 
                     {/* Results Panel */}
                     <div className="lg:col-span-1 min-h-[600px] max-h-[80vh] overflow-y-auto pr-2 rounded-lg">
-                        {isAnalyzing || isRefactoring ? (
+                        {isAnalyzing ? (
                             <div className="flex flex-col items-center justify-center h-full bg-card/80 backdrop-blur-md shadow-2xl border-border/50 rounded-lg">
                                 <div className="loading-spinner"></div>
                                 <p className="mt-4 text-lg text-foreground/80">
-                                    {isRefactoring ? 'AI is refactoring your code...' : 'AI is analyzing your code...'}
+                                    AI is analyzing and refactoring...
                                 </p>
                             </div>
-                        ) : refactoredCode ? (
-                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col animate-fade-in-up-hero">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><Wand2 /> Refactored Code</CardTitle>
-                                    <CardDescription>AI-generated code based on your selections. Copy it or run a new analysis.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-grow flex flex-col p-4 pt-0">
-                                    <Textarea
-                                        value={refactoredCode}
-                                        readOnly
-                                        className="flex-grow w-full font-mono text-sm bg-muted/50 border-border/60 resize-none"
-                                    />
-                                </CardContent>
-                                <CardFooter className="p-4 pt-0">
-                                    <Button onClick={handleCopy} className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90 font-semibold">
-                                        <Copy className="mr-2 h-5 w-5" />
-                                        Copy Code
-                                    </Button>
-                                </CardFooter>
-                            </Card>
                         ) : analysisResults ? (
                             <div className="space-y-6 animate-fade-in-up-hero">
-                                <AnalysisResult
-                                    icon={Zap}
-                                    title="Performance"
-                                    description="Opportunities to make your code run faster."
-                                    colorClass="bg-green-500"
-                                    items={analysisResults.performance}
-                                />
-                                <AnalysisResult
-                                    icon={Bug}
-                                    title="Potential Bugs"
-                                    description="Code patterns that might lead to crashes or unexpected behavior."
-                                    colorClass="bg-red-500"
-                                    items={analysisResults.bugs}
-                                />
-                                <AnalysisResult
-                                    icon={Lightbulb}
-                                    title="Suggestions"
-                                    description="Best practices and improvements for code quality."
-                                    colorClass="bg-blue-500"
-                                    items={analysisResults.suggestions}
-                                />
-                                 {hasIssues && (
-                                    <div className="mt-6">
-                                        <Card className="bg-background/30 border-border/40">
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-2"><Wand2 /> Automated Refactoring</CardTitle>
-                                                <CardDescription>Select the issues you want the AI to fix automatically. All issues are selected by default.</CardDescription>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                                    {Object.entries(analysisResults).flatMap(([category, items]) =>
-                                                        items.map((item, index) => {
-                                                            const issueId = `${category}-${index}`;
-                                                            return (
-                                                                <div key={issueId} className="flex items-start space-x-3 bg-muted/30 p-3 rounded-md border border-border/50">
-                                                                    <Checkbox
-                                                                        id={issueId}
-                                                                        checked={selectedIssues.includes(issueId)}
-                                                                        onCheckedChange={() => handleIssueSelection(issueId)}
-                                                                        aria-label={`Select issue: ${item.title}`}
-                                                                        className="mt-1"
-                                                                    />
-                                                                    <Label htmlFor={issueId} className="font-semibold text-sm cursor-pointer w-full">
-                                                                        {item.title}
-                                                                        <p className="font-normal text-sm text-foreground/80 mt-1 whitespace-pre-wrap">{item.details}</p>
-                                                                    </Label>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    onClick={handleRefactor}
-                                                    disabled={isRefactoring || selectedIssues.length === 0}
-                                                    className="w-full mt-6 bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 font-semibold py-3 text-base">
-                                                    <Wand2 className="mr-2 h-5 w-5" />
-                                                    {isRefactoring ? 'Refactoring...' : `Refactor ${selectedIssues.length} Selected ${selectedIssues.length === 1 ? 'Issue' : 'Issues'}`}
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
+                                {refactoredCode && (
+                                     <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex flex-col">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2"><Wand2 /> Refactored Code</CardTitle>
+                                            <CardDescription>AI-generated code with all issues fixed. Copy it to your editor.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="flex-grow flex flex-col p-4 pt-0">
+                                            <Textarea
+                                                value={refactoredCode}
+                                                readOnly
+                                                className="flex-grow w-full font-mono text-sm bg-muted/50 border-border/60 resize-none min-h-[200px]"
+                                            />
+                                        </CardContent>
+                                        <CardFooter className="p-4 pt-0">
+                                            <Button onClick={handleCopy} className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90 font-semibold">
+                                                <Copy className="mr-2 h-5 w-5" />
+                                                Copy Code
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                )}
+                                {hasIssues && (
+                                    <>
+                                        <AnalysisResult
+                                            icon={Zap}
+                                            title="Performance"
+                                            description="Opportunities to make your code run faster."
+                                            colorClass="bg-green-500"
+                                            items={analysisResults.performance}
+                                        />
+                                        <AnalysisResult
+                                            icon={Bug}
+                                            title="Potential Bugs"
+                                            description="Code patterns that might lead to crashes or unexpected behavior."
+                                            colorClass="bg-red-500"
+                                            items={analysisResults.bugs}
+                                        />
+                                        <AnalysisResult
+                                            icon={Lightbulb}
+                                            title="Suggestions"
+                                            description="Best practices and improvements for code quality."
+                                            colorClass="bg-blue-500"
+                                            items={analysisResults.suggestions}
+                                        />
+                                    </>
                                 )}
                             </div>
                         ) : (
                              <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col items-center justify-center text-center p-8">
                                 <Search size={64} className="text-primary/70 mb-4" />
                                 <h3 className="text-2xl font-headline text-foreground">Awaiting Analysis</h3>
-                                <p className="text-foreground/70 mt-2">Click "Run Analysis" to see a report on your code's quality, performance, and potential issues.</p>
+                                <p className="text-foreground/70 mt-2">Click "Run Analysis" to get a report and the refactored code.</p>
                             </Card>
                         )}
                     </div>
