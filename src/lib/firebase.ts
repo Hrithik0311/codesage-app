@@ -13,20 +13,17 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
-// Check if the firebase config has been set. The default values are placeholders.
-// We need to check for both existence and if they are still the placeholder values.
-const isFirebaseConfigured = 
-  firebaseConfig.apiKey &&
-  firebaseConfig.projectId &&
-  !firebaseConfig.apiKey.startsWith('YOUR_') && 
-  !firebaseConfig.projectId.startsWith('YOUR_');
-
-if (isFirebaseConfigured) {
+// Check if the essential Firebase config values are present.
+// This prevents crashes if the environment variables are not set.
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
   } catch (e) {
     console.error('Firebase initialization error', e);
+    // If initialization fails, ensure app and auth are null.
+    app = null;
+    auth = null;
   }
 }
 
