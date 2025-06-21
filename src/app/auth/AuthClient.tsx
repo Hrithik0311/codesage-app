@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +8,8 @@ import * as z from 'zod';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
@@ -42,7 +43,7 @@ const GoogleIcon = () => (
 export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [authState, setAuthState] = useState<'checkingRedirect' | 'submitting' | 'idle'>('checkingRedirect');
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -57,7 +58,7 @@ export default function AuthClient() {
   const showFirebaseNotConfiguredToast = () => {
     toast({
       title: 'Configuration Error',
-      description: 'Firebase is not configured. Please add API keys to your environment file.',
+      description: 'Firebase is not configured. Please check your setup.',
       variant: 'destructive',
     });
   };
@@ -68,6 +69,9 @@ export default function AuthClient() {
   };
 
   const handleAuthError = (error: any) => {
+     if (error.code === 'auth/no-redirect-operation') {
+        return;
+    }
     toast({
       title: 'Authentication Failed',
       description: error.message || 'An unexpected error occurred.',
@@ -75,19 +79,40 @@ export default function AuthClient() {
     });
   };
 
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      if (!auth) {
+        setAuthState('idle');
+        return;
+      }
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          handleAuthSuccess(result);
+        }
+      } catch (error) {
+        handleAuthError(error);
+      } finally {
+        setAuthState('idle');
+      }
+    };
+
+    checkRedirectResult();
+  }, []);
+
   const onLogin = async (values: z.infer<typeof loginSchema>) => {
     if (!auth) {
       showFirebaseNotConfiguredToast();
       return;
     }
-    setIsLoading(true);
+    setAuthState('submitting');
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setIsLoading(false);
+      setAuthState('idle');
     }
   };
 
@@ -96,14 +121,14 @@ export default function AuthClient() {
       showFirebaseNotConfiguredToast();
       return;
     }
-    setIsLoading(true);
+    setAuthState('submitting');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {
-      setIsLoading(false);
+      setAuthState('idle');
     }
   };
 
@@ -112,17 +137,17 @@ export default function AuthClient() {
       showFirebaseNotConfiguredToast();
       return;
     }
-    setIsLoading(true);
+    setAuthState('submitting');
     try {
       const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      handleAuthSuccess(userCredential);
+      await signInWithRedirect(auth, provider);
     } catch (error) {
       handleAuthError(error);
-    } finally {
-      setIsLoading(false);
+      setAuthState('idle');
     }
   };
+
+  const isLoading = authState !== 'idle';
 
   return (
     <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
@@ -148,18 +173,18 @@ export default function AuthClient() {
                 <FormField control={loginForm.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
-                    <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                    <FormControl><Input placeholder="you@example.com" {...field} disabled={isLoading} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={loginForm.control} name="password" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                    <FormControl><Input type="password" placeholder="••••••••" {...field} disabled={isLoading} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Signing In...' : 'Sign In'}</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>{authState === 'submitting' ? 'Signing In...' : 'Sign In'}</Button>
               </form>
             </Form>
           </TabsContent>
@@ -169,18 +194,18 @@ export default function AuthClient() {
                 <FormField control={signUpForm.control} name="email" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
-                    <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                    <FormControl><Input placeholder="you@example.com" {...field} disabled={isLoading} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={signUpForm.control} name="password" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                    <FormControl><Input type="password" placeholder="••••••••" {...field} disabled={isLoading} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? 'Creating Account...' : 'Create Account'}</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>{authState === 'submitting' ? 'Creating Account...' : 'Create Account'}</Button>
               </form>
             </Form>
           </TabsContent>
