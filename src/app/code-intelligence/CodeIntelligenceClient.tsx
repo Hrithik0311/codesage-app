@@ -248,7 +248,7 @@ export default function CodeIntelligenceClient() {
                 <section className="text-center mb-12 animate-fade-in-up-hero">
                     <h2 className="font-headline text-4xl md:text-5xl font-bold gradient-text hero-title-gradient">Analyze and Elevate Your Code</h2>
                     <p className="text-foreground/80 mt-4 max-w-3xl mx-auto text-lg">
-                        Paste your code below to receive AI-powered static analysis, performance tuning suggestions, and automated refactoring recommendations.
+                        Paste your code below for a comprehensive, AI-powered analysis. Get instant feedback on performance, bugs, and best practices.
                     </p>
                 </section>
 
@@ -341,7 +341,7 @@ export default function CodeIntelligenceClient() {
                                         <Card className="bg-background/30 border-border/40">
                                             <CardHeader>
                                                 <CardTitle className="flex items-center gap-2"><Wand2 /> Automated Refactoring</CardTitle>
-                                                <CardDescription>Select the issues you want the AI to fix automatically.</CardDescription>
+                                                <CardDescription>Select the issues you want the AI to fix automatically. All issues are selected by default.</CardDescription>
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
@@ -359,7 +359,7 @@ export default function CodeIntelligenceClient() {
                                                                     />
                                                                     <Label htmlFor={issueId} className="font-semibold text-sm cursor-pointer w-full">
                                                                         {item.title}
-                                                                        <p className="font-normal text-xs text-foreground/70 mt-1 whitespace-pre-wrap">{item.details}</p>
+                                                                        <p className="font-normal text-sm text-foreground/80 mt-1 whitespace-pre-wrap">{item.details}</p>
                                                                     </Label>
                                                                 </div>
                                                             );
