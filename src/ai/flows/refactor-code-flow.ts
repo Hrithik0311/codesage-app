@@ -13,9 +13,8 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const IssueToFixSchema = z.object({
-  title: z.string(),
-  details: z.string(),
-  suggestedFix: z.string(),
+  title: z.string().describe('The title of the issue to fix.'),
+  details: z.string().describe('The detailed explanation of the issue to fix.'),
 });
 
 const RefactorCodeInputSchema = z.object({
@@ -39,57 +38,27 @@ const prompt = ai.definePrompt({
   name: 'refactorCodePrompt',
   input: {schema: RefactorCodeInputSchema},
   output: {schema: RefactorCodeOutputSchema},
-  prompt: `You are an automated, literal, and ultra-precise code rewriting tool. Your ONLY function is to apply a given set of text-based patches to a code snippet. You do not think, you do not infer, you do not improve. You execute instructions literally. Failure to be literal will break user's code.
+  prompt: `You are an expert programmer tasked with refactoring a code snippet. Your goal is to apply ONLY the specific fixes requested and return the complete, corrected code.
 
-**ABSOLUTE DIRECTIVES (NON-NEGOTIABLE):**
-
-1.  **LITERAL EXECUTION:** You will ONLY execute the exact technical instructions provided in the \`suggestedFix\` list. If an instruction says "Delete line 21", you delete only line 21. If it says "Replace 'foo' with 'bar' on line 10", you do only that. NO other changes.
-2.  **NO FORMATTING:** Do NOT re-format, re-indent, or "clean up" any code. Preserve every single space, tab, and newline from the original, unless an instruction explicitly tells you to change it.
-3.  **NO INTERPRETATION:** Do not interpret the "intent" of a fix. If a fix seems wrong or incomplete, you MUST still apply it exactly as written.
-4.  **COMPLETE & PURE CODE OUTPUT:** The final output in the \`refactoredCode\` field must be the ENTIRE code snippet with the fixes applied. It must NOT contain any markdown (like \`\`\`java), explanations, or any text other than the code itself.
+**PRIMARY DIRECTIVE:**
+1.  Read the "Original Code Snippet".
+2.  Read the "List of Issues to Fix".
+3.  Rewrite the entire code snippet, applying ONLY the fixes described in the list.
+4.  DO NOT make any other changes. Do not add new features, do not reformat unrelated code, and do not fix issues that were not in the list.
+5.  The output in the \`refactoredCode\` field must be the complete, pure code. Do not include any explanations, markdown like \`\`\`java, or any other text.
 
 ---
-**EXAMPLE OF LITERAL EXECUTION:**
-
-**Instruction List:**
-- **Instruction:** On line 5, remove the trailing redundant semicolon.
-- **Instruction:** On line 6, change the variable name from 'my_var' to 'myVar'.
-
-**Original Code Snippet:**
-\`\`\`java
-public class Example {
-    public void myMethod() {
-        // This is a comment
-        int my_var = 100;;
-        System.out.println(my_var);
-    }
-}
-\`\`\`
-
-**CORRECT, LITERAL, FINAL OUTPUT:**
-\`\`\`java
-public class Example {
-    public void myMethod() {
-        // This is a comment
-        int myVar = 100;
-        System.out.println(myVar);
-    }
-}
-\`\`\`
-*(Notice: Only the semicolon and variable name were changed, exactly as instructed. Indentation and comments are perfectly preserved.)*
----
-
 **TASK:**
 
 **Programming Language:** \`{{programmingLanguage}}\`
 
-**Instructions to Execute Literally:**
+**List of Issues to Fix:**
 {{#each issuesToFix}}
-- {{suggestedFix}}
+- **{{title}}**: {{details}}
 {{/each}}
 
 **Original Code Snippet to Refactor:**
-\`\`\`
+\`\`\`{{programmingLanguage}}
 {{codeSnippet}}
 \`\`\`
 `,
