@@ -60,14 +60,17 @@ const initialDeploymentSteps = [
   { id: 'deploy', icon: UploadCloud, title: 'Deploy to Robot', status: 'Pending', description: 'Upload firmware to the robot controller.' }
 ];
 
+const memberSchema = z.object({
+    name: z.string().min(1, "Member name is required."),
+    id: z.string().min(1, "Member ID is required."),
+    role: z.string().min(1, "Role is required."),
+});
+
 const createTeamSchema = z.object({
   teamName: z.string().min(3, "Team name must be at least 3 characters."),
   teamCode: z.string().min(4, "Team code must be at least 4 characters.").regex(/^[a-zA-Z0-9-]+$/, "Team code can only contain letters, numbers, and dashes."),
   pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits.").regex(/^\d{4,6}$/, "PIN must be a 4-6 digit number."),
-  roles: z.array(z.object({
-    roleName: z.string().min(1, "Role name cannot be empty."),
-    memberIds: z.string().optional(),
-  })).min(1, "You must define at least one role."),
+  members: z.array(memberSchema).min(1, "You must add at least one member."),
 });
 
 const joinTeamSchema = z.object({
@@ -99,18 +102,24 @@ export default function CollaborationClient() {
             teamName: "",
             teamCode: "",
             pin: "",
-            roles: [
-                { roleName: "Captain", memberIds: "" },
-                { roleName: "Programmer", memberIds: "" },
-                { roleName: "Builder", memberIds: "" },
-            ],
+            members: [],
         },
     });
 
-    const { fields: roleFields, append: appendRole, remove: removeRole } = useFieldArray({
+    const { fields: memberFields, append: appendMember, remove: removeMember } = useFieldArray({
         control: createForm.control,
-        name: "roles",
+        name: "members",
     });
+    
+    useEffect(() => {
+        if(isCreateTeamOpen && user && memberFields.length === 0) {
+            appendMember({ 
+                name: user.displayName || user.email?.split('@')[0] || '', 
+                id: user.uid, 
+                role: 'Captain' 
+            });
+        }
+    }, [isCreateTeamOpen, user, memberFields, appendMember]);
 
     const joinForm = useForm<z.infer<typeof joinTeamSchema>>({
         resolver: zodResolver(joinTeamSchema),
@@ -156,26 +165,30 @@ export default function CollaborationClient() {
             return;
         }
 
-        const creatorId = user.uid;
-        const rolesData: { [key: string]: string[] } = {};
-        let creatorInARole = false;
-
-        values.roles.forEach(role => {
-            const memberIdArray = role.memberIds?.split(',').map(id => id.trim()).filter(id => id) || [];
-            if (memberIdArray.includes(creatorId)) {
-                creatorInARole = true;
+        const rolesData: { [key: string]: { [uid: string]: string } } = {};
+        values.members.forEach(member => {
+            if (!rolesData[member.role]) {
+                rolesData[member.role] = {};
             }
-            if(role.roleName) {
-                rolesData[role.roleName] = memberIdArray;
-            }
+            rolesData[member.role][member.id] = member.name;
         });
 
-        if (!creatorInARole && values.roles.length > 0) {
-            const firstRoleName = values.roles[0].roleName;
-            if (!rolesData[firstRoleName]) {
-                rolesData[firstRoleName] = [];
+        // Ensure the creator is in the team data
+        const creatorId = user.uid;
+        let creatorInTeam = false;
+        for (const role in rolesData) {
+            if (Object.keys(rolesData[role]).includes(creatorId)) {
+                creatorInTeam = true;
+                break;
             }
-            rolesData[firstRoleName].push(creatorId);
+        }
+
+        if (!creatorInTeam) {
+            const creatorName = user.displayName || user.email?.split('@')[0] || 'Creator';
+            if (!rolesData['Captain']) {
+                rolesData['Captain'] = {};
+            }
+            rolesData['Captain'][creatorId] = creatorName;
         }
 
         const newTeam = {
@@ -216,23 +229,23 @@ export default function CollaborationClient() {
         }
         
         const newMemberId = user.uid;
-        const isAlreadyMember = Object.values(teamData.roles || {}).flat().includes(newMemberId);
-        
+        const isAlreadyMember = Object.values(teamData.roles || {}).some(roleMembers => newMemberId in (roleMembers as object));
+
         if (isAlreadyMember) {
             toast({ title: "Already a member", description: "You are already a member of this team." });
         } else {
             const updates: { [key: string]: any } = {};
-            const memberRolePath = `teams/${values.teamCode}/roles/Member`;
-            
-            const existingMembers = teamData.roles?.Member || [];
-            updates[memberRolePath] = [...existingMembers, newMemberId];
-            
+            const memberName = user.displayName || user.email || 'New Member';
+            const memberPath = `teams/${values.teamCode}/roles/Member/${newMemberId}`;
+            updates[memberPath] = memberName;
             await update(dbRef(database), updates);
-            
-            teamData.roles = teamData.roles || {};
-            teamData.roles.Member = updates[memberRolePath];
-        }
 
+            // Update local state for immediate UI feedback
+            teamData.roles = teamData.roles || {};
+            teamData.roles.Member = teamData.roles.Member || {};
+            teamData.roles.Member[newMemberId] = memberName;
+        }
+        
         await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
 
         setTeam({ id: values.teamCode, ...teamData });
@@ -326,34 +339,35 @@ export default function CollaborationClient() {
                                     Create a Team
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-3xl">
                                 <DialogHeader>
                                     <DialogTitle>Create a New Team</DialogTitle>
                                     <DialogDescription>Fill out the details below to get your team started.</DialogDescription>
                                 </DialogHeader>
                                 <Form {...createForm}>
-                                    <form onSubmit={createForm.handleSubmit(handleCreateTeam)} className="space-y-4 py-4">
+                                    <form onSubmit={createForm.handleSubmit(handleCreateTeam)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                                         <FormField control={createForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         <div className="grid grid-cols-2 gap-4">
                                             <FormField control={createForm.control} name="teamCode" render={({ field }) => (<FormItem><FormLabel>Team Code</FormLabel><FormControl><Input placeholder="Create a unique code for your team" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={createForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                         <div>
-                                            <FormLabel>Roles & Members</FormLabel>
+                                            <FormLabel>Team Members</FormLabel>
                                             <div className="space-y-3 mt-2">
-                                                {roleFields.map((field, index) => (
-                                                    <div key={field.id} className="flex items-end gap-2">
-                                                        <FormField control={createForm.control} name={`roles.${index}.roleName`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Role Name</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={createForm.control} name={`roles.${index}.memberIds`} render={({ field }) => (<FormItem className="flex-grow-[2]"><FormLabel className="text-xs">Member IDs (comma-separated)</FormLabel><FormControl><Input placeholder="Paste Member IDs here" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeRole(index)} disabled={roleFields.length <= 1}><Trash2 className="h-4 w-4" /></Button>
+                                                {memberFields.map((field, index) => (
+                                                    <div key={field.id} className="flex items-end gap-2 p-3 border rounded-md">
+                                                        <FormField control={createForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Member Name</FormLabel><FormControl><Input placeholder="e.g., Alex Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[2]"><FormLabel className="text-xs">Member ID</FormLabel><FormControl><Input placeholder="Paste Member ID here" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`members.${index}.role`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Role</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeMember(index)} disabled={memberFields.length <= 1}><Trash2 className="h-4 w-4" /></Button>
                                                     </div>
                                                 ))}
                                             </div>
-                                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => appendRole({ roleName: "", memberIds: "" })}>
-                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Role
+                                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => appendMember({ name: "", id: "", role: "Member" })}>
+                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Member
                                             </Button>
                                         </div>
-                                        <DialogFooter>
+                                        <DialogFooter className="pt-4 sticky bottom-0 bg-background/90 py-3 -mx-4 px-4">
                                             <Button type="submit" disabled={createForm.formState.isSubmitting}>{createForm.formState.isSubmitting ? 'Creating...' : 'Create Team'}</Button>
                                         </DialogFooter>
                                     </form>
@@ -459,7 +473,7 @@ export default function CollaborationClient() {
                                         <div className="flex items-center gap-2">
                                             <div className="flex -space-x-2 overflow-hidden">
                                                 <TooltipProvider>
-                                                    {Object.values(team.roles || {}).flat().slice(0, 3).map((memberId: any) => (
+                                                    {Object.values(team.roles || {}).flatMap(members => Object.keys(members)).slice(0, 3).map((memberId: any) => (
                                                         <Tooltip key={memberId}>
                                                             <TooltipTrigger asChild>
                                                             <Avatar className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
@@ -553,19 +567,20 @@ export default function CollaborationClient() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {team.roles && Object.entries(team.roles).map(([roleName, memberIds]: [string, string[]]) => (
+                                        {team.roles && Object.entries(team.roles).map(([roleName, members]: [string, { [uid: string]: string }]) => (
                                             <div key={roleName}>
                                                 <h4 className="font-semibold text-muted-foreground mb-3 px-1">{roleName}</h4>
                                                 <div className="space-y-4">
-                                                    {memberIds.length > 0 ? memberIds.map((memberId) => (
+                                                    {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberName]) => (
                                                         <div key={memberId} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3">
                                                                 <Avatar>
                                                                     <AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} />
-                                                                    <AvatarFallback>{memberId.substring(0, 2)}</AvatarFallback>
+                                                                    <AvatarFallback>{memberName.substring(0, 2)}</AvatarFallback>
                                                                 </Avatar>
                                                                 <div className="flex flex-col">
-                                                                    <p className="font-mono text-xs text-foreground truncate max-w-[150px]">{memberId}</p>
+                                                                    <p className="font-semibold text-foreground">{memberName}</p>
+                                                                    <p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>
                                                                     {user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}
                                                                 </div>
                                                             </div>
