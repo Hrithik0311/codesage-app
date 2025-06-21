@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -13,16 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 
-const notifications = [
-    { id: 1, title: "New commit from Alex", description: "Fixed a bug in the autonomous routine.", time: "15m ago" },
-    { id: 2, title: "Lesson 5 Unlocked", description: "You can now start 'Gamepad Controls'.", time: "1h ago" },
-    { id: 3, title: "Code Analysis Complete", description: "'Drivetrain.java' has been analyzed.", time: "3h ago" },
-];
-
 
 export function NotificationBell() {
   const { user, loading } = useAuth();
   const [hasUnread, setHasUnread] = React.useState(true);
+  
+  // In a real application, this would be fetched from an API or a global state.
+  const notifications: any[] = [];
 
   if (loading || !user) {
     return null; // Don't show notifications if not logged in
@@ -65,16 +63,26 @@ export function NotificationBell() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification) => (
-                <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                    <div className="flex justify-between w-full">
-                        <p className="font-semibold text-sm">{notification.title}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground w-full truncate">{notification.description}</p>
-                </DropdownMenuItem>
-            ))}
+            {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                    <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
+                        <div className="flex justify-between w-full">
+                            <p className="font-semibold text-sm">{notification.title}</p>
+                            <p className="text-xs text-muted-foreground">{notification.time}</p>
+                        </div>
+                        <p className="text-sm text-muted-foreground w-full truncate">{notification.description}</p>
+                    </DropdownMenuItem>
+                ))
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                You have no new notifications.
+              </div>
+            )}
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="justify-center p-0">
+          <Button variant="link" className="w-full rounded-none">View more</Button>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
