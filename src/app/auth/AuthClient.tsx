@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
@@ -30,7 +29,7 @@ export default function AuthClient() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const [isProcessingAuth, setIsProcessingAuth] = useState(true);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,31 +40,6 @@ export default function AuthClient() {
   });
 
   useEffect(() => {
-    const processRedirect = async () => {
-      if (!auth) {
-        setIsProcessingAuth(false);
-        return;
-      }
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          toast({
-            title: 'Success!',
-            description: `Welcome, ${result.user.email}`,
-          });
-        }
-      } catch (error: any) {
-        console.error('Google Sign-In Failed After Redirect:', error);
-        handleAuthError(error);
-      } finally {
-        setIsProcessingAuth(false);
-      }
-    };
-
-    processRedirect();
-  }, [toast]);
-
-  useEffect(() => {
     if (!authLoading && user) {
       router.push('/dashboard');
     }
@@ -73,7 +47,7 @@ export default function AuthClient() {
 
   const handleAuthError = (error: any) => {
     console.error('Authentication Error:', error);
-    let description = error.message;
+    let description = 'An unexpected error occurred. Please try again.';
     if (error.code === 'auth/email-already-in-use') {
       description = 'This email is already in use. Please try signing in.';
     } else if (
@@ -85,6 +59,8 @@ export default function AuthClient() {
     } else if (error.code === 'auth/unauthorized-domain') {
       description =
         "This app's domain is not authorized for OAuth operations. Please check your Firebase console settings.";
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      description = 'The sign-in window was closed. Please try again.';
     }
     toast({
       title: 'Authentication Failed',
@@ -122,20 +98,25 @@ export default function AuthClient() {
     const provider = new GoogleAuthProvider();
     setIsProcessingAuth(true);
     try {
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      toast({
+        title: 'Success!',
+        description: `Welcome, ${result.user.email}`,
+      });
     } catch (error: any) {
       handleAuthError(error);
+    } finally {
       setIsProcessingAuth(false);
     }
   };
 
   const isLoading = authLoading || isProcessingAuth;
 
-  if (isLoading && !form.formState.isSubmitting) {
+  if (authLoading && !isProcessingAuth) {
     return (
       <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl">Signing In</CardTitle>
+          <CardTitle className="font-headline text-2xl">Checking Session</CardTitle>
           <CardDescription>Please wait...</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center items-center p-8">
