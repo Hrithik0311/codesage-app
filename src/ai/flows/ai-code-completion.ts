@@ -22,7 +22,7 @@ const AnalysisItemSchema = z.object({
     details: z.string().describe('A detailed explanation of the issue or suggestion, including line numbers if applicable.'),
 });
 
-export const CodeAnalysisOutputSchema = z.object({
+const CodeAnalysisOutputSchema = z.object({
   performance: z.array(AnalysisItemSchema).describe('An array of performance optimization suggestions.'),
   bugs: z.array(AnalysisItemSchema).describe('An array of detected potential bugs or errors.'),
   suggestions: z.array(AnalysisItemSchema).describe('An array of general suggestions for improving code quality and best practices.'),
