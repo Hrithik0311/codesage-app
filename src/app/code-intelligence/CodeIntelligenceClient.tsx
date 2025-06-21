@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -178,15 +179,15 @@ export default function CodeIntelligenceClient() {
             ...(analysisResults?.suggestions.map((item, i) => ({ ...item, id: `suggestions-${i}` })) || [])
         ];
 
-        const issuesToFix = allIssuesWithIds
+        const instructions = allIssuesWithIds
             .filter(issue => selectedIssues.includes(issue.id))
-            .map(issue => issue.title);
+            .map(issue => issue.technicalInstruction);
 
         try {
             const result = await refactorCode({
                 codeSnippet: code,
                 programmingLanguage: language,
-                issuesToFix: issuesToFix,
+                instructions: instructions,
             });
             setRefactoredCode(result.refactoredCode);
             setAnalysisResults(null);
