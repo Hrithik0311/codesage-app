@@ -25,6 +25,9 @@ import { z } from 'zod';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 const initialCommits = [
   { hash: 'a1b2c3d', message: 'Feat: Implement new intake mechanism control', author: 'Maria Garcia', time: '2 hours ago' },
@@ -79,6 +82,13 @@ const joinTeamSchema = z.object({
   pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digits."),
 });
 
+const settingsSchema = z.object({
+    teamName: z.string().min(3, "Team name must be at least 3 characters."),
+    pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be a 4-6 digit number."),
+    members: z.array(memberSchema),
+});
+
+
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig: { [key: string]: { text: string; className: string } } = {
     online: { text: 'Online', className: 'bg-green-500/20 text-green-400 border-green-500/30' },
@@ -112,6 +122,7 @@ export default function CollaborationClient() {
     const [isLoadingTeam, setIsLoadingTeam] = useState(true);
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [memberStatuses, setMemberStatuses] = useState<Record<string, { state: string }>>({});
 
 
@@ -144,6 +155,16 @@ export default function CollaborationClient() {
         resolver: zodResolver(joinTeamSchema),
         defaultValues: { teamName: "", teamCode: "", pin: "" },
     });
+    
+    const settingsForm = useForm<z.infer<typeof settingsSchema>>({
+        resolver: zodResolver(settingsSchema),
+        defaultValues: { teamName: "", pin: "", members: [] },
+    });
+
+    const { fields: settingsMemberFields, append: appendSettingsMember, remove: removeSettingsMember, replace: replaceSettingsMembers } = useFieldArray({
+        control: settingsForm.control,
+        name: "members",
+    });
 
     useEffect(() => {
         if (!loading && !user) {
@@ -157,12 +178,33 @@ export default function CollaborationClient() {
             if (snapshot.exists()) {
               const teamCode = snapshot.val();
               const teamDataRef = dbRef(database, `teams/${teamCode}`);
-              get(teamDataRef).then((teamSnapshot) => {
-                if (teamSnapshot.exists()) {
-                  setTeam({ id: teamCode, ...teamSnapshot.val() });
-                }
-                setIsLoadingTeam(false);
+              
+              const unsubscribe = onValue(teamDataRef, (teamSnapshot) => {
+                  if (teamSnapshot.exists()) {
+                      const teamData = { id: teamCode, ...teamSnapshot.val() };
+                      setTeam(teamData);
+                      
+                      const membersForForm = [];
+                      for (const role in teamData.roles) {
+                          for (const id in teamData.roles[role]) {
+                              membersForForm.push({ id, name: teamData.roles[role][id], role });
+                          }
+                      }
+                      settingsForm.reset({ teamName: teamData.name, pin: teamData.pin, members: membersForForm });
+                      replaceSettingsMembers(membersForForm);
+
+                  } else {
+                      setTeam(null);
+                  }
+                  setIsLoadingTeam(false);
+              }, (error) => {
+                  console.error("Error fetching team data:", error);
+                  toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+                  setIsLoadingTeam(false);
               });
+
+              return () => unsubscribe();
+
             } else {
               setIsLoadingTeam(false);
             }
@@ -215,24 +257,6 @@ export default function CollaborationClient() {
             rolesData[member.role][member.id] = member.name;
         });
 
-        // Ensure the creator is in the team data
-        const creatorId = user.uid;
-        let creatorInTeam = false;
-        for (const role in rolesData) {
-            if (Object.keys(rolesData[role]).includes(creatorId)) {
-                creatorInTeam = true;
-                break;
-            }
-        }
-
-        if (!creatorInTeam) {
-            const creatorName = user.displayName || user.email?.split('@')[0] || 'Creator';
-            if (!rolesData['Captain']) {
-                rolesData['Captain'] = {};
-            }
-            rolesData['Captain'][creatorId] = creatorName;
-        }
-
         const newTeam = {
             name: values.teamName,
             roles: rolesData,
@@ -277,23 +301,46 @@ export default function CollaborationClient() {
             toast({ title: "Already a member", description: "You are already a member of this team." });
         } else {
             const updates: { [key: string]: any } = {};
-            const memberName = user.displayName || user.email || 'New Member';
+            const memberName = user.displayName || user.email?.split('@')[0] || 'New Member';
             const memberPath = `teams/${values.teamCode}/roles/Member/${newMemberId}`;
             updates[memberPath] = memberName;
             await update(dbRef(database), updates);
-
-            // Update local state for immediate UI feedback
-            teamData.roles = teamData.roles || {};
-            teamData.roles.Member = teamData.roles.Member || {};
-            teamData.roles.Member[newMemberId] = memberName;
         }
         
         await set(dbRef(database, `users/${user.uid}`), { teamCode: values.teamCode });
-
-        setTeam({ id: values.teamCode, ...teamData });
         setIsJoinTeamOpen(false);
         joinForm.reset();
         toast({ title: 'Success!', description: `You have joined the team: ${teamData.name}` });
+    };
+    
+    const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
+        if (!user || !database || !team || user.uid !== team.creatorUid) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You do not have permission to change settings.' });
+            return;
+        }
+
+        const newRoles: { [key: string]: { [uid: string]: string } } = {};
+        values.members.forEach(member => {
+            if (!newRoles[member.role]) {
+                newRoles[member.role] = {};
+            }
+            newRoles[member.role][member.id] = member.name;
+        });
+
+        const updates = {
+            name: values.teamName,
+            pin: values.pin,
+            roles: newRoles,
+        };
+
+        try {
+            await update(dbRef(database, `teams/${team.id}`), updates);
+            toast({ title: 'Success!', description: 'Team settings have been updated.' });
+            setIsSettingsOpen(false);
+        } catch (error) {
+            console.error("Error updating team settings:", error);
+            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
+        }
     };
 
     const handleOpenCommitModal = () => setIsCommitModalOpen(true);
@@ -336,7 +383,7 @@ export default function CollaborationClient() {
                     i === stepIndex ? { ...step, status: 'Completed' } : step
                 ));
                 runStep(stepIndex + 1);
-            }, 2000);
+            }, 1500);
         };
         
         runStep(0);
@@ -482,9 +529,78 @@ export default function CollaborationClient() {
                             <span className="text-xl font-headline font-bold">CodeSage</span>
                         </Link>
                         <div className="flex items-center gap-4">
-                            <h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">
-                                {team.name} Hub
-                            </h1>
+                            <div className="flex items-center gap-2">
+                                <h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">
+                                    {team.name} Hub
+                                </h1>
+                                {user?.uid === team.creatorUid && (
+                                    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <Settings className="h-5 w-5" />
+                                                <span className="sr-only">Team Settings</span>
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-4xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Team Settings</DialogTitle>
+                                                <DialogDescription>Manage your team's information and members.</DialogDescription>
+                                            </DialogHeader>
+                                            <Form {...settingsForm}>
+                                                <form onSubmit={settingsForm.handleSubmit(handleUpdateTeamSettings)}>
+                                                    <Tabs defaultValue="general" className="mt-4">
+                                                        <TabsList>
+                                                            <TabsTrigger value="general">General</TabsTrigger>
+                                                            <TabsTrigger value="members">Members</TabsTrigger>
+                                                        </TabsList>
+                                                        <TabsContent value="general" className="space-y-6 py-6">
+                                                            <FormField control={settingsForm.control} name="teamName" render={({ field }) => (<FormItem><FormLabel>Team Name</FormLabel><FormControl><Input placeholder="e.g., The Robo-Wizards" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                            <FormField control={settingsForm.control} name="pin" render={({ field }) => (<FormItem><FormLabel>4-6 Digit PIN</FormLabel><FormControl><Input type="password" placeholder="e.g., 123456" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        </TabsContent>
+                                                        <TabsContent value="members" className="py-6 max-h-[50vh] overflow-y-auto">
+                                                            <div className="space-y-4">
+                                                                {settingsMemberFields.map((field, index) => (
+                                                                    <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
+                                                                        <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} readOnly={user?.uid !== team.creatorUid} /></FormControl><FormMessage /></FormItem>)} />
+                                                                        <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                                                        <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
+                                                                            <FormItem className="w-[150px]">
+                                                                                <FormLabel className="text-xs">Role</FormLabel>
+                                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                                    <FormControl>
+                                                                                        <SelectTrigger>
+                                                                                            <SelectValue placeholder="Select a role" />
+                                                                                        </SelectTrigger>
+                                                                                    </FormControl>
+                                                                                    <SelectContent>
+                                                                                        <SelectItem value="Captain">Captain</SelectItem>
+                                                                                        <SelectItem value="Programmer">Programmer</SelectItem>
+                                                                                        <SelectItem value="Builder">Builder</SelectItem>
+                                                                                        <SelectItem value="Driver">Driver</SelectItem>
+                                                                                        <SelectItem value="Member">Member</SelectItem>
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )} />
+                                                                        <Button type="button" variant="destructive" size="icon" onClick={() => removeSettingsMember(index)} disabled={field.id === team.creatorUid}><Trash2 className="h-4 w-4" /></Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member" })}>
+                                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Member
+                                                            </Button>
+                                                        </TabsContent>
+                                                    </Tabs>
+                                                    <DialogFooter className="mt-6">
+                                                        <Button type="submit" disabled={settingsForm.formState.isSubmitting}>{settingsForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                                                    </DialogFooter>
+                                                </form>
+                                            </Form>
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
+                            </div>
                              <div className="flex items-center gap-2">
                                 <ThemeToggleButton />
                                 <UserProfile />
@@ -515,15 +631,15 @@ export default function CollaborationClient() {
                                         <div className="flex items-center gap-2">
                                             <div className="flex -space-x-2 overflow-hidden">
                                                 <TooltipProvider>
-                                                    {Object.values(team.roles || {}).flatMap(members => Object.keys(members)).slice(0, 3).map((memberId: any) => (
+                                                    {Object.values(team.roles || {}).flatMap((members: any) => Object.entries(members)).slice(0, 3).map(([memberId, memberName]) => (
                                                         <Tooltip key={memberId}>
                                                             <TooltipTrigger asChild>
                                                             <Avatar className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
                                                                 <AvatarImage data-ai-hint="person" src={`https://placehold.co/32x32.png`} />
-                                                                <AvatarFallback>{memberId.substring(0, 1)}</AvatarFallback>
+                                                                <AvatarFallback>{(memberName as string).substring(0, 1)}</AvatarFallback>
                                                             </Avatar>
                                                             </TooltipTrigger>
-                                                            <TooltipContent>{memberId}</TooltipContent>
+                                                            <TooltipContent>{memberName as string}</TooltipContent>
                                                         </Tooltip>
                                                     ))}
                                                 </TooltipProvider>
