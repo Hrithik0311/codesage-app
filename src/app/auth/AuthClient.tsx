@@ -153,8 +153,12 @@ export default function AuthClient() {
     }
     setAuthState('submitting');
     const provider = new GoogleAuthProvider();
-    // We don't need a try/catch here because errors will be caught by getRedirectResult on the next page load.
-    await signInWithRedirect(auth, provider);
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (error) {
+      handleAuthError(error);
+      setAuthState('idle');
+    }
   };
 
   const isLoading = authState !== 'idle' || isCheckingRedirect;
