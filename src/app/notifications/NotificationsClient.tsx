@@ -16,20 +16,20 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Users, Search, SendHorizontal, Bot, Megaphone, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Search, SendHorizontal, Bot, User as UserIcon } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { Sheet } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // --- Interfaces ---
 interface Message {
@@ -101,8 +101,8 @@ export default function NotificationsClient() {
         return;
     }
 
-    const loadChatData = async () => {
-        // 1. Fetch Team
+    const loadData = async () => {
+        // 1. Fetch Team and Members
         setLoadingState('loading_team');
         const teamCodeSnapshot = await get(dbRef(database, `users/${user.uid}/teamCode`));
         if (!teamCodeSnapshot.exists()) {
@@ -142,7 +142,7 @@ export default function NotificationsClient() {
                 let hint: 'person' | 'megaphone' = 'megaphone';
                 if (meta.type === 'dm') {
                     const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-                    name = members.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                    name = members.find(m => m.id === otherUserId)?.name || 'Unknown User'; // Use loaded members
                     hint = 'person';
                 }
 
@@ -163,8 +163,8 @@ export default function NotificationsClient() {
             const allChats = [aiChat, ...resolvedChats].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
             setChats(allChats);
 
-            if (!activeChatId) {
-                setActiveChatId(allChats[0]?.id || null);
+            if (!activeChatId && allChats.length > 0) {
+                setActiveChatId(allChats[0].id);
             }
             setLoadingState('ready');
         });
@@ -172,7 +172,7 @@ export default function NotificationsClient() {
         return () => unsubscribe();
     };
 
-    loadChatData();
+    loadData();
   }, [user, authLoading, router, toast]);
 
   // --- Message Fetching Effect ---
@@ -195,7 +195,7 @@ export default function NotificationsClient() {
     });
 
     return () => unsubscribe();
-  }, [activeChat, database]);
+  }, [activeChatId]); // Rerun when active chat changes
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -252,7 +252,10 @@ export default function NotificationsClient() {
       
       const newChatRef = push(dbRef(database, 'chats'));
       const newChatId = newChatRef.key;
-      if (!newChatId) return;
+      if (!newChatId) {
+        toast({variant: 'destructive', title: 'Error', description: 'Could not create chat.'});
+        return;
+      }
 
       const chatData = { metadata: { type: 'dm', members: { [user.uid]: true, [member.id]: true } } };
       await set(newChatRef, chatData);
@@ -274,6 +277,7 @@ export default function NotificationsClient() {
 
   if (loadingState !== 'ready' && loadingState !== 'no_team') {
     return (
+      <SidebarProvider>
         <div className="flex h-screen w-full bg-background text-foreground">
             <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:block">
                 <SidebarHeader><Skeleton className="h-10 w-full" /><Skeleton className="h-9 w-full mt-2" /></SidebarHeader>
@@ -281,6 +285,7 @@ export default function NotificationsClient() {
             </Sidebar>
             <div className="flex flex-col flex-1"><header className="h-[73px] p-4 border-b border-border/50 flex items-center"><Skeleton className="h-10 w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
         </div>
+      </SidebarProvider>
     );
   }
   
@@ -314,7 +319,7 @@ export default function NotificationsClient() {
             </div>
         </SidebarHeader>
         <SidebarContent className="p-0">
-            <ScrollArea className="h-full">
+            <ScrollArea className="h-full p-2">
                 {searchTerm ? (
                      <SidebarMenu>
                          {filteredUsers.length > 0 ? (
@@ -372,13 +377,12 @@ export default function NotificationsClient() {
                 <div className="space-y-6">
                     {messages.map((msg) => {
                         const isSender = msg.senderId === user?.uid;
-                        const ChatIcon = isSender ? UserIcon : msg.senderId === 'ai' ? Bot : UserIcon;
                         return (
                              <div key={msg.key} className={cn("flex items-end gap-3", isSender && "flex-row-reverse")}>
                                 <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>
                                 <div className={cn("flex flex-col gap-1", isSender ? "items-end" : "items-start")}>
                                     <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
-                                        {activeChat.type !== 'dm' && !isSender && <p className="text-xs font-bold pb-1 text-accent">{msg.senderName}</p>}
+                                        {!isSender && <p className="text-xs font-bold pb-1 text-accent">{msg.senderName}</p>}
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">{formatTimestamp(msg.timestamp)}</p>
