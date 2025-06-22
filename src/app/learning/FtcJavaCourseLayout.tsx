@@ -22,7 +22,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const { user, loading, completeLesson, completedLessons } = useAuth();
+  const { user, loading, completeLesson, completedLessons, resetCompletedLessons } = useAuth();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -117,6 +117,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
           activeLessonId={activeLessonId}
           onSelectLesson={handleSelectLesson}
           completedLessonIds={completedLessons}
+          onResetProgress={resetCompletedLessons}
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (

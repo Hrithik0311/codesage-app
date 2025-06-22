@@ -25,9 +25,10 @@ interface AuthContextType {
   markNotificationsAsRead: () => void;
   completedLessons: Set<string>;
   completeLesson: (lessonId: string) => void;
+  resetCompletedLessons: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, completedLessons: new Set(), completeLesson: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, completedLessons: new Set(), completeLesson: () => {}, resetCompletedLessons: () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -152,7 +153,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const value = { user, loading, notifications, markNotificationsAsRead, completedLessons, completeLesson };
+  const resetCompletedLessons = () => {
+    if (user && database) {
+      const lessonsRef = dbRef(database, `users/${user.uid}/completedLessons`);
+      remove(lessonsRef).then(() => {
+        setCompletedLessons(new Set());
+      });
+    }
+  };
+
+  const value = { user, loading, notifications, markNotificationsAsRead, completedLessons, completeLesson, resetCompletedLessons };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -6,14 +6,27 @@ import type { Lesson } from '@/data/ftc-java-lessons';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { BookOpen, Check, ClipboardList, Lock, Rocket, Star } from 'lucide-react';
+import { BookOpen, Check, ClipboardList, Lock, Rocket, RotateCcw, Star } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
 
 interface LessonNavigationProps {
   lessons: Lesson[];
   activeLessonId: string | null;
   onSelectLesson: (lessonId: string) => void;
   completedLessonIds: Set<string>;
+  onResetProgress: () => void;
 }
 
 const getIconForLesson = (lessonType: Lesson['type']) => {
@@ -30,6 +43,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   activeLessonId,
   onSelectLesson,
   completedLessonIds,
+  onResetProgress,
 }) => {
   return (
     <nav className="w-full md:w-80 bg-card/70 backdrop-blur-md p-3 md:p-5 rounded-xl shadow-xl border border-border/30 md:sticky md:top-[calc(theme(spacing.4)_+_6rem)] max-h-[40vh] md:max-h-[calc(100vh-12rem)] mb-4 md:mb-0 flex flex-col">
@@ -94,6 +108,30 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
             </ul>
         </div>
       </ScrollArea>
+      <div className="mt-auto pt-4 border-t border-border/30">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Progress
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently reset your lesson progress.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onResetProgress} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Yes, reset my progress
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </nav>
   );
 };
