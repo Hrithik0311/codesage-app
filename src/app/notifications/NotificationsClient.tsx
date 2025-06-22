@@ -88,22 +88,23 @@ export default function NotificationsClient() {
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
-  // Combined Effect for loading all data sequentially
   useEffect(() => {
     if (authLoading || !user || !database) {
       return;
     }
-
     setLoadingState('loading_team');
-    let teamUnsubscribe: () => void = () => {};
-    let chatsUnsubscribe: () => void = () => {};
+    
+    let teamUnsubscribe = () => {};
+    let chatsUnsubscribe = () => {};
 
     const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+    
     get(userTeamRef).then(teamCodeSnapshot => {
       if (!teamCodeSnapshot.exists()) {
         setLoadingState('no_team');
         return;
       }
+      
       const teamCode = teamCodeSnapshot.val();
       const teamRef = dbRef(database, `teams/${teamCode}`);
 
@@ -125,9 +126,7 @@ export default function NotificationsClient() {
         setTeam(currentTeam);
         teamMembersRef.current = members;
 
-        if (chatsUnsubscribe) {
-          chatsUnsubscribe();
-        }
+        if (chatsUnsubscribe) chatsUnsubscribe();
         
         const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
         chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
@@ -142,9 +141,19 @@ export default function NotificationsClient() {
             let hint: Chat['hint'] = 'megaphone';
 
             if (meta.type === 'dm') {
-              const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-              name = teamMembersRef.current.find(m => m.id === otherUserId)?.name || 'Unknown User';
-              hint = 'person';
+                const otherUserId = Object.keys(meta.members || {}).find(id => id !== user.uid);
+                if (otherUserId) {
+                    // ** NEW LOGIC **: Prioritize stored name, then fall back to roster lookup.
+                    if (meta.memberNames && meta.memberNames[otherUserId]) {
+                        name = meta.memberNames[otherUserId];
+                    } else {
+                        // Fallback for older chats that don't have memberNames stored.
+                        name = teamMembersRef.current.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                    }
+                } else {
+                    name = 'Unknown User';
+                }
+                hint = 'person';
             }
             return {
               id: chatId, name, hint, type: meta.type, members: meta.members,
@@ -165,13 +174,14 @@ export default function NotificationsClient() {
 
           setChats(sortedChats);
           
-          setActiveChatId(currentId => {
-              if (currentId && sortedChats.some(c => c.id === currentId)) return currentId;
-              const hashId = window.location.hash.substring(1);
-              if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
-              return sortedChats.length > 0 ? sortedChats[0].id : null;
-          });
-
+          if (!activeChatId) {
+            const hashId = window.location.hash.substring(1);
+            if (hashId && sortedChats.some(c => c.id === hashId)) {
+                setActiveChatId(hashId);
+            } else if (sortedChats.length > 0) {
+                setActiveChatId(sortedChats[0].id);
+            }
+          }
           setLoadingState('ready');
         });
       });
@@ -185,7 +195,7 @@ export default function NotificationsClient() {
       teamUnsubscribe();
       chatsUnsubscribe();
     };
-  }, [user, authLoading, database, toast]);
+  }, [user, authLoading, database]);
 
   // --- Message Fetching Effect ---
   useEffect(() => {
@@ -259,6 +269,13 @@ export default function NotificationsClient() {
     try {
         const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "Anonymous";
 
+        if (myName === 'Anonymous' || myName === 'User') {
+          toast({ variant: 'destructive', title: 'Error', description: "Couldn't verify your identity to send message." });
+          setIsSending(false);
+          setNewMessage(currentInput);
+          return;
+        }
+
         const messageData = { text: currentInput, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
         const updates: { [key: string]: any } = {};
@@ -303,6 +320,7 @@ export default function NotificationsClient() {
     } catch (error) {
         console.error("Error sending message:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not send message.' });
+        setNewMessage(currentInput);
     } finally {
         setIsSending(false);
     }
@@ -329,8 +347,20 @@ export default function NotificationsClient() {
         toast({variant: 'destructive', title: 'Error', description: 'Could not create chat.'});
         return;
       }
+      
+      const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'New Member';
 
-      const chatData = { metadata: { type: 'dm', members: { [user.uid]: true, [member.id]: true } } };
+      // ** NEW LOGIC **: Store both participants' names in the chat metadata.
+      const chatData = { 
+        metadata: { 
+          type: 'dm', 
+          members: { [user.uid]: true, [member.id]: true },
+          memberNames: {
+              [user.uid]: myName,
+              [member.id]: member.name
+          }
+        } 
+      };
       await set(newChatRef, chatData);
       
       const updates: { [key:string]: any } = {};
@@ -339,9 +369,9 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      router.replace(`#${newChatId}`);
+      handleSetActiveChat(newChatId);
 
-  }, [user, database, team, chats, router, toast]);
+  }, [user, database, team, chats, toast]);
 
 
   // --- Render Logic ---
@@ -505,7 +535,7 @@ export default function NotificationsClient() {
             </Sidebar>
             <div className="md:hidden">
                 <Sheet>
-                    <SheetContent side="left" className="p-0 w-[80vw] max-w-xs">
+                    <SheetContent side="left" className="p-0 w-[80vw] max-w-xs" onOpenAutoFocus={(e) => e.preventDefault()}>
                        {ChatSidebar}
                     </SheetContent>
                 </Sheet>
