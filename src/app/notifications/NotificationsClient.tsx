@@ -145,11 +145,14 @@ export default function NotificationsClient() {
                 ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
 
                 setChats(allChats);
-                if (!activeChatId && allChats.length > 0) {
-                    setActiveChatId(allChats[0].id);
-                } else if (activeChatId && !allChats.find(c => c.id === activeChatId)) {
-                    setActiveChatId(allChats.length > 0 ? allChats[0].id : null);
-                }
+                setActiveChatId(currentId => {
+                    // If the current chat is still in the list, keep it.
+                    if (currentId && allChats.find(c => c.id === currentId)) {
+                        return currentId;
+                    }
+                    // Otherwise, default to the first chat in the list or null.
+                    return allChats.length > 0 ? allChats[0].id : null;
+                });
                 setLoadingState('ready');
             }
 
@@ -282,6 +285,11 @@ export default function NotificationsClient() {
         setIsSending(false);
     }
   };
+  
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSendMessage();
+  };
 
   const handleStartChat = async (member: TeamMember) => {
       if (!user || !database || !team) return;
@@ -300,7 +308,6 @@ export default function NotificationsClient() {
         return;
       }
 
-      const myName = teamMembers.find(m => m.id === user.uid)?.name || 'New Member';
       const chatData = { metadata: { type: 'dm', members: { [user.uid]: true, [member.id]: true } } };
       await set(newChatRef, chatData);
       
@@ -321,9 +328,9 @@ export default function NotificationsClient() {
 
   if (loadingState !== 'ready' && loadingState !== 'no_team') {
     return (
-      <SidebarProvider>
+      <SidebarProvider defaultOpen>
         <div className="flex h-screen w-full bg-background text-foreground">
-            <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:block">
+            <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:flex md:flex-col h-screen">
                 <SidebarHeader><Skeleton className="h-10 w-full" /><Skeleton className="h-9 w-full mt-2" /></SidebarHeader>
                 <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
             </Sidebar>
@@ -446,7 +453,7 @@ export default function NotificationsClient() {
         </main>
 
         <footer className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm flex-shrink-0">
-            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+            <form onSubmit={handleFormSubmit}>
                 <div className="relative">
                     <Input placeholder={messageInputPlaceholder} className="h-12 pr-14" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={isMessageInputDisabled} />
                     <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}>
