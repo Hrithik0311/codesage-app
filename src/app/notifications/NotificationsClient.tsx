@@ -99,7 +99,7 @@ export default function NotificationsClient() {
 
     const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
     
-    get(userTeamRef).then(teamCodeSnapshot => {
+    get(userTeamRef).then((teamCodeSnapshot) => {
       if (!teamCodeSnapshot.exists()) {
         setLoadingState('no_team');
         return;
@@ -108,97 +108,107 @@ export default function NotificationsClient() {
       const teamCode = teamCodeSnapshot.val();
       const teamRef = dbRef(database, `teams/${teamCode}`);
 
-      teamUnsubscribe = onValue(teamRef, (teamSnapshot) => {
-        if (!teamSnapshot.exists()) {
-          setLoadingState('no_team');
-          setTeam(null);
-          teamMembersRef.current = [];
-          setChats([]);
-          return;
-        }
+      teamUnsubscribe = onValue(teamRef, async (teamSnapshot) => {
+          if (!teamSnapshot.exists()) {
+              setLoadingState('no_team');
+              setTeam(null);
+              teamMembersRef.current = [];
+              setChats([]);
+              return;
+          }
 
-        const teamData = teamSnapshot.val();
-        const currentTeam = { id: teamCode, ...teamData };
-        const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
-          Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
-        );
+          const teamData = teamSnapshot.val();
+          const currentTeam = { id: teamCode, ...teamData };
 
-        setTeam(currentTeam);
-        teamMembersRef.current = members;
+          // Fetch authoritative names for all members from the /users node
+          const allMemberIds: string[] = Object.values(teamData.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers));
+          const memberNamePromises = allMemberIds.map(async (id) => {
+              const nameSnap = await get(dbRef(database, `users/${id}/name`));
+              return { id, name: nameSnap.val() || 'Unknown User' };
+          });
+          const membersWithNames = await Promise.all(memberNamePromises);
+          const namesById = Object.fromEntries(membersWithNames.map(m => [m.id, m.name]));
 
-        if (chatsUnsubscribe) chatsUnsubscribe();
-        
-        const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-        chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
-          const chatIds = chatListSnapshot.val() || {};
+          // Rebuild the members list with the correct names
+          const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
+              Object.keys(roleMembers).map(id => ({ id, name: namesById[id], role }))
+          );
           
-          const chatPromises = Object.keys(chatIds).map(async (chatId) => {
-            const metaSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
-            if (!metaSnap.exists()) return null;
-
-            const meta = metaSnap.val();
-            let name = meta.name;
-            let hint: Chat['hint'] = 'megaphone';
+          teamMembersRef.current = members;
+          setTeam(currentTeam);
+          
+          if (chatsUnsubscribe) chatsUnsubscribe();
+          
+          const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+          chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
+            const chatIds = chatListSnapshot.val() || {};
             
-            if (meta.type === 'dm') {
-                const otherUserId = Object.keys(meta.members || {}).find(id => id !== user.uid);
-                if (otherUserId) {
-                    // Priority 1: Use stored name if available (for new and self-healed chats)
-                    if (meta.memberNames && meta.memberNames[otherUserId]) {
-                        name = meta.memberNames[otherUserId];
-                    } else {
-                        // Priority 2: Look up name from the roster for old chats
-                        const otherUserName = teamMembersRef.current.find(m => m.id === otherUserId)?.name;
-                        if (otherUserName) {
-                            name = otherUserName;
-                            // SELF-HEALING: Found a name for an old chat, so we write it back to the DB.
-                            const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Me';
-                            const memberNamesUpdate = {
-                                [`/chats/${chatId}/metadata/memberNames`]: {
-                                    [user.uid]: myName,
-                                    [otherUserId]: otherUserName
-                                }
-                            };
-                            // This update is async but we don't need to wait for it.
-                            update(dbRef(database), memberNamesUpdate);
-                        } else {
-                            // Fallback if user is not in the roster anymore
-                            name = 'Unknown User';
-                        }
-                    }
-                } else {
-                    name = 'Unknown User';
-                }
-                hint = 'person';
-            }
-            return {
-              id: chatId, name, hint, type: meta.type, members: meta.members,
-              avatar: 'https://placehold.co/40x40.png',
-              lastMessage: meta.lastMessage,
-            };
+            const chatPromises = Object.keys(chatIds).map(async (chatId) => {
+              const metaSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
+              if (!metaSnap.exists()) return null;
+
+              const meta = metaSnap.val();
+              let name = meta.name;
+              let hint: Chat['hint'] = 'megaphone';
+              
+              if (meta.type === 'dm') {
+                  const otherUserId = Object.keys(meta.members || {}).find(id => id !== user.uid);
+                  if (otherUserId) {
+                      // Priority 1: Use stored name if available (for new and self-healed chats)
+                      if (meta.memberNames && meta.memberNames[otherUserId]) {
+                          name = meta.memberNames[otherUserId];
+                      } else {
+                          // Priority 2: Look up name from the authoritative roster
+                          const otherUserName = teamMembersRef.current.find(m => m.id === otherUserId)?.name;
+                          if (otherUserName && otherUserName !== 'Unknown User') {
+                              name = otherUserName;
+                              // SELF-HEALING: Found a name for an old chat, so we write it back to the DB.
+                              const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Me';
+                              const memberNamesUpdate = {
+                                  [`/chats/${chatId}/metadata/memberNames`]: {
+                                      [user.uid]: myName,
+                                      [otherUserId]: otherUserName
+                                  }
+                              };
+                              update(dbRef(database), memberNamesUpdate);
+                          } else {
+                              // Fallback if user is not in the roster anymore
+                              name = 'Unknown User';
+                          }
+                      }
+                  } else {
+                      name = 'Unknown User';
+                  }
+                  hint = 'person';
+              }
+              return {
+                id: chatId, name, hint, type: meta.type, members: meta.members,
+                avatar: 'https://placehold.co/40x40.png',
+                lastMessage: meta.lastMessage,
+              };
+            });
+
+            const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+
+            const sortedChats = [
+                {
+                    id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
+                    lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
+                },
+                ...resolvedChats
+            ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+
+            setChats(sortedChats);
+            
+            setActiveChatId(prevId => {
+              if (prevId && sortedChats.some(c => c.id === prevId)) return prevId;
+              const hashId = window.location.hash.substring(1);
+              if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
+              return sortedChats.length > 0 ? sortedChats[0].id : null;
+            });
+
+            setLoadingState('ready');
           });
-
-          const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
-
-          const sortedChats = [
-              {
-                  id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
-                  lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
-              },
-              ...resolvedChats
-          ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
-
-          setChats(sortedChats);
-          
-          setActiveChatId(prevId => {
-            if (prevId && sortedChats.some(c => c.id === prevId)) return prevId;
-            const hashId = window.location.hash.substring(1);
-            if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
-            return sortedChats.length > 0 ? sortedChats[0].id : null;
-          });
-
-          setLoadingState('ready');
-        });
       });
     }).catch(error => {
       console.error("Error fetching initial team data:", error);
@@ -281,7 +291,8 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
+        const myNameSnap = await get(dbRef(database, `users/${user.uid}/name`));
+        const myName = myNameSnap.val() || user.displayName || user.email?.split('@')[0];
 
         if (!myName) {
           toast({ variant: 'destructive', title: 'Error', description: "Couldn't verify your identity to send message." });
@@ -382,7 +393,6 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      // This state update needs to happen before the navigation
       setActiveChatId(newChatId);
       router.replace(`#${newChatId}`);
 
@@ -560,5 +570,3 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
-
-    
