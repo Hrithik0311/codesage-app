@@ -139,16 +139,32 @@ export default function NotificationsClient() {
             const meta = metaSnap.val();
             let name = meta.name;
             let hint: Chat['hint'] = 'megaphone';
-
+            
             if (meta.type === 'dm') {
                 const otherUserId = Object.keys(meta.members || {}).find(id => id !== user.uid);
                 if (otherUserId) {
-                    // ** NEW LOGIC **: Prioritize stored name, then fall back to roster lookup.
+                    // Priority 1: Use stored name if available (for new and self-healed chats)
                     if (meta.memberNames && meta.memberNames[otherUserId]) {
                         name = meta.memberNames[otherUserId];
                     } else {
-                        // Fallback for older chats that don't have memberNames stored.
-                        name = teamMembersRef.current.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                        // Priority 2: Look up name from the roster for old chats
+                        const otherUserName = teamMembersRef.current.find(m => m.id === otherUserId)?.name;
+                        if (otherUserName) {
+                            name = otherUserName;
+                            // SELF-HEALING: Found a name for an old chat, so we write it back to the DB.
+                            const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Me';
+                            const memberNamesUpdate = {
+                                [`/chats/${chatId}/metadata/memberNames`]: {
+                                    [user.uid]: myName,
+                                    [otherUserId]: otherUserName
+                                }
+                            };
+                            // This update is async but we don't need to wait for it.
+                            update(dbRef(database), memberNamesUpdate);
+                        } else {
+                            // Fallback if user is not in the roster anymore
+                            name = 'Unknown User';
+                        }
                     }
                 } else {
                     name = 'Unknown User';
@@ -174,14 +190,13 @@ export default function NotificationsClient() {
 
           setChats(sortedChats);
           
-          if (!activeChatId) {
+          setActiveChatId(prevId => {
+            if (prevId && sortedChats.some(c => c.id === prevId)) return prevId;
             const hashId = window.location.hash.substring(1);
-            if (hashId && sortedChats.some(c => c.id === hashId)) {
-                setActiveChatId(hashId);
-            } else if (sortedChats.length > 0) {
-                setActiveChatId(sortedChats[0].id);
-            }
-          }
+            if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
+            return sortedChats.length > 0 ? sortedChats[0].id : null;
+          });
+
           setLoadingState('ready');
         });
       });
@@ -195,7 +210,7 @@ export default function NotificationsClient() {
       teamUnsubscribe();
       chatsUnsubscribe();
     };
-  }, [user, authLoading, database]);
+  }, [user, authLoading, database, toast]);
 
   // --- Message Fetching Effect ---
   useEffect(() => {
@@ -227,6 +242,7 @@ export default function NotificationsClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // --- Actions ---
   const handleSetActiveChat = (chatId: string | null) => {
     setActiveChatId(chatId);
     if (chatId) {
@@ -234,8 +250,6 @@ export default function NotificationsClient() {
     }
   };
 
-
-  // --- Actions ---
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !activeChat || isSending) return;
     
@@ -244,7 +258,7 @@ export default function NotificationsClient() {
     setNewMessage("");
 
     if (activeChat.type === 'ai') {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
+        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'You';
         const userMessage: Message = { 
             key: Date.now().toString(), 
             text: currentInput,
@@ -267,9 +281,9 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "Anonymous";
+        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
 
-        if (myName === 'Anonymous' || myName === 'User') {
+        if (!myName) {
           toast({ variant: 'destructive', title: 'Error', description: "Couldn't verify your identity to send message." });
           setIsSending(false);
           setNewMessage(currentInput);
@@ -350,7 +364,6 @@ export default function NotificationsClient() {
       
       const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'New Member';
 
-      // ** NEW LOGIC **: Store both participants' names in the chat metadata.
       const chatData = { 
         metadata: { 
           type: 'dm', 
@@ -369,9 +382,11 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      handleSetActiveChat(newChatId);
+      // This state update needs to happen before the navigation
+      setActiveChatId(newChatId);
+      router.replace(`#${newChatId}`);
 
-  }, [user, database, team, chats, toast]);
+  }, [user, database, team, chats, toast, router]);
 
 
   // --- Render Logic ---
@@ -481,7 +496,7 @@ export default function NotificationsClient() {
                     <Avatar className="h-10 w-10"><AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} /><AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback></Avatar>
                     <h2 className="text-xl font-bold font-headline">{activeChat.name}</h2>
                 </div>
-            ) : <div />}
+            ) : <div className="flex items-center gap-4"><SidebarTrigger className="md:hidden" /></div>}
         </header>
 
         <main className="flex-1 p-6 overflow-y-auto bg-background/50">
@@ -545,3 +560,5 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
+
+    
