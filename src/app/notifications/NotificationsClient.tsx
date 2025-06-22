@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
@@ -79,6 +79,7 @@ export default function NotificationsClient() {
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing');
   const [team, setTeam] = useState<any | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const teamMembersRef = useRef<TeamMember[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -124,6 +125,7 @@ export default function NotificationsClient() {
             Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
         );
         setTeamMembers(members);
+        teamMembersRef.current = members;
 
         setLoadingState('loading_chats');
         const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
@@ -146,11 +148,13 @@ export default function NotificationsClient() {
 
                 setChats(allChats);
                 setActiveChatId(currentId => {
-                    if (currentId && allChats.find(c => c.id === currentId)) {
+                    const activeChatExists = allChats.some(c => c.id === currentId);
+                    if (currentId && activeChatExists) {
                         return currentId;
                     }
                     const hashId = window.location.hash.substring(1);
-                    if (hashId && allChats.find(c => c.id === hashId)) {
+                    const hashChatExists = allChats.some(c => c.id === hashId);
+                    if (hashId && hashChatExists) {
                         return hashId;
                     }
                     return allChats.length > 0 ? allChats[0].id : null;
@@ -227,12 +231,12 @@ export default function NotificationsClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSetActiveChat = useCallback((chatId: string | null) => {
+  const handleSetActiveChat = (chatId: string | null) => {
     setActiveChatId(chatId);
     if (chatId) {
         router.replace(`#${chatId}`);
     }
-  }, [router]);
+  };
 
 
   // --- Actions ---
@@ -242,7 +246,7 @@ export default function NotificationsClient() {
     setIsSending(true);
     
     if (activeChat.type === 'ai') {
-        const myName = teamMembers.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
+        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
         const userMessage: Message = { 
             key: Date.now().toString(), 
             text: newMessage,
@@ -267,8 +271,13 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembers.find(m => m.id === user.uid)?.name || 'Team Member';
-        
+        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || 'Unknown User';
+        if (myName === 'Unknown User') {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify your identity to send message.' });
+            setIsSending(false);
+            return;
+        }
+
         const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
         const updates: { [key: string]: any } = {};
