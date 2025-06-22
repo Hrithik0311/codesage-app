@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -20,7 +22,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-const formSchema = z.object({
+const signInSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email.' }),
+  password: z.string().min(1, { message: 'Password is required.' }),
+});
+
+const signUpSchema = z.object({
+  displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
@@ -31,9 +39,18 @@ export default function AuthClient() {
   const { user, loading: authLoading } = useAuth();
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const signInForm = useForm<z.infer<typeof signInSchema>>({
+    resolver: zodResolver(signInSchema),
     defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      displayName: '',
       email: '',
       password: '',
     },
@@ -69,7 +86,7 @@ export default function AuthClient() {
     });
   };
 
-  const handleSignIn = async (values: z.infer<typeof formSchema>) => {
+  const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
     if (!auth) return;
     setIsProcessingAuth(true);
     try {
@@ -81,11 +98,12 @@ export default function AuthClient() {
     }
   };
 
-  const handleSignUp = async (values: z.infer<typeof formSchema>) => {
+  const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
     if (!auth) return;
     setIsProcessingAuth(true);
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await updateProfile(userCredential.user, { displayName: values.displayName });
     } catch (error) {
       handleAuthError(error);
     } finally {
@@ -101,7 +119,7 @@ export default function AuthClient() {
       const result = await signInWithPopup(auth, provider);
       toast({
         title: 'Success!',
-        description: `Welcome, ${result.user.email}`,
+        description: `Welcome, ${result.user.displayName || result.user.email}`,
       });
     } catch (error: any) {
       handleAuthError(error);
@@ -128,11 +146,11 @@ export default function AuthClient() {
 
   if (user) return null;
 
-  const EmailPasswordForm = ({ isSignUp = false }: { isSignUp?: boolean }) => (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(isSignUp ? handleSignUp : handleSignIn)} className="space-y-4">
+  const SignInForm = () => (
+    <Form {...signInForm}>
+      <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
         <FormField
-          control={form.control}
+          control={signInForm.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -145,7 +163,7 @@ export default function AuthClient() {
           )}
         />
         <FormField
-          control={form.control}
+          control={signInForm.control}
           name="password"
           render={({ field }) => (
             <FormItem>
@@ -158,7 +176,56 @@ export default function AuthClient() {
           )}
         />
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
+          {isLoading ? 'Processing...' : 'Sign In'}
+        </Button>
+      </form>
+    </Form>
+  );
+
+  const SignUpForm = () => (
+    <Form {...signUpForm}>
+      <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+        <FormField
+          control={signUpForm.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Display Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Your Name" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={signUpForm.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="name@example.com" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={signUpForm.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? 'Processing...' : 'Create Account'}
         </Button>
       </form>
     </Form>
@@ -177,10 +244,10 @@ export default function AuthClient() {
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
           <TabsContent value="login" className="pt-4">
-            <EmailPasswordForm />
+            <SignInForm />
           </TabsContent>
           <TabsContent value="register" className="pt-4">
-            <EmailPasswordForm isSignUp />
+            <SignUpForm />
           </TabsContent>
         </Tabs>
 
