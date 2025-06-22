@@ -53,13 +53,13 @@ interface Chat {
     }
 }
 
-interface TeamMember {
+interface PlatformUser {
     id: string;
     name: string;
-    role: string;
+    role: string; // Kept for interface consistency, but may be empty
 }
 
-type LoadingState = 'initializing' | 'loading_team' | 'no_team' | 'ready';
+type LoadingState = 'initializing' | 'ready';
 
 
 // --- Helper Functions ---
@@ -78,7 +78,7 @@ export default function NotificationsClient() {
   // --- State ---
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing');
   const [team, setTeam] = useState<any | null>(null);
-  const teamMembersRef = useRef<TeamMember[]>([]);
+  const [allUsers, setAllUsers] = useState<PlatformUser[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -89,58 +89,39 @@ export default function NotificationsClient() {
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
   useEffect(() => {
-    if (authLoading || !user || !database) {
-      return;
-    }
-    setLoadingState('loading_team');
-    
-    let teamUnsubscribe = () => {};
+    if (authLoading || !user || !database) return;
+
+    setLoadingState('initializing');
     let chatsUnsubscribe = () => {};
 
-    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
-    
-    get(userTeamRef).then((teamCodeSnapshot) => {
-      if (!teamCodeSnapshot.exists()) {
-        setLoadingState('no_team');
-        return;
-      }
-      
-      const teamCode = teamCodeSnapshot.val();
-      const teamRef = dbRef(database, `teams/${teamCode}`);
+    // Step 1: Fetch ALL user data first to ensure names are always available.
+    const usersRef = dbRef(database, 'users');
+    get(usersRef).then(usersSnapshot => {
+        const usersData = usersSnapshot.val() || {};
+        const loadedUsers = Object.entries(usersData).map(([id, data]: [string, any]) => ({
+            id,
+            name: data.name || `User...${id.substring(0,4)}`,
+            role: '', // Role isn't needed for global user search
+        }));
+        setAllUsers(loadedUsers);
+        const usersById = new Map(loadedUsers.map(u => [u.id, u.name]));
 
-      teamUnsubscribe = onValue(teamRef, async (teamSnapshot) => {
-          if (!teamSnapshot.exists()) {
-              setLoadingState('no_team');
-              setTeam(null);
-              teamMembersRef.current = [];
-              setChats([]);
-              return;
-          }
+        // Step 2: Fetch user's team data (this is optional and for team-specific channels).
+        const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+        get(userTeamRef).then(teamCodeSnapshot => {
+            if (teamCodeSnapshot.exists()) {
+                const teamCode = teamCodeSnapshot.val();
+                get(dbRef(database, `teams/${teamCode}`)).then(teamSnapshot => {
+                    if (teamSnapshot.exists()) {
+                        setTeam({ id: teamCode, ...teamSnapshot.val() });
+                    }
+                });
+            }
+        });
 
-          const teamData = teamSnapshot.val();
-          const currentTeam = { id: teamCode, ...teamData };
-
-          // Fetch authoritative names for all members from the /users node
-          const allMemberIds: string[] = Object.values(teamData.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers));
-          const memberNamePromises = allMemberIds.map(async (id) => {
-              const nameSnap = await get(dbRef(database, `users/${id}/name`));
-              return { id, name: nameSnap.val() || 'Unknown User' };
-          });
-          const membersWithNames = await Promise.all(memberNamePromises);
-          const namesById = Object.fromEntries(membersWithNames.map(m => [m.id, m.name]));
-
-          // Rebuild the members list with the correct names
-          const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
-              Object.keys(roleMembers).map(id => ({ id, name: namesById[id], role }))
-          );
-          
-          teamMembersRef.current = members;
-          setTeam(currentTeam);
-          
-          if (chatsUnsubscribe) chatsUnsubscribe();
-          
-          const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-          chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
+        // Step 3: Now that we have all names, fetch and subscribe to the user's chats.
+        const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+        chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
             const chatIds = chatListSnapshot.val() || {};
             
             const chatPromises = Object.keys(chatIds).map(async (chatId) => {
@@ -158,21 +139,19 @@ export default function NotificationsClient() {
                       if (meta.memberNames && meta.memberNames[otherUserId]) {
                           name = meta.memberNames[otherUserId];
                       } else {
-                          // Priority 2: Look up name from the authoritative roster
-                          const otherUserName = teamMembersRef.current.find(m => m.id === otherUserId)?.name;
-                          if (otherUserName && otherUserName !== 'Unknown User') {
+                          // Priority 2: Look up name from the global user list.
+                          const otherUserName = usersById.get(otherUserId) || 'Unknown User';
+                          if (otherUserName !== 'Unknown User') {
                               name = otherUserName;
-                              // SELF-HEALING: Found a name for an old chat, so we write it back to the DB.
-                              const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Me';
-                              const memberNamesUpdate = {
+                              // SELF-HEALING: Found a name, so write it back to the DB for future loads.
+                              const myName = usersById.get(user.uid) || user.displayName || 'Me';
+                              update(dbRef(database), {
                                   [`/chats/${chatId}/metadata/memberNames`]: {
                                       [user.uid]: myName,
                                       [otherUserId]: otherUserName
                                   }
-                              };
-                              update(dbRef(database), memberNamesUpdate);
+                              });
                           } else {
-                              // Fallback if user is not in the roster anymore
                               name = 'Unknown User';
                           }
                       }
@@ -206,21 +185,21 @@ export default function NotificationsClient() {
               if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
               return sortedChats.length > 0 ? sortedChats[0].id : null;
             });
-
+            
             setLoadingState('ready');
-          });
-      });
+        });
+
     }).catch(error => {
-      console.error("Error fetching initial team data:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-      setLoadingState('no_team');
+        console.error("Error loading initial data:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not load chat data.' });
+        setLoadingState('ready'); // Unblock UI even if there's an error
     });
 
     return () => {
-      teamUnsubscribe();
-      chatsUnsubscribe();
+      if (chatsUnsubscribe) chatsUnsubscribe();
     };
   }, [user, authLoading, database, toast]);
+
 
   // --- Message Fetching Effect ---
   useEffect(() => {
@@ -268,7 +247,7 @@ export default function NotificationsClient() {
     setNewMessage("");
 
     if (activeChat.type === 'ai') {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'You';
+        const myName = allUsers.find(m => m.id === user.uid)?.name || user.displayName || 'You';
         const userMessage: Message = { 
             key: Date.now().toString(), 
             text: currentInput,
@@ -291,8 +270,7 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myNameSnap = await get(dbRef(database, `users/${user.uid}/name`));
-        const myName = myNameSnap.val() || user.displayName || user.email?.split('@')[0];
+        const myName = allUsers.find(u => u.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
 
         if (!myName) {
           toast({ variant: 'destructive', title: 'Error', description: "Couldn't verify your identity to send message." });
@@ -356,10 +334,10 @@ export default function NotificationsClient() {
     handleSendMessage();
   };
 
-  const handleStartChat = useCallback(async (member: TeamMember) => {
-      if (!user || !database || !team) return;
+  const handleStartChat = useCallback(async (userToChat: PlatformUser) => {
+      if (!user || !database) return;
 
-      const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
+      const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[userToChat.id]);
       if (existingDm) {
           handleSetActiveChat(existingDm.id);
           setSearchTerm("");
@@ -373,15 +351,15 @@ export default function NotificationsClient() {
         return;
       }
       
-      const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'New Member';
+      const myName = allUsers.find(m => m.id === user.uid)?.name || user.displayName || 'Me';
 
       const chatData = { 
         metadata: { 
           type: 'dm', 
-          members: { [user.uid]: true, [member.id]: true },
+          members: { [user.uid]: true, [userToChat.id]: true },
           memberNames: {
               [user.uid]: myName,
-              [member.id]: member.name
+              [userToChat.id]: userToChat.name
           }
         } 
       };
@@ -389,22 +367,33 @@ export default function NotificationsClient() {
       
       const updates: { [key:string]: any } = {};
       updates[`/users/${user.uid}/chats/${newChatId}`] = true;
-      updates[`/users/${member.id}/chats/${newChatId}`] = true;
+      updates[`/users/${userToChat.id}/chats/${newChatId}`] = true;
       await update(dbRef(database), updates);
       
       setSearchTerm("");
+      
+      // Update state without waiting for full refresh for faster UI response
+      const newChat: Chat = {
+          id: newChatId,
+          name: userToChat.name,
+          avatar: 'https://placehold.co/40x40.png',
+          hint: 'person',
+          type: 'dm',
+          members: { [user.uid]: true, [userToChat.id]: true },
+      };
+      setChats(prev => [newChat, ...prev]);
       setActiveChatId(newChatId);
       router.replace(`#${newChatId}`);
 
-  }, [user, database, team, chats, toast, router]);
+  }, [user, database, chats, toast, router, allUsers]);
 
 
   // --- Render Logic ---
-  const filteredUsers = searchTerm ? teamMembersRef.current.filter(m => 
+  const filteredUsers = searchTerm ? allUsers.filter(m => 
       m.id !== user?.uid && m.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
-  if (loadingState !== 'ready' && loadingState !== 'no_team') {
+  if (loadingState === 'initializing') {
     return (
       <SidebarProvider defaultOpen>
         <div className="flex h-screen w-full bg-background text-foreground">
@@ -426,16 +415,6 @@ export default function NotificationsClient() {
     );
   }
   
-  if (loadingState === 'no_team') {
-    return (
-        <div className="w-full min-h-screen p-4 flex flex-col items-center justify-center text-center">
-            <h2 className="text-2xl font-bold font-headline mb-2">Collaboration Hub Not Found</h2>
-            <p className="max-w-md text-muted-foreground mb-6">You are not part of a team yet. Please create or join a team to access chat.</p>
-            <Button onClick={() => router.push('/collaboration')}>Go to Collaboration Hub</Button>
-        </div>
-    );
-  }
-
   const isMessageInputDisabled = !activeChat || isSending || (activeChat.type === 'channel' && activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid);
   const messageInputPlaceholder =
       !activeChat ? "Select a chat to begin"
