@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // --- Interfaces ---
@@ -137,8 +137,8 @@ export default function NotificationsClient() {
             const chatIds = chatListSnapshot.val() || {};
             let currentChats: { [key: string]: Chat } = {};
 
-            const updateState = () => {
-                const allChats = [
+            const updateState = (newActiveChatId?: string) => {
+                const sortedChats = [
                     {
                         id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
                         lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
@@ -146,18 +146,21 @@ export default function NotificationsClient() {
                     ...Object.values(currentChats)
                 ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
 
-                setChats(allChats);
+                setChats(sortedChats);
+                
                 setActiveChatId(currentId => {
-                    const activeChatExists = allChats.some(c => c.id === currentId);
+                    if (newActiveChatId) return newActiveChatId;
+
+                    const activeChatExists = sortedChats.some(c => c.id === currentId);
                     if (currentId && activeChatExists) {
                         return currentId;
                     }
                     const hashId = window.location.hash.substring(1);
-                    const hashChatExists = allChats.some(c => c.id === hashId);
+                    const hashChatExists = sortedChats.some(c => c.id === hashId);
                     if (hashId && hashChatExists) {
                         return hashId;
                     }
-                    return allChats.length > 0 ? allChats[0].id : null;
+                    return sortedChats.length > 0 ? sortedChats[0].id : null;
                 });
                 setLoadingState('ready');
             }
@@ -271,9 +274,15 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || 'Unknown User';
-        if (myName === 'Unknown User') {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify your identity to send message.' });
+        let myName = teamMembersRef.current.find(m => m.id === user.uid)?.name;
+
+        if (!myName) {
+            // Fallback if the name isn't in the team list, this prevents race conditions on load
+            myName = user.displayName || user.email?.split('@')[0];
+        }
+
+        if (!myName) {
+            toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not determine your name to send a message.' });
             setIsSending(false);
             return;
         }
@@ -359,7 +368,13 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      handleSetActiveChat(newChatId);
+      
+      // We set the active chat id directly here to avoid waiting for the onValue listener to fire
+      // which can be slow and cause a UI lag.
+      setActiveChatId(newActiveChatId => {
+        router.replace(`#${newChatId}`);
+        return newActiveChatId;
+      });
   };
 
 
@@ -375,8 +390,16 @@ export default function NotificationsClient() {
             <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:flex md:flex-col h-screen">
                 <SidebarHeader><Skeleton className="h-10 w-full" /><Skeleton className="h-9 w-full mt-2" /></SidebarHeader>
                 <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
+                <SidebarFooter><Skeleton className="h-10 w-full" /></SidebarFooter>
             </Sidebar>
-            <div className="flex flex-col flex-1"><header className="h-[73px] p-4 border-b border-border/50 flex items-center"><Skeleton className="h-10 w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
+            <div className="flex flex-col flex-1">
+                <header className="h-[73px] p-4 border-b border-border/50 flex items-center">
+                    <Skeleton className="h-10 w-48" />
+                </header>
+                <main className="flex-1 p-6">
+                    <Skeleton className="h-full w-full rounded-lg" />
+                </main>
+            </div>
         </div>
       </SidebarProvider>
     );
@@ -516,7 +539,9 @@ export default function NotificationsClient() {
             </Sidebar>
             <div className="md:hidden">
                 <Sheet>
-                    <Sidebar>{ChatSidebar}</Sidebar>
+                    <SheetContent side="left" className="p-0 w-[80vw] max-w-xs">
+                       {ChatSidebar}
+                    </SheetContent>
                 </Sheet>
             </div>
             {ChatPane}
@@ -524,3 +549,5 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
+
+    
