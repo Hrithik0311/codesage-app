@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, onValue, get, set, push, update, serverTimestamp } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, limitToLast } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
@@ -21,25 +21,17 @@ import {
   SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Bell, Users, Search, SendHorizontal } from 'lucide-react';
+import { MessageSquare, Users, Search, SendHorizontal, Bot, Megaphone, User as UserIcon } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { formatDistanceToNowStrict } from 'date-fns';
 
-interface Chat {
-    id: string;
-    name: string;
-    avatar: string;
-    hint: string;
-    type: 'dm' | 'channel';
-    members?: Record<string, boolean>;
-    notifications?: number;
-}
-
+// --- Interfaces ---
 interface Message {
     key: string;
     text: string;
@@ -48,229 +40,203 @@ interface Message {
     timestamp: number;
 }
 
+interface Chat {
+    id: string;
+    name: string;
+    avatar: string;
+    hint: string;
+    type: 'dm' | 'channel' | 'ai';
+    members?: Record<string, boolean>;
+    lastMessage?: {
+        text: string;
+        timestamp: number;
+    }
+}
+
 interface TeamMember {
     id: string;
     name: string;
     role: string;
 }
 
-const aiChat: Chat = {
-    id: 'codesage-ai',
-    name: 'CodeSage AI',
-    avatar: 'https://placehold.co/40x40.png',
-    hint: 'robot',
-    type: 'channel'
+type LoadingState = 'initializing' | 'loading_team' | 'no_team' | 'loading_chats' | 'ready';
+
+
+// --- Helper Functions ---
+const formatTimestamp = (timestamp: number | undefined): string => {
+    if (!timestamp) return '';
+    return formatDistanceToNowStrict(new Date(timestamp), { addSuffix: true });
 };
 
+// --- Main Component ---
 export default function NotificationsClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [loading, setLoading] = useState(true);
+  // --- State ---
+  const [loadingState, setLoadingState] = useState<LoadingState>('initializing');
   const [team, setTeam] = useState<any | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [activeChat, setActiveChat] = useState<Chat | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
+  const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
-  // Effect 1: Fetch team data. This is the first step after auth is confirmed.
+
+  // --- Data Loading Effect ---
   useEffect(() => {
-    if (!user || !database) return;
-    
-    setIsLoadingTeam(true);
-    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
-    let teamUnsubscribe: (() => void) | null = null;
-    
-    get(userTeamRef).then((snapshot) => {
-        if (!snapshot.exists()) {
-            setTeam(null);
-            setTeamMembers([]);
-            setIsLoadingTeam(false);
-            return;
-        }
-        const teamCode = snapshot.val();
-        const teamDataRef = dbRef(database, `teams/${teamCode}`);
-        
-        teamUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
-            if (teamSnapshot.exists()) {
-                const teamData = teamSnapshot.val();
-                setTeam({ id: teamCode, ...teamData });
-                
-                const members: TeamMember[] = [];
-                if (teamData.roles) {
-                    for (const role in teamData.roles) {
-                        for (const id in teamData.roles[role]) {
-                            members.push({ id, name: teamData.roles[role][id], role });
-                        }
-                    }
-                }
-                setTeamMembers(members);
-            } else {
-                setTeam(null);
-                setTeamMembers([]);
-            }
-            setIsLoadingTeam(false);
-        }, (error) => {
-            console.error("Error fetching team data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-            setIsLoadingTeam(false);
-        });
-    }).catch(error => {
-        console.error("Error fetching user team data:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-        setIsLoadingTeam(false);
-    });
-
-    return () => {
-        if (teamUnsubscribe) teamUnsubscribe();
-    };
-  }, [user, database, toast]);
-
-  // Effect 2: Fetch chats. This runs only after team loading is complete.
-  useEffect(() => {
-    if (isLoadingTeam || !user || !database) return;
-
-    if (!team) {
-        setChats([aiChat]);
-        if (!activeChat) setActiveChat(aiChat);
-        setLoading(false);
+    if (authLoading) return;
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+    if (!database) {
+        toast({variant: 'destructive', title: 'Database Error', description: 'Could not connect to the database.'});
         return;
     }
 
-    const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-    const unsubscribe = onValue(userChatsRef, async (snapshot) => {
-        const chatIds = snapshot.val() || {};
-        const chatPromises = Object.keys(chatIds).map(async (chatId) => {
-            const chatSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
-            if (!chatSnap.exists()) return null;
-
-            const chatData = chatSnap.val();
-            let chatName = chatData.name;
-            let chatHint = 'megaphone';
-
-            if (chatData.type === 'dm') {
-                const otherUserId = Object.keys(chatData.members).find(id => id !== user.uid);
-                if (otherUserId) {
-                    // teamMembers is guaranteed to be available here because of the isLoadingTeam check
-                    const member = teamMembers.find(m => m.id === otherUserId);
-                    chatName = member?.name || 'Unknown User';
-                } else {
-                    chatName = "Direct Message"; 
-                }
-                chatHint = 'person';
-            }
-
-            return {
-                id: chatId,
-                name: chatName,
-                avatar: 'https://placehold.co/40x40.png',
-                hint: chatHint,
-                type: chatData.type,
-                members: chatData.members,
-            };
-        });
-        
-        const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
-        const finalChats = [aiChat, ...resolvedChats];
-        setChats(finalChats);
-
-        if (!activeChat || !finalChats.some(c => c.id === activeChat.id)) {
-            setActiveChat(finalChats[0] || null);
+    const loadChatData = async () => {
+        // 1. Fetch Team
+        setLoadingState('loading_team');
+        const teamCodeSnapshot = await get(dbRef(database, `users/${user.uid}/teamCode`));
+        if (!teamCodeSnapshot.exists()) {
+            setLoadingState('no_team');
+            return;
         }
-        setLoading(false);
+        const teamCode = teamCodeSnapshot.val();
+        const teamSnapshot = await get(dbRef(database, `teams/${teamCode}`));
+        if (!teamSnapshot.exists()) {
+            setLoadingState('no_team');
+            return;
+        }
+        const teamData = teamSnapshot.val();
+        const currentTeam = { id: teamCode, ...teamData };
+        setTeam(currentTeam);
 
-    }, (error) => {
-        console.error("Error fetching user chats:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load your chats.' });
-        setLoading(false);
-    });
+        const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
+            Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
+        );
+        setTeamMembers(members);
 
-    return () => unsubscribe();
-  }, [user, database, isLoadingTeam, team, teamMembers, activeChat, toast]);
+        // 2. Fetch Chats & Subscribe for real-time updates
+        setLoadingState('loading_chats');
+        const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+        const unsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
+            const chatIds = chatListSnapshot.val() || {};
+            const chatPromises = Object.keys(chatIds).map(async (chatId): Promise<Chat | null> => {
+                const metaSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
+                if (!metaSnap.exists()) return null;
+                const meta = metaSnap.val();
 
+                const lastMsgQuery = query(dbRef(database, `chats/${chatId}/messages`), orderByChild('timestamp'), limitToLast(1));
+                const lastMsgSnap = await get(lastMsgQuery);
+                const lastMessage = lastMsgSnap.exists() ? Object.values(lastMsgSnap.val())[0] as Omit<Message, 'key'> : undefined;
 
-  // Effect 3: Fetch messages for the active chat
+                let name = meta.name;
+                let hint: 'person' | 'megaphone' = 'megaphone';
+                if (meta.type === 'dm') {
+                    const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
+                    name = members.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                    hint = 'person';
+                }
+
+                return {
+                    id: chatId, name, hint, type: meta.type, members: meta.members,
+                    avatar: 'https://placehold.co/40x40.png',
+                    lastMessage: lastMessage ? { text: lastMessage.text, timestamp: lastMessage.timestamp } : undefined,
+                };
+            });
+
+            const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+            
+            const aiChat: Chat = {
+                id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot', type: 'ai',
+                lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
+            };
+
+            const allChats = [aiChat, ...resolvedChats].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+            setChats(allChats);
+
+            if (!activeChatId) {
+                setActiveChatId(allChats[0]?.id || null);
+            }
+            setLoadingState('ready');
+        });
+
+        return () => unsubscribe();
+    };
+
+    loadChatData();
+  }, [user, authLoading, router, toast]);
+
+  // --- Message Fetching Effect ---
   useEffect(() => {
     if (!activeChat || !database) {
-        setMessages([]);
-        return;
-    };
-    if (activeChat.id === 'codesage-ai') {
-        setMessages([
-          { key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Welcome! I'm here to help you with code analysis, suggestions, and more. What can I help you with today?", timestamp: Date.now() - 10000 },
-        ]);
+      setMessages([]);
+      return;
+    }
+    if (activeChat.type === 'ai') {
+        setMessages([{ key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Hello! I am CodeSage AI. I'm here to assist with your development process. You can paste code snippets for analysis, ask for suggestions, or generate unit tests. How can I help you today?", timestamp: Date.now() }]);
         return;
     }
 
     const messagesRef = dbRef(database, `chats/${activeChat.id}/messages`);
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
+    const messagesQuery = query(messagesRef, orderByChild('timestamp'));
+    const unsubscribe = onValue(messagesQuery, (snapshot) => {
         const messagesData: Message[] = [];
-        snapshot.forEach((childSnapshot) => {
-            messagesData.push({ key: childSnapshot.key!, ...childSnapshot.val() });
-        });
+        snapshot.forEach((child) => { messagesData.push({ key: child.key!, ...child.val() }); });
         setMessages(messagesData);
     });
 
     return () => unsubscribe();
   }, [activeChat, database]);
-  
-  // Effect 4: Redirect if not logged in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/auth');
-    }
-  }, [user, authLoading, router]);
 
-  // Effect 5: Scroll to bottom of messages
+  // Scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+
+  // --- Actions ---
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !activeChat) return;
-
-    if (activeChat.id === team?.announcementsChatId && team.creatorUid !== user.uid) {
-        toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only the team creator can send announcements.' });
-        return;
-    }
+    if (!newMessage.trim() || !user || !activeChat || isSending) return;
     
-    const currentUserMember = teamMembers.find(m => m.id === user.uid);
-    const senderName = currentUserMember?.name || user.displayName || user.email?.split('@')[0] || 'Anonymous';
+    setIsSending(true);
+    const myName = teamMembers.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
+    const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
 
-    const messageData = {
-        text: newMessage,
-        senderId: user.uid,
-        senderName: senderName,
-        timestamp: serverTimestamp(),
-    };
-
-    if (activeChat.id === 'codesage-ai') {
+    if (activeChat.type === 'ai') {
         const userMessage: Message = { key: Date.now().toString(), ...messageData, timestamp: Date.now() };
-        const aiResponse: Message = {
-            key: (Date.now() + 1).toString(),
-            senderId: 'ai',
-            senderName: 'CodeSage AI',
-            text: `I've received your message: "${newMessage}". I'm still under development and can't process requests yet.`,
-            timestamp: Date.now() + 500
-        };
         setMessages(prev => [...prev, userMessage]);
         setNewMessage("");
-        setTimeout(() => setMessages(prev => [...prev, aiResponse]), 500);
+        
+        setTimeout(() => {
+            const aiResponse: Message = {
+                key: (Date.now() + 1).toString(), senderId: 'ai', senderName: 'CodeSage AI',
+                text: `I've received your message: "${newMessage}". My full capabilities are still under development, but I'm learning fast!`,
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, aiResponse]);
+            setIsSending(false);
+        }, 1200);
         return;
     }
 
     try {
-        await push(dbRef(database, `chats/${activeChat.id}/messages`), messageData);
+        const chatMessagesRef = dbRef(database, `chats/${activeChat.id}/messages`);
+        await push(chatMessagesRef, messageData);
         setNewMessage("");
     } catch (error) {
         console.error("Error sending message:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not send message.' });
+    } finally {
+        setIsSending(false);
     }
   };
 
@@ -279,24 +245,16 @@ export default function NotificationsClient() {
 
       const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
       if (existingDm) {
-          setActiveChat(existingDm);
+          setActiveChatId(existingDm.id);
           setSearchTerm("");
           return;
       }
-
+      
       const newChatRef = push(dbRef(database, 'chats'));
       const newChatId = newChatRef.key;
-      if(!newChatId) return;
+      if (!newChatId) return;
 
-      const chatData = {
-          metadata: {
-              type: 'dm',
-              members: {
-                  [user.uid]: true,
-                  [member.id]: true,
-              }
-          }
-      };
+      const chatData = { metadata: { type: 'dm', members: { [user.uid]: true, [member.id]: true } } };
       await set(newChatRef, chatData);
       
       const updates: { [key:string]: any } = {};
@@ -305,195 +263,166 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
+      setActiveChatId(newChatId);
   };
 
 
+  // --- Render Logic ---
   const filteredUsers = searchTerm ? teamMembers.filter(m => 
-      m.id !== user?.uid && (m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.id.toLowerCase().includes(searchTerm.toLowerCase()))
+      m.id !== user?.uid && m.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
-  if (authLoading || loading) {
+  if (loadingState !== 'ready' && loadingState !== 'no_team') {
     return (
-        <SidebarProvider defaultOpen>
-            <div className="flex h-screen w-full bg-background text-foreground">
-                <Sidebar collapsible="icon" className="border-r border-border/50">
-                    <SidebarHeader><Skeleton className="h-10 w-full" /></SidebarHeader>
-                    <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
-                </Sidebar>
-                <div className="flex flex-col flex-1"><header className="h-[73px] p-4"><Skeleton className="h-full w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
-            </div>
-        </SidebarProvider>
+        <div className="flex h-screen w-full bg-background text-foreground">
+            <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:block">
+                <SidebarHeader><Skeleton className="h-10 w-full" /><Skeleton className="h-9 w-full mt-2" /></SidebarHeader>
+                <SidebarContent><SidebarMenu><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /><SidebarMenuSkeleton showIcon /></SidebarMenu></SidebarContent>
+            </Sidebar>
+            <div className="flex flex-col flex-1"><header className="h-[73px] p-4 border-b border-border/50 flex items-center"><Skeleton className="h-10 w-48" /></header><main className="flex-1 p-6"><Skeleton className="h-full w-full" /></main></div>
+        </div>
     );
   }
   
-  if (!team && !isLoadingTeam) {
+  if (loadingState === 'no_team') {
     return (
         <div className="w-full min-h-screen p-4 flex flex-col items-center justify-center text-center">
             <h2 className="text-2xl font-bold font-headline mb-2">Collaboration Hub Not Found</h2>
-            <p className="max-w-md text-muted-foreground mb-6">
-                You are not part of a team yet. Please join an existing team or create a new one to access chat and other collaborative features.
-            </p>
+            <p className="max-w-md text-muted-foreground mb-6">You are not part of a team yet. Please create or join a team to access chat.</p>
             <Button onClick={() => router.push('/collaboration')}>Go to Collaboration Hub</Button>
         </div>
-    )
+    );
   }
 
-  const renderMessages = () => {
-    if (messages.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
-                <MessageSquare size={48} className="mb-4" />
-                <h3 className="text-xl font-semibold text-foreground">No messages yet</h3>
-                <p>Start the conversation!</p>
-            </div>
-        )
-    }
-
-    return messages.map((msg) => (
-         <div key={msg.key} className={`flex items-start gap-4 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
-            {msg.senderId !== user?.uid && (
-                <Avatar className="h-10 w-10">
-                    <AvatarImage src={'https://placehold.co/40x40.png'} data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} />
-                    <AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback>
-                </Avatar>
-            )}
-            <div className={`flex flex-col gap-1 ${msg.senderId === user?.uid ? 'items-end' : 'items-start'}`}>
-                {msg.senderId !== user?.uid && (
-                    <p className="text-sm font-semibold text-foreground">{msg.senderName || 'Unknown User'}</p>
-                )}
-                <div className={`rounded-2xl p-3 max-w-md ${msg.senderId === user?.uid ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'}`}>
-                    <p className="text-sm">{msg.text}</p>
-                </div>
-                 <p className="text-xs text-muted-foreground mt-1">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-            </div>
-        </div>
-    ));
-  }
-
-  const isMessageInputDisabled = !activeChat || (activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid);
+  const isMessageInputDisabled = !activeChat || isSending || (activeChat.type === 'channel' && activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid);
   const messageInputPlaceholder =
-      !activeChat ? "Select a chat"
-    : activeChat.id === 'codesage-ai' ? "Message CodeSage AI..."
-    : activeChat.id === team?.announcementsChatId && team.creatorUid !== user.uid ? "Only the team creator can post here."
+      !activeChat ? "Select a chat to begin"
+    : activeChat.type === 'ai' ? "Message CodeSage AI..."
+    : (activeChat.type === 'channel' && activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid) ? "Only the team captain can post here."
     : `Message ${activeChat.name}`;
+  
+  const ChatSidebar = (
+    <>
+        <SidebarHeader>
+            <div className="flex items-center justify-between">
+                <h2 className="font-headline text-2xl font-bold">Chats</h2>
+                <ThemeToggleButton />
+            </div>
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search people..." className="pl-9 bg-muted/50 border-border/60" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+        </SidebarHeader>
+        <SidebarContent className="p-0">
+            <ScrollArea className="h-full">
+                {searchTerm ? (
+                     <SidebarMenu>
+                         {filteredUsers.length > 0 ? (
+                            filteredUsers.map(member => (
+                                <SidebarMenuItem key={member.id}>
+                                    <SidebarMenuButton onClick={() => handleStartChat(member)} className="h-14 justify-start">
+                                        <Avatar className="h-9 w-9"><AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person" /><AvatarFallback>{member.name.substring(0,1)}</AvatarFallback></Avatar>
+                                        <span>{member.name}</span>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))
+                         ) : ( <p className="text-sm text-muted-foreground p-4 text-center">No users found.</p> )}
+                    </SidebarMenu>
+                ) : (
+                    <SidebarMenu>
+                         {chats.map((chat) => (
+                            <SidebarMenuItem key={chat.id}>
+                                <button onClick={() => setActiveChatId(chat.id)} className={cn("flex items-start gap-3 text-left w-full p-3 rounded-lg transition-colors", activeChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50')}>
+                                    <Avatar className="h-10 w-10 flex-shrink-0">
+                                        <AvatarImage src={chat.avatar} data-ai-hint={chat.hint} />
+                                        <AvatarFallback>{chat.name.substring(0, 1)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow overflow-hidden">
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-semibold truncate">{chat.name}</p>
+                                            <p className="text-xs text-muted-foreground flex-shrink-0">{formatTimestamp(chat.lastMessage?.timestamp)}</p>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground truncate">{chat.lastMessage?.text}</p>
+                                    </div>
+                                </button>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                )}
+            </ScrollArea>
+        </SidebarContent>
+        <SidebarFooter className="p-2"><UserProfile /></SidebarFooter>
+    </>
+  )
 
+  const ChatPane = (
+    <div className="flex flex-col flex-1 h-screen">
+        <header className="flex items-center justify-between p-4 border-b border-border/50 h-[73px] flex-shrink-0">
+            {activeChat ? (
+                <div className="flex items-center gap-4">
+                    <SidebarTrigger className="md:hidden" />
+                    <Avatar className="h-10 w-10"><AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} /><AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback></Avatar>
+                    <h2 className="text-xl font-bold font-headline">{activeChat.name}</h2>
+                </div>
+            ) : <div />}
+        </header>
+
+        <main className="flex-1 p-6 overflow-y-auto bg-background/50">
+            {activeChat ? (
+                <div className="space-y-6">
+                    {messages.map((msg) => {
+                        const isSender = msg.senderId === user?.uid;
+                        const ChatIcon = isSender ? UserIcon : msg.senderId === 'ai' ? Bot : UserIcon;
+                        return (
+                             <div key={msg.key} className={cn("flex items-end gap-3", isSender && "flex-row-reverse")}>
+                                <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>
+                                <div className={cn("flex flex-col gap-1", isSender ? "items-end" : "items-start")}>
+                                    <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
+                                        {activeChat.type !== 'dm' && !isSender && <p className="text-xs font-bold pb-1 text-accent">{msg.senderName}</p>}
+                                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">{formatTimestamp(msg.timestamp)}</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                   <div ref={messagesEndRef} />
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                    <MessageSquare size={64} className="mb-4 text-primary/50" />
+                    <h3 className="text-2xl font-bold font-headline text-foreground">Welcome to CodeSage Chat</h3>
+                    <p>Select a conversation from the sidebar to get started.</p>
+                </div>
+            )}
+        </main>
+
+        <footer className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm flex-shrink-0">
+            <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+                <div className="relative">
+                    <Input placeholder={messageInputPlaceholder} className="h-12 pr-14" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={isMessageInputDisabled} />
+                    <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}>
+                        <SendHorizontal className="h-5 w-5"/>
+                        <span className="sr-only">Send</span>
+                    </Button>
+                </div>
+            </form>
+        </footer>
+    </div>
+  )
 
   return (
     <SidebarProvider defaultOpen>
-        <div className="flex h-screen w-full bg-background text-foreground">
-             <Sidebar collapsible="icon" className="border-r border-border/50">
-                <SidebarHeader>
-                     <div className="flex items-center justify-between">
-                         <h2 className="font-headline text-2xl font-bold">Chats</h2>
-                         <ThemeToggleButton />
-                     </div>
-                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search people..." className="pl-9 bg-muted/50 border-border/60" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                     </div>
-                </SidebarHeader>
-                <SidebarContent className="p-0">
-                    {searchTerm ? (
-                        <div className="p-2">
-                             <SidebarGroupLabel>Search Results</SidebarGroupLabel>
-                             {filteredUsers.length > 0 ? (
-                                <SidebarMenu>
-                                    {filteredUsers.map(member => (
-                                        <SidebarMenuItem key={member.id}>
-                                            <SidebarMenuButton onClick={() => handleStartChat(member)} className="h-14 justify-start">
-                                                <Avatar className="h-9 w-9"><AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="person" /><AvatarFallback>{member.name.substring(0,1)}</AvatarFallback></Avatar>
-                                                <span>{member.name}</span>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarMenu>
-                             ) : (
-                                <p className="text-sm text-muted-foreground p-2">No users found.</p>
-                             )}
-                        </div>
-                    ) : (
-                        <SidebarMenu>
-                            <SidebarGroup>
-                                <SidebarGroupLabel className="flex items-center gap-2"><Bell size={16}/> Updates</SidebarGroupLabel>
-                                {chats.filter(c => c.type === 'channel').map((chat) => (
-                                    <SidebarMenuItem key={chat.id}>
-                                        <SidebarMenuButton onClick={() => setActiveChat(chat)} isActive={activeChat?.id === chat.id} className="h-14 justify-start">
-                                            <Avatar className="h-9 w-9">
-                                                <AvatarImage src={chat.avatar} data-ai-hint={chat.hint} />
-                                                 <AvatarFallback>{chat.name.substring(0, 1)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex flex-col items-start w-full">
-                                                <span className="font-semibold">{chat.name}</span>
-                                            </div>
-                                            {chat.notifications > 0 && <Badge className="bg-primary text-primary-foreground">{chat.notifications}</Badge>}
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarGroup>
-                            <SidebarGroup>
-                                <SidebarGroupLabel className="flex items-center gap-2"><Users size={16}/> Direct Messages</SidebarGroupLabel>
-                                {chats.filter(c => c.type === 'dm').map((dm) => (
-                                    <SidebarMenuItem key={dm.id}>
-                                        <SidebarMenuButton 
-                                            onClick={() => setActiveChat(dm)} 
-                                            isActive={activeChat?.id === dm.id}
-                                            className="h-14 justify-start"
-                                        >
-                                            <Avatar className="h-9 w-9">
-                                                <AvatarImage src={dm.avatar} data-ai-hint={dm.hint} />
-                                                <AvatarFallback>{dm.name.substring(0, 1)}</AvatarFallback>
-                                            </Avatar>
-                                            <span className="font-semibold">{dm.name}</span>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                ))}
-                            </SidebarGroup>
-                        </SidebarMenu>
-                    )}
-                </SidebarContent>
-                <SidebarFooter className="p-2">
-                    <UserProfile />
-                </SidebarFooter>
+        <div className="flex w-full bg-background text-foreground">
+            <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:flex md:flex-col h-screen">
+                {ChatSidebar}
             </Sidebar>
-
-            <div className="flex flex-col flex-1">
-                <header className="flex items-center justify-between p-4 border-b border-border/50 h-[73px]">
-                    {activeChat ? (
-                         <div className="flex items-center gap-4">
-                            <SidebarTrigger className="md:hidden" />
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage src={activeChat.avatar} data-ai-hint={activeChat.hint} />
-                                <AvatarFallback>{activeChat.name.substring(0, 1)}</AvatarFallback>
-                            </Avatar>
-                            <h2 className="text-xl font-bold font-headline">{activeChat.name}</h2>
-                        </div>
-                    ) : ( <Skeleton className="h-10 w-48" />)}
-                </header>
-
-                <main className="flex-1 p-6 overflow-y-auto">
-                    <div className="space-y-6">
-                       {activeChat ? renderMessages() : null}
-                       <div ref={messagesEndRef} />
-                    </div>
-                </main>
-
-                <footer className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm">
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
-                        <div className="relative">
-                            <Input 
-                                placeholder={messageInputPlaceholder}
-                                className="h-12 pr-12" 
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                disabled={isMessageInputDisabled}
-                            />
-                            <Button type="submit" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}>
-                                <SendHorizontal className="h-5 w-5"/>
-                            </Button>
-                        </div>
-                    </form>
-                </footer>
+            <div className="md:hidden">
+                <Sheet>
+                    <Sidebar>{ChatSidebar}</Sidebar>
+                </Sheet>
             </div>
+            {ChatPane}
         </div>
     </SidebarProvider>
   );
