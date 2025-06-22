@@ -76,7 +76,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
 
                     const nodeStateClasses = {
                         completed: "bg-green-500 border-green-400 text-white shadow-green-500/40",
-                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40 animate-pulse",
+                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40 animate-pulse-slow",
                         unlocked: "bg-primary border-primary/80 text-primary-foreground shadow-primary/40",
                         locked: "bg-muted border-border text-muted-foreground shadow-sm",
                     };
