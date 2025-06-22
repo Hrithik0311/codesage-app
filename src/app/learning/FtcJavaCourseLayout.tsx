@@ -12,6 +12,7 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
+import { useToast } from '@/hooks/use-toast';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
@@ -21,7 +22,8 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const { user, loading } = useAuth();
+  const { user, loading, completeLesson } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (!loading && !user) {
@@ -47,6 +49,22 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
     }
   }, [lessons, handleSelectLesson]);
 
+
+  const handleLessonComplete = (lessonId: string) => {
+    completeLesson(lessonId);
+
+    const currentIndex = lessons.findIndex(l => l.id === lessonId);
+    if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+        const nextLesson = lessons[currentIndex + 1];
+        handleSelectLesson(nextLesson.id);
+    } else {
+        toast({
+            title: "Course Complete!",
+            description: "Congratulations on finishing the course.",
+        });
+        router.push('/dashboard');
+    }
+  };
 
   const activeLesson = lessons.find(lesson => lesson.id === activeLessonId);
 
@@ -92,7 +110,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (
-            <LessonDisplay lesson={activeLesson} />
+            <LessonDisplay lesson={activeLesson} onLessonComplete={() => handleLessonComplete(activeLesson.id)} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Trophy size={64} className="text-primary mb-6 opacity-70" />

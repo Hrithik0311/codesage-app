@@ -6,7 +6,7 @@ import { type Lesson, type LessonContentItem, LessonContentType, type QuizItem }
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { ListChecks, Code2, FileText, Heading2Icon, CheckCircle, XCircle, Award } from 'lucide-react';
+import { ListChecks, Code2, FileText, Heading2 as Heading2Icon, CheckCircle, XCircle, Award } from 'lucide-react';
 
 
 const renderContentItem = (item: LessonContentItem, index: number) => {
@@ -42,7 +42,7 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
-const InteractiveQuiz = ({ quiz }: { quiz: QuizItem[] }) => {
+const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: () => void }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -69,20 +69,24 @@ const InteractiveQuiz = ({ quiz }: { quiz: QuizItem[] }) => {
                 <Award className="mx-auto text-yellow-400 w-16 h-16 mb-4" />
                 <h3 className="text-2xl font-bold font-headline">Quiz Complete!</h3>
                 <p className="text-lg mt-2">You scored {score} out of {quiz.length}!</p>
-                <Button onClick={() => {
-                    setQuizCompleted(false);
-                    setCurrentQuestionIndex(0);
-                    setScore(0);
-                }} className="mt-6">
-                    Try Again
-                </Button>
+                <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+                    <Button onClick={() => {
+                        setQuizCompleted(false);
+                        setCurrentQuestionIndex(0);
+                        setScore(0);
+                    }} variant="outline">
+                        Try Again
+                    </Button>
+                    <Button onClick={onComplete} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                        Continue
+                    </Button>
+                </div>
             </div>
         );
     }
     
     const currentQuestion = quiz[currentQuestionIndex];
     if (!currentQuestion) {
-        // This should not happen with the completed check, but it's a good safeguard
         setQuizCompleted(true);
         return null;
     }
@@ -172,9 +176,10 @@ const InteractiveQuiz = ({ quiz }: { quiz: QuizItem[] }) => {
 
 interface LessonDisplayProps {
     lesson: Lesson;
+    onLessonComplete: () => void;
 }
 
-const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson }) => {
+const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onLessonComplete }) => {
   const lessonContentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -194,7 +199,7 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson }) => {
       {lesson.content.map(renderContentItem)}
 
       {lesson.quiz && lesson.quiz.length > 0 && (
-        <InteractiveQuiz quiz={lesson.quiz} />
+        <InteractiveQuiz quiz={lesson.quiz} onComplete={onLessonComplete} />
       )}
       <style jsx>{`
         .animate-fadeInUpHeroCustom {

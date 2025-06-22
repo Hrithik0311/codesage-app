@@ -11,6 +11,7 @@ import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, Arro
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
@@ -61,7 +62,7 @@ const recentActivities = [
 
 
 export default function DashboardClient() {
-  const { user, loading } = useAuth();
+  const { user, loading, completedLessons } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -77,6 +78,9 @@ export default function DashboardClient() {
         </div>
     );
   }
+
+  const lessonsCompletedCount = completedLessons.size;
+  const totalLessons = ftcJavaLessons.length;
 
   return (
     <div className="w-full flex flex-col items-center min-h-screen">
@@ -160,7 +164,7 @@ export default function DashboardClient() {
                         <h2 className="font-headline text-2xl font-bold mb-6">Your Stats</h2>
                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                             <CardContent className="p-6 space-y-6">
-                               <ProgressItem icon={Trophy} label="Lessons Completed" value={5} total={10} unit="" indicatorClassName="bg-green-500" />
+                               <ProgressItem icon={Trophy} label="Lessons Completed" value={lessonsCompletedCount} total={totalLessons} unit="" indicatorClassName="bg-green-500" />
                                <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
                                <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
                             </CardContent>

@@ -23,14 +23,17 @@ interface AuthContextType {
   loading: boolean;
   notifications: Notification[];
   markNotificationsAsRead: () => void;
+  completedLessons: Set<string>;
+  completeLesson: (lessonId: string) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, completedLessons: new Set(), completeLesson: () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [completedLessons, setCompletedLessons] = useState(new Set<string>());
 
   // Effect to handle basic auth state changes
   useEffect(() => {
@@ -49,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // Effect to handle user presence, name sync, and notifications
+  // Effect to handle user presence, name sync, and data fetching
   useEffect(() => {
     if (user && database) {
         // Sync user's display name to the database
@@ -101,10 +104,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setNotifications(newNotifications);
         });
 
+        const lessonsRef = dbRef(database, `users/${user.uid}/completedLessons`);
+        const lessonsSub = onValue(lessonsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            setCompletedLessons(new Set(Object.keys(data)));
+        });
+
         // This is the cleanup function for THIS effect.
         return () => {
             connectedSub();
             notificationsSub();
+            lessonsSub();
             window.removeEventListener('mousemove', resetIdleTimer);
             window.removeEventListener('keydown', resetIdleTimer);
             window.removeEventListener('scroll', resetIdleTimer);
@@ -118,6 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       } else {
         setNotifications([]);
+        setCompletedLessons(new Set());
       }
   }, [user]);
 
@@ -130,7 +141,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const value = { user, loading, notifications, markNotificationsAsRead };
+  const completeLesson = (lessonId: string) => {
+    if (user && database && !completedLessons.has(lessonId)) {
+        const newCompletedLessons = new Set(completedLessons);
+        newCompletedLessons.add(lessonId);
+        setCompletedLessons(newCompletedLessons);
+
+        const lessonRef = dbRef(database, `users/${user.uid}/completedLessons/${lessonId}`);
+        set(lessonRef, true);
+    }
+  };
+
+  const value = { user, loading, notifications, markNotificationsAsRead, completedLessons, completeLesson };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
