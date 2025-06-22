@@ -10,7 +10,13 @@ import { ListChecks, Code2, FileText, Heading2Icon, CheckCircle, XCircle, ArrowR
 import { cn } from '@/lib/utils';
 
 
-const InteractiveQuiz: React.FC<{ quiz: QuizItem[]; onComplete: (score: number, total: number) => void }> = ({ quiz, onComplete }) => {
+interface InteractiveQuizProps {
+    quiz: QuizItem[];
+    onComplete: (score: number, total: number) => void;
+    onContinue: () => void;
+}
+
+const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({ quiz, onComplete, onContinue }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [showFeedback, setShowFeedback] = useState(false);
@@ -70,7 +76,7 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[]; onComplete: (score: number, 
                             <RotateCw className="mr-2 h-4 w-4" />
                             Try Again
                         </Button>
-                        <Button onClick={handleContinue} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                        <Button onClick={onContinue} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
                             Continue <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>
                     </div>
@@ -96,7 +102,7 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[]; onComplete: (score: number, 
                             disabled={showFeedback}
                             variant="outline"
                             className={cn(
-                                "w-full justify-center h-auto py-6 px-4 text-left text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.03] border-2",
+                                "w-full justify-center h-auto py-6 px-4 text-left text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.03] border-2 whitespace-normal",
                                 "disabled:opacity-100 disabled:pointer-events-none",
                                 showFeedback && option === currentQuestion.correctAnswer && "bg-green-600/20 border-green-500 text-foreground hover:bg-green-600/30",
                                 showFeedback && isSelected && !isCorrect && "bg-red-600/20 border-red-500 text-foreground hover:bg-red-600/30 animate-shake",
@@ -185,7 +191,13 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
-const LessonDisplay: React.FC<{ lesson: Lesson; onComplete: (score: number, total: number) => void }> = ({ lesson, onComplete }) => {
+interface LessonDisplayProps {
+    lesson: Lesson;
+    onComplete: (score: number, total: number) => void;
+    onContinue: () => void;
+}
+
+const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onComplete, onContinue }) => {
   const lessonContentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -210,7 +222,7 @@ const LessonDisplay: React.FC<{ lesson: Lesson; onComplete: (score: number, tota
             <ListChecks size={28} className="text-primary/80" />
             Knowledge Check
           </h2>
-          <InteractiveQuiz quiz={lesson.quiz} onComplete={onComplete} />
+          <InteractiveQuiz quiz={lesson.quiz} onComplete={onComplete} onContinue={onContinue} />
         </div>
       )}
       <style jsx>{`

@@ -82,13 +82,15 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
           description: `Great work on finishing "${lesson.title}".`,
         });
     }
+  };
 
-    const currentIndex = lessons.findIndex(l => l.id === lessonId);
+  const handleNavigateToNextLesson = (currentLessonId: string) => {
+    const currentIndex = lessons.findIndex(l => l.id === currentLessonId);
     const nextLesson = lessons[currentIndex + 1];
     if (nextLesson) {
         handleSelectLesson(nextLesson.id);
     }
-  };
+  }
 
 
   const activeLesson = lessons.find(lesson => lesson.id === activeLessonId);
@@ -139,6 +141,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
             <LessonDisplay 
               lesson={activeLesson} 
               onComplete={(score, total) => handleLessonComplete(activeLesson.id, score, total)}
+              onContinue={() => handleNavigateToNextLesson(activeLesson.id)}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
