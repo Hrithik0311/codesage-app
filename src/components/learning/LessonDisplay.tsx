@@ -164,7 +164,7 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
             {isAnswered && (
                 <div className="flex justify-end">
                     <Button onClick={handleContinue} className="w-full md:w-auto bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                        Continue
+                        {currentQuestionIndex < quiz.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </Button>
                 </div>
             )}
