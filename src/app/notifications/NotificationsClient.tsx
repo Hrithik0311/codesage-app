@@ -181,7 +181,7 @@ export default function NotificationsClient() {
                         let hint: 'person' | 'megaphone' = 'megaphone';
                         if (meta.type === 'dm') {
                             const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-                            name = members.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                            name = teamMembersRef.current.find(m => m.id === otherUserId)?.name || 'Unknown User';
                             hint = 'person';
                         }
                         currentChats[chatId] = {
@@ -274,13 +274,7 @@ export default function NotificationsClient() {
     }
 
     try {
-        let myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
-
-        if (!myName) {
-            toast({ variant: 'destructive', title: 'Authentication Error', description: "Could not verify your identity to send a message." });
-            setIsSending(false);
-            return;
-        }
+        let myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "User";
 
         const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
