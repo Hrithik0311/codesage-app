@@ -97,7 +97,6 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                         className={cn(
                                             "w-20 h-20 rounded-full flex flex-col items-center justify-center p-2 transition-all duration-300 transform hover:scale-110 shadow-lg border-4",
                                             nodeStateClasses[state],
-                                            isActive && "animate-pulse-slow",
                                             !isUnlocked && "cursor-not-allowed"
                                         )}
                                     >
