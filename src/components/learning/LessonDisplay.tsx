@@ -5,11 +5,12 @@ import React, { useState } from 'react';
 import { Lesson, LessonContentItem, LessonContentType, QuizItem } from '@/data/ftc-java-lessons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { ListChecks, Code2, FileText, Heading2Icon, CheckCircle, XCircle, ArrowRight, RotateCw, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
-const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
+const InteractiveQuiz: React.FC<{ quiz: QuizItem[]; onComplete: (score: number, total: number) => void }> = ({ quiz, onComplete }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [showFeedback, setShowFeedback] = useState(false);
@@ -18,6 +19,7 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
 
     const currentQuestion = quiz[currentQuestionIndex];
     const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+    const progress = (currentQuestionIndex / quiz.length) * 100;
 
     const handleSelectAnswer = (option: string) => {
         if (showFeedback) return;
@@ -30,13 +32,13 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
     };
     
     const handleContinue = () => {
-        setShowFeedback(false);
-        setSelectedAnswer(null);
-
         if (currentQuestionIndex < quiz.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
+            setShowFeedback(false);
+            setSelectedAnswer(null);
         } else {
             setQuizFinished(true);
+            onComplete(score, quiz.length);
         }
     };
 
@@ -50,29 +52,41 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
 
     if (quizFinished) {
         const percentage = Math.round((score / quiz.length) * 100);
+        const isPass = percentage >= 80;
         return (
-            <Card className="bg-muted/50 text-center p-6">
+            <Card className={cn(
+                "text-center p-6 md:p-8 border-2",
+                isPass ? 'border-green-500/50 bg-green-500/10' : 'border-red-500/50 bg-red-500/10'
+            )}>
                 <CardHeader className="p-0 mb-4">
-                    <Trophy className="text-yellow-400 w-16 h-16 mx-auto mb-4" />
-                    <CardTitle className="text-3xl font-headline">Quiz Complete!</CardTitle>
+                    <Trophy className={cn("w-20 h-20 mx-auto mb-4", isPass ? "text-yellow-400" : "text-muted-foreground")} />
+                    <CardTitle className="text-3xl font-headline">{isPass ? "Lesson Complete!" : "Keep Practicing!"}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <p className="text-xl mb-2 text-foreground/90">You scored <span className="font-bold text-primary">{score}</span> out of <span className="font-bold text-primary">{quiz.length}</span></p>
-                    <p className="text-3xl font-bold text-accent mb-6">{percentage}%</p>
-                    <Button onClick={handleRestart} size="lg">
-                        <RotateCw className="mr-2 h-4 w-4" />
-                        Try Again
-                    </Button>
+                    <p className="text-4xl font-bold text-accent mb-6">{percentage}%</p>
+                    <div className="flex justify-center gap-4">
+                        <Button onClick={handleRestart} size="lg" variant="outline">
+                            <RotateCw className="mr-2 h-4 w-4" />
+                            Try Again
+                        </Button>
+                        <Button onClick={handleContinue} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                            Continue <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         );
     }
     
     return (
-        <div className="w-full max-w-2xl mx-auto">
-            <p className="text-sm text-muted-foreground mb-2 text-center">Question {currentQuestionIndex + 1} of {quiz.length}</p>
-            <h3 className="font-semibold text-xl text-center mb-6">{currentQuestion.question}</h3>
-            <div className="space-y-3 mb-6">
+        <div className="w-full max-w-3xl mx-auto">
+             <div className="flex items-center gap-4 mb-6">
+                <Progress value={progress} className="h-4" indicatorClassName="bg-gradient-to-r from-green-400 to-green-600" />
+                <span className="text-sm font-bold text-muted-foreground">{currentQuestionIndex + 1} / {quiz.length}</span>
+            </div>
+            <h3 className="font-semibold text-2xl text-center mb-8">{currentQuestion.question}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {currentQuestion.options.map(option => {
                     const isSelected = selectedAnswer === option;
                     return (
@@ -82,16 +96,14 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
                             disabled={showFeedback}
                             variant="outline"
                             className={cn(
-                                "w-full justify-start h-auto py-3 px-4 text-left text-base font-medium rounded-lg transition-all duration-200 transform hover:scale-[1.02]",
+                                "w-full justify-center h-auto py-6 px-4 text-left text-lg font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.03] border-2",
                                 "disabled:opacity-100 disabled:pointer-events-none",
                                 showFeedback && option === currentQuestion.correctAnswer && "bg-green-600/20 border-green-500 text-foreground hover:bg-green-600/30",
                                 showFeedback && isSelected && !isCorrect && "bg-red-600/20 border-red-500 text-foreground hover:bg-red-600/30 animate-shake",
-                                showFeedback && !isSelected && "opacity-60",
+                                showFeedback && !isSelected && "opacity-50",
                                 !showFeedback && "hover:bg-accent/20 hover:border-accent"
                             )}
                         >
-                             {showFeedback && option === currentQuestion.correctAnswer && <CheckCircle className="mr-3 h-5 w-5 text-green-500" />}
-                             {showFeedback && isSelected && !isCorrect && <XCircle className="mr-3 h-5 w-5 text-red-500" />}
                             {option}
                         </Button>
                     );
@@ -99,19 +111,23 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
             </div>
 
             {showFeedback && (
-                <div className="animate-fade-in-up-hero">
-                    <Card className={cn("p-4 mt-6", isCorrect ? "bg-green-500/10 border-green-500/30" : "bg-red-500/10 border-red-500/30")}>
-                        <CardHeader className="p-0 pb-2 flex-row items-center gap-2">
-                            {isCorrect ? <CheckCircle className="h-6 w-6 text-green-500"/> : <XCircle className="h-6 w-6 text-red-500"/>}
-                            <CardTitle className="text-xl">{isCorrect ? "Correct!" : "Not quite"}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                           <p className="text-foreground/90 text-base">{currentQuestion.explanation}</p>
-                        </CardContent>
-                    </Card>
-                    <Button onClick={handleContinue} className="w-full mt-4 py-6 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                       Continue <ArrowRight className="ml-2 h-5 w-5" />
-                   </Button>
+                <div className={cn("fixed bottom-0 left-0 right-0 p-6 z-[100] animate-slide-up-feedback",
+                    isCorrect ? "bg-green-500/20" : "bg-red-500/20"
+                )}>
+                    <div className="container mx-auto">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                {isCorrect ? <CheckCircle className="h-10 w-10 text-green-500"/> : <XCircle className="h-10 w-10 text-red-500"/>}
+                                <div>
+                                    <h4 className="text-xl font-bold">{isCorrect ? "Correct!" : "Not quite"}</h4>
+                                    <p className="text-foreground/90">{currentQuestion.explanation}</p>
+                                </div>
+                            </div>
+                            <Button onClick={handleContinue} className="w-48 py-7 text-lg font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                                Continue <ArrowRight className="ml-2 h-5 w-5" />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
             <style jsx>{`
@@ -122,6 +138,13 @@ const InteractiveQuiz: React.FC<{ quiz: QuizItem[] }> = ({ quiz }) => {
                 }
                 .animate-shake {
                     animation: shake 0.3s ease-in-out;
+                }
+                @keyframes slide-up-feedback {
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
+                }
+                .animate-slide-up-feedback {
+                    animation: slide-up-feedback 0.3s ease-out forwards;
                 }
             `}</style>
         </div>
@@ -139,7 +162,7 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
         </h2>
       );
     case LessonContentType.Paragraph:
-      return <p key={index} className="text-foreground/90 mb-5 leading-relaxed text-base md:text-lg">{item.text}</p>;
+      return <p key={index} className="text-foreground/90 mb-5 leading-relaxed text-base md:text-lg" dangerouslySetInnerHTML={{ __html: item.text ?? '' }}></p>;
     case LessonContentType.Code:
       return (
         <div key={index} className="my-6 relative group">
@@ -162,10 +185,14 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
-const LessonDisplay: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
+const LessonDisplay: React.FC<{ lesson: Lesson; onComplete: (score: number, total: number) => void }> = ({ lesson, onComplete }) => {
   const lessonContentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
+    // Reset scroll position when lesson changes
+    if (lessonContentRef.current) {
+      lessonContentRef.current.parentElement?.scrollTo(0,0);
+    }
   }, [lesson]);
   
   return (
@@ -178,13 +205,13 @@ const LessonDisplay: React.FC<{ lesson: Lesson }> = ({ lesson }) => {
       {lesson.content.map(renderContentItem)}
 
       {lesson.quiz && lesson.quiz.length > 0 && (
-        <>
+        <div className="mt-12">
           <h2 className="flex items-center gap-2 text-2xl md:text-3xl font-semibold font-headline text-primary mt-12 mb-6 border-b-2 border-primary/30 pb-3">
             <ListChecks size={28} className="text-primary/80" />
             Knowledge Check
           </h2>
-          <InteractiveQuiz quiz={lesson.quiz} />
-        </>
+          <InteractiveQuiz quiz={lesson.quiz} onComplete={onComplete} />
+        </div>
       )}
       <style jsx>{`
         .animate-fadeInUpHeroCustom {

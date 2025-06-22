@@ -1,6 +1,6 @@
 
 import type { Metadata } from 'next';
-import FtcJavaCourseLayout from '@/components/learning/FtcJavaCourseLayout';
+import FtcJavaCourseLayout from '@/app/learning/FtcJavaCourseLayout';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import AnimatedBackground from '@/components/landing/AnimatedBackground';
 
