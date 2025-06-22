@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, database } from '@/lib/firebase';
-import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove } from 'firebase/database';
+import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, get } from 'firebase/database';
 
 
 export interface Notification {
@@ -49,9 +49,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // Effect to handle user presence and notifications
+  // Effect to handle user presence, name sync, and notifications
   useEffect(() => {
     if (user && database) {
+        // Sync user's display name to the database
+        if (user.displayName) {
+          const userNameRef = dbRef(database, `users/${user.uid}/name`);
+          set(userNameRef, user.displayName);
+        }
+
         const userStatusDatabaseRef = dbRef(database, `/status/${user.uid}`);
         const connectedRef = dbRef(database, '.info/connected');
 
