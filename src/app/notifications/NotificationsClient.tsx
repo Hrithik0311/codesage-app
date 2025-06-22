@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
@@ -21,7 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Search, SendHorizontal, Bot, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Search, SendHorizontal } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
@@ -101,8 +101,9 @@ export default function NotificationsClient() {
         return;
     }
 
+    let chatListeners: (() => void)[] = [];
+    
     const loadData = async () => {
-        // 1. Fetch Team and Members
         setLoadingState('loading_team');
         const teamCodeSnapshot = await get(dbRef(database, `users/${user.uid}/teamCode`));
         if (!teamCodeSnapshot.exists()) {
@@ -124,56 +125,75 @@ export default function NotificationsClient() {
         );
         setTeamMembers(members);
 
-        // 2. Fetch Chats & Subscribe for real-time updates
         setLoadingState('loading_chats');
         const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-        const unsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
+        
+        return onValue(userChatsRef, (chatListSnapshot) => {
+            chatListeners.forEach(unsub => unsub());
+            chatListeners = [];
+
             const chatIds = chatListSnapshot.val() || {};
-            const chatPromises = Object.keys(chatIds).map(async (chatId): Promise<Chat | null> => {
-                const metaSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
-                if (!metaSnap.exists()) return null;
-                const meta = metaSnap.val();
+            let currentChats: { [key: string]: Chat } = {};
 
-                const lastMsgQuery = query(dbRef(database, `chats/${chatId}/messages`), orderByChild('timestamp'), limitToLast(1));
-                const lastMsgSnap = await get(lastMsgQuery);
-                const lastMessage = lastMsgSnap.exists() ? Object.values(lastMsgSnap.val())[0] as Omit<Message, 'key'> : undefined;
+            const updateState = () => {
+                const allChats = [
+                    {
+                        id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot', type: 'ai' as const,
+                        lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
+                    },
+                    ...Object.values(currentChats)
+                ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
 
-                let name = meta.name;
-                let hint: 'person' | 'megaphone' = 'megaphone';
-                if (meta.type === 'dm') {
-                    const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-                    name = members.find(m => m.id === otherUserId)?.name || 'Unknown User'; // Use loaded members
-                    hint = 'person';
+                setChats(allChats);
+                if (!activeChatId && allChats.length > 0) {
+                    setActiveChatId(allChats[0].id);
+                } else if (activeChatId && !allChats.find(c => c.id === activeChatId)) {
+                    setActiveChatId(allChats.length > 0 ? allChats[0].id : null);
                 }
-
-                return {
-                    id: chatId, name, hint, type: meta.type, members: meta.members,
-                    avatar: 'https://placehold.co/40x40.png',
-                    lastMessage: lastMessage ? { text: lastMessage.text, timestamp: lastMessage.timestamp } : undefined,
-                };
-            });
-
-            const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
-            
-            const aiChat: Chat = {
-                id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot', type: 'ai',
-                lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
-            };
-
-            const allChats = [aiChat, ...resolvedChats].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
-            setChats(allChats);
-
-            if (!activeChatId && allChats.length > 0) {
-                setActiveChatId(allChats[0].id);
+                setLoadingState('ready');
             }
-            setLoadingState('ready');
-        });
 
-        return () => unsubscribe();
+            if (Object.keys(chatIds).length === 0) {
+                updateState();
+                return;
+            }
+
+            Object.keys(chatIds).forEach(chatId => {
+                const chatMetaRef = dbRef(database, `chats/${chatId}/metadata`);
+                const unsubscribeChatMeta = onValue(chatMetaRef, (metaSnap) => {
+                    if (!metaSnap.exists()) {
+                        delete currentChats[chatId];
+                    } else {
+                        const meta = metaSnap.val();
+                        let name = meta.name;
+                        let hint: 'person' | 'megaphone' = 'megaphone';
+                        if (meta.type === 'dm') {
+                            const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
+                            name = members.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                            hint = 'person';
+                        }
+                        currentChats[chatId] = {
+                            id: chatId, name, hint, type: meta.type, members: meta.members,
+                            avatar: 'https://placehold.co/40x40.png',
+                            lastMessage: meta.lastMessage,
+                        };
+                    }
+                    updateState();
+                });
+                chatListeners.push(unsubscribeChatMeta);
+            });
+        });
     };
 
-    loadData();
-  }, [user, authLoading, router, toast]);
+    const unsubscribePromise = loadData();
+
+    return () => {
+        unsubscribePromise.then(unsubscribe => {
+            if (unsubscribe) unsubscribe();
+        });
+        chatListeners.forEach(unsub => unsub());
+    };
+}, [user, authLoading, router, toast]);
 
   // --- Message Fetching Effect ---
   useEffect(() => {
@@ -195,7 +215,7 @@ export default function NotificationsClient() {
     });
 
     return () => unsubscribe();
-  }, [activeChatId]); // Rerun when active chat changes
+  }, [activeChatId, activeChat]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -208,18 +228,24 @@ export default function NotificationsClient() {
     if (!newMessage.trim() || !user || !activeChat || isSending) return;
     
     setIsSending(true);
-    const myName = teamMembers.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
-    const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
-
+    
     if (activeChat.type === 'ai') {
-        const userMessage: Message = { key: Date.now().toString(), ...messageData, timestamp: Date.now() };
+        const myName = teamMembers.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
+        const userMessage: Message = { 
+            key: Date.now().toString(), 
+            text: newMessage,
+            senderId: user.uid,
+            senderName: myName,
+            timestamp: Date.now() 
+        };
         setMessages(prev => [...prev, userMessage]);
+        const currentInput = newMessage;
         setNewMessage("");
         
         setTimeout(() => {
             const aiResponse: Message = {
                 key: (Date.now() + 1).toString(), senderId: 'ai', senderName: 'CodeSage AI',
-                text: `I've received your message: "${newMessage}". My full capabilities are still under development, but I'm learning fast!`,
+                text: `I've received your message: "${currentInput}". My full capabilities are still under development, but I'm learning fast!`,
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, aiResponse]);
@@ -229,8 +255,25 @@ export default function NotificationsClient() {
     }
 
     try {
-        const chatMessagesRef = dbRef(database, `chats/${activeChat.id}/messages`);
-        await push(chatMessagesRef, messageData);
+        const myName = teamMembers.find(m => m.id === user.uid)?.name;
+        if (!myName) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not find your user name in the team.' });
+            setIsSending(false);
+            return;
+        }
+
+        const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
+        
+        const updates: { [key: string]: any } = {};
+        const newMessageKey = push(dbRef(database, `chats/${activeChat.id}/messages`)).key;
+        
+        updates[`/chats/${activeChat.id}/messages/${newMessageKey}`] = messageData;
+        updates[`/chats/${activeChat.id}/metadata/lastMessage`] = {
+            text: newMessage,
+            timestamp: serverTimestamp()
+        };
+
+        await update(dbRef(database), updates);
         setNewMessage("");
     } catch (error) {
         console.error("Error sending message:", error);
@@ -257,6 +300,7 @@ export default function NotificationsClient() {
         return;
       }
 
+      const myName = teamMembers.find(m => m.id === user.uid)?.name || 'New Member';
       const chatData = { metadata: { type: 'dm', members: { [user.uid]: true, [member.id]: true } } };
       await set(newChatRef, chatData);
       
