@@ -6,7 +6,7 @@ import type { Lesson } from '@/data/ftc-java-lessons';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { BookOpen, Check, ClipboardCheck, Lock, Rocket, Star } from 'lucide-react';
+import { BookOpen, Check, ClipboardList, Lock, Rocket, Star } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LessonNavigationProps {
@@ -20,7 +20,7 @@ const getIconForLesson = (lessonType: Lesson['type']) => {
     switch (lessonType) {
         case 'placement': return Rocket;
         case 'lesson': return BookOpen;
-        case 'test': return ClipboardCheck;
+        case 'test': return ClipboardList;
         default: return Star;
     }
 };
