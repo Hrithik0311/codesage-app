@@ -59,14 +59,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
          Learning Path
        </h2>
       <ScrollArea className="flex-grow pr-2">
-        <div className="relative w-full flex justify-center">
-            {/* The SVG path background */}
-            <svg className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-auto" width="100" height="100%" viewBox="0 0 100 2900" preserveAspectRatio="none">
-                <path d="M 50 0 C 50 10, 80 20, 50 60 S 20 100, 50 140 S 80 180, 50 220 S 20 260, 50 300 S 80 340, 50 380 S 20 420, 50 460 S 80 500, 50 540 S 20 580, 50 620 S 80 660, 50 700 S 20 740, 50 780 S 80 820, 50 860 S 20 900, 50 940 S 80 980, 50 1020 S 20 1060, 50 1100 S 80 1140, 50 1180 S 20 1220, 50 1260 S 80 1300, 50 1340 S 20 1380, 50 1420 S 80 1460, 50 1500 S 20 1540, 50 1580 S 80 1620, 50 1660 S 20 1700, 50 1740 S 80 1780, 50 1820 S 20 1860, 50 1900 S 80 1940, 50 1980 S 20 2020, 50 2060 S 80 2100, 50 2140 S 20 2180, 50 2220 S 80 2260, 50 2300 S 20 2340, 50 2380 S 80 2420, 50 2460 S 20 2500, 50 2540 S 80 2580, 50 2620 S 20 2660, 50 2700 S 80 2740, 50 2780 S 20 2820, 50 2860 V 2880"
-                fill="none" stroke="hsl(var(--border))" strokeWidth="4" strokeDasharray="8 8"/>
-            </svg>
-
-            <ul className="space-y-12 py-8 relative z-10">
+        <div className="relative w-full pl-4 py-4">
+          <div className="absolute top-10 bottom-10 left-[23px] w-0.5 bg-border -z-10" />
+            <ul className="space-y-6 relative z-10">
                 <TooltipProvider>
                 {lessons.map((lesson, index) => {
                     const isCompleted = completedLessonIds.has(lesson.id);
@@ -76,7 +71,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
 
                     const nodeStateClasses = {
                         completed: "bg-green-500 border-green-400 text-white shadow-green-500/40",
-                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40 animate-pulse",
+                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40",
                         unlocked: "bg-primary border-primary/80 text-primary-foreground shadow-primary/40",
                         locked: "bg-muted border-border text-muted-foreground shadow-sm",
                     };
@@ -87,7 +82,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                     else if (isUnlocked) state = 'unlocked';
                     
                     return (
-                        <li key={lesson.id} className="flex justify-center">
+                        <li key={lesson.id} className="flex">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -95,12 +90,13 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                         disabled={!isUnlocked}
                                         onClick={() => onSelectLesson(lesson.id)}
                                         className={cn(
-                                            "w-20 h-20 rounded-full flex flex-col items-center justify-center p-2 transition-all duration-300 transform hover:scale-110 shadow-lg border-4",
+                                            "rounded-full flex flex-col items-center justify-center p-2 transition-all duration-300 transform hover:scale-110 shadow-lg border-4",
                                             nodeStateClasses[state],
-                                            !isUnlocked && "cursor-not-allowed"
+                                            !isUnlocked && "cursor-not-allowed",
+                                            isActive ? "w-16 h-16" : "w-12 h-12"
                                         )}
                                     >
-                                        {isCompleted ? <Check size={32} /> : !isUnlocked ? <Lock size={28} /> : <Icon size={28} />}
+                                        {isCompleted ? <Check size={isActive ? 30 : 22} /> : !isUnlocked ? <Lock size={isActive ? 26 : 20} /> : <Icon size={isActive ? 26 : 20} />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">

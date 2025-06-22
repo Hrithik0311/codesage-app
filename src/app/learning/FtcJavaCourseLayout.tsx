@@ -95,18 +95,18 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
             </div>
             <span className="text-xl font-headline font-bold">CodeSage</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="text-accent" size={28} />
-              <h1 className="text-xl md:text-2xl font-bold font-headline text-foreground">
-                FTC Java Course
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggleButton />
-              <NotificationBell />
-              <UserProfile />
-            </div>
+          
+          <div className="hidden md:flex items-center gap-2">
+            <BookOpen className="text-accent" size={24} />
+            <h1 className="text-xl font-bold font-headline text-foreground">
+              FTC Java Course
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggleButton />
+            <NotificationBell />
+            <UserProfile />
           </div>
         </div>
       </header>
