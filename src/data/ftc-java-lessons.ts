@@ -46,32 +46,30 @@ export const ftcJavaLessons: Lesson[] = [
         type: LessonContentType.Paragraph,
         text: 'Welcome to your first lesson in programming! **Programming** is the process of writing instructions that a computer can understand and execute. We use programming languages to write these instructions. For FTC Robotics, the primary language is **Java**.',
       },
-      { type: LessonContentType.Heading, text: 'Why Java?' },
+      { type: LessonContentType.Heading, text: 'Why Java for FTC?' },
       {
         type: LessonContentType.Paragraph,
         text: 'Java is a powerful, widely-used, and **object-oriented** programming language. This "object-oriented" nature makes it excellent for robotics, as you can model real-world robot parts (like motors, servos, and sensors) as "objects" in your code. This helps keep your programs organized and easy to understand.',
       },
-      { type: LessonContentType.Heading, text: 'The Simplest Java Program' },
+      { type: LessonContentType.Heading, text: 'A Simple Java Program' },
       {
         type: LessonContentType.Paragraph,
-        text: 'Let\'s look at the classic "Hello, World!" program in Java. This is the traditional first program for anyone learning a new language.',
+        text: 'Let\'s look at a simple program. In regular Java, you might see `System.out.println("Hello, World!");` to print text. In FTC, we have a similar tool called `telemetry` to display information on the Driver Hub screen.',
       },
       {
         type: LessonContentType.Code,
-        code: `public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}`,
+        code: `// This code would be inside an FTC OpMode
+telemetry.addData("Status", "Hello, World!");
+telemetry.update();`,
       },
       { type: LessonContentType.Heading, text: 'Key Parts Explained' },
       {
         type: LessonContentType.List,
         items: [
-          '<b><code>public class HelloWorld</code>:</b> In Java, all code lives inside a **class**. We\'ve named ours `HelloWorld`.',
-          '<b><code>public static void main(String[] args)</code>:</b> This is the main **method**. A method is a block of code that runs when it is called. The `main` method is special—it\'s the entry point where the program starts executing.',
-          '<b><code>System.out.println(...)</code>:</b> This is a built-in Java command that prints a line of text to the console.',
+          '<b><code>telemetry.addData("Key", "Value")</code>:</b> This command stages a line of text to be sent to the Driver Hub screen. It takes a "Key" (a label) and a "Value" (the data to display).',
+          '<b><code>telemetry.update()</code>:</b> This command actually sends all the staged data to the screen.',
           '<b><code>;</code> (Semicolon):</b> Every statement in Java must end with a semicolon. It\'s like the period at the end of a sentence.',
+          '<b><code>//</code> (Comments):</b> Lines starting with `//` are comments. The computer ignores them; they are notes for humans reading the code.',
         ],
       },
     ],
@@ -88,15 +86,15 @@ export const ftcJavaLessons: Lesson[] = [
         explanation: 'Programming languages provide a structured way for humans to give commands to computers.',
       },
       {
-        question: 'In Java, where must all code be written?',
+        question: 'In FTC, what is the `telemetry` object used for?',
         options: [
-          'Inside a method.',
-          'Inside a variable.',
-          'Inside a class.',
-          'Inside a comment.',
+          'To move motors.',
+          'To display information on the Driver Hub screen.',
+          'To connect to WiFi.',
+          'To store variables.',
         ],
-        correctAnswer: 'Inside a class.',
-        explanation: 'Java is class-based, so every program is structured around one or more classes.',
+        correctAnswer: 'To display information on the Driver Hub screen.',
+        explanation: 'Telemetry is your primary tool for debugging and showing the status of your robot on the driver\'s phone.',
       },
       {
         question: 'Which character is used to end a statement in Java?',
@@ -119,56 +117,56 @@ export const ftcJavaLessons: Lesson[] = [
         type: LessonContentType.Paragraph,
         text: 'A **variable** is a container for storing data values. In Java, you must declare the **type** of the variable, which tells the computer what kind of data it will hold.',
       },
-      { type: LessonContentType.Heading, text: 'Declaring Variables' },
+      { type: LessonContentType.Heading, text: 'Declaring Variables for a Robot' },
       {
         type: LessonContentType.Paragraph,
-        text: 'To create a variable, you specify the type, give it a name, and optionally assign it an initial value.',
+        text: 'To create a variable, you specify the type, give it a name, and optionally assign it an initial value. Let\'s see some examples relevant to FTC:',
       },
       {
         type: LessonContentType.Code,
         code: `// Syntax: type variableName = value;
 
-int myNumber = 5; // An integer (whole number)
-double myDecimal = 5.99; // A floating-point number (decimal)
-char myLetter = 'D'; // A single character
-boolean isJavaFun = true; // A boolean (true or false)
-String myText = "Hello"; // A string of text`,
+int teamNumber = 12345;      // An integer (whole number)
+double motorPower = 0.75;    // A floating-point number (decimal)
+double servoPosition = 0.5;  // Another decimal, for a servo
+boolean isAllianceBlue = true; // A boolean (true or false)
+String robotName = "RoboBot"; // A string of text`,
       },
-      { type: LessonContentType.Heading, text: 'Common Data Types' },
+      { type: LessonContentType.Heading, text: 'Common FTC Data Types' },
       {
         type: LessonContentType.List,
         items: [
-          '<b><code>int</code>:</b> stores integers (whole numbers), like 123 or -456. Cannot have decimals.',
-          '<b><code>double</code>:</b> stores floating-point numbers, with decimals, like 19.99 or -3.14.',
-          '<b><code>boolean</code>:</b> stores one of two states: `true` or `false`. Very useful for making decisions.',
-          '<b><code>String</code>:</b> stores text, such as "Hello World". String values are surrounded by double quotes.',
+          '<b><code>int</code>:</b> Stores integers (whole numbers). Useful for team numbers, or counting things.',
+          '<b><code>double</code>:</b> Stores floating-point numbers with decimals. Essential for motor power (-1.0 to 1.0) and servo positions (0.0 to 1.0).',
+          '<b><code>boolean</code>:</b> Stores one of two states: `true` or `false`. Used for checking if a button is pressed or a sensor is triggered.',
+          '<b><code>String</code>:</b> stores text. Useful for device names in the configuration (e.g., "left_drive") or telemetry messages.',
         ],
       },
       { type: LessonContentType.Heading, text: 'Using Variables' },
       {
         type: LessonContentType.Paragraph,
-        text: 'Once a variable is declared, you can use it in your code. You can also change its value (unless it is declared as `final`).',
+        text: 'Once a variable is declared, you can use it in your code. You can also change its value.',
       },
       {
         type: LessonContentType.Code,
-        code: `int score = 0; // Initial score
-System.out.println(score); // Prints 0
+        code: `double armPower = 0.0; // Start with the arm motor off
+telemetry.addData("Arm Power", armPower); // Displays 0.0
 
-score = 10; // Update the value
-System.out.println(score); // Prints 10`,
+armPower = 0.5; // Set power to 50% forward
+telemetry.addData("Arm Power", armPower); // Displays 0.5`,
       },
     ],
     quiz: [
       {
-        question: 'Which data type would you use to store a person\'s age in whole years?',
+        question: 'Which data type would you use to store motor power, e.g., `0.5`?',
         options: [
           'String',
           'double',
           'int',
           'boolean'
         ],
-        correctAnswer: 'int',
-        explanation: '`int` is used for whole numbers, and age is typically represented as a whole number.',
+        correctAnswer: 'double',
+        explanation: 'Motor power is a decimal value between -1.0 and 1.0, so `double` is the correct choice.',
       },
       {
         question: 'What are the only two possible values for a `boolean` variable?',
@@ -179,18 +177,18 @@ System.out.println(score); // Prints 10`,
           '`yes` and `no`'
         ],
         correctAnswer: '`true` and `false`',
-        explanation: 'Booleans are fundamental for logic and control flow, representing a binary choice.',
+        explanation: 'Booleans are fundamental for logic, such as checking if a button is pressed (`gamepad1.a`) which returns either `true` or `false`.',
       },
       {
-        question: 'How do you declare a variable to hold the text "FTC Robotics"?',
+        question: 'How do you declare a variable to hold the configuration name for your drive motor, "left_drive"?',
         options: [
-          'String teamName = FTC Robotics;',
-          'int teamName = "FTC Robotics";',
-          'String teamName = "FTC Robotics";',
-          'text teamName = "FTC Robotics";'
+          'String motorName = left_drive;',
+          'int motorName = "left_drive";',
+          'String motorName = "left_drive";',
+          'text motorName = "left_drive";'
         ],
-        correctAnswer: 'String teamName = "FTC Robotics";',
-        explanation: 'Text is stored in a `String` variable, and the value must be enclosed in double quotes.',
+        correctAnswer: 'String motorName = "left_drive";',
+        explanation: 'Configuration names are text, so they are stored in a `String` variable, and the value must be enclosed in double quotes.',
       },
     ],
   },
@@ -205,67 +203,64 @@ System.out.println(score); // Prints 10`,
       { type: LessonContentType.Heading, text: 'Arithmetic Operators' },
       {
         type: LessonContentType.Paragraph,
-        text: 'These are used to perform common mathematical calculations.',
+        text: 'These are used to perform common mathematical calculations, often used for manipulating joystick inputs.',
       },
       {
         type: LessonContentType.Code,
-        code: `int x = 10;
-int y = 4;
+        code: `double joystickValue = 0.8;
+double speedFactor = 0.5; // Let's scale the speed down
 
-System.out.println(x + y); // Addition: 14
-System.out.println(x - y); // Subtraction: 6
-System.out.println(x * y); // Multiplication: 40
-System.out.println(x / y); // Division: 2 (integer division truncates the decimal)
-System.out.println(x % y); // Modulus (remainder): 2`,
+// Multiply to reduce the speed
+double motorPower = joystickValue * speedFactor; // Result is 0.4
+telemetry.addData("Power", motorPower);`,
       },
       { type: LessonContentType.Heading, text: 'Comparison Operators' },
       {
         type: LessonContentType.Paragraph,
-        text: 'These are used to compare two values and they always result in a `boolean` (`true` or `false`).',
+        text: 'These are used to compare two values (like a sensor reading) and they always result in a `boolean` (`true` or `false`).',
       },
       {
-        type: LessonContentType.List,
-        items: [
-          '`==` (Equal to)',
-          '`!=` (Not equal to)',
-          '`>` (Greater than)',
-          '`<` (Less than)',
-          '`>=` (Greater than or equal to)',
-          '`<=` (Less than or equal to)',
-        ],
+        type: LessonContentType.Code,
+        code: `double distance = myDistanceSensor.getDistance(DistanceUnit.INCH);
+boolean isTooClose = distance < 10.0; // Check if distance is less than 10 inches
+
+if (isTooClose) {
+  telemetry.addData("Status", "WARNING: Too close!");
+}`,
       },
       { type: LessonContentType.Heading, text: 'Logical Operators' },
       {
         type: LessonContentType.Paragraph,
-        text: 'These are used to combine boolean expressions.',
+        text: 'These are used to combine boolean expressions, like checking multiple button presses.',
       },
       {
-        type: LessonContentType.List,
-        items: [
-          '`&&` (Logical AND): returns `true` if both statements are true.',
-          '`||` (Logical OR): returns `true` if at least one statement is true.',
-          '`!` (Logical NOT): reverses the result, returns `false` if the result is true.',
-        ],
+        type: LessonContentType.Code,
+        code: `// Check if driver is holding the left bumper AND pressing the 'A' button
+boolean activateClaw = gamepad1.left_bumper && gamepad1.a;
+
+if (activateClaw) {
+  // close claw servo
+}`
       },
     ],
     quiz: [
       {
-        question: 'What is the result of the expression `15 % 4`?',
-        options: ['3.75', '3', '4', '1'],
-        correctAnswer: '3',
-        explanation: 'The modulus operator (%) gives the remainder of a division. 15 divided by 4 is 3 with a remainder of 3.',
+        question: 'A joystick provides a value of `0.9`. You want to drive at half that speed. Which expression do you use?',
+        options: ['`0.9 + 0.5`', '`0.9 / 0.5`', '`0.9 * 0.5`', '`0.9 - 0.5`'],
+        correctAnswer: '`0.9 * 0.5`',
+        explanation: 'Multiplying by 0.5 scales the value down by half, resulting in a motor power of 0.45.',
       },
       {
-        question: 'Which operator is used to check if two values are equal?',
-        options: ['=', '===', '!=', '=='],
-        correctAnswer: '==',
-        explanation: 'A single equals sign (`=`) is the assignment operator, used to set a variable\'s value. The double equals sign (`==`) is for comparison.',
+        question: 'Which operator is used to check if a motor\'s encoder count is exactly `1000`?',
+        options: ['`=`', '`===`', '`!=`', '`==`'],
+        correctAnswer: '`==`',
+        explanation: 'A single equals sign (`=`) is for assigning a value to a variable. The double equals sign (`==`) is for comparing two values.',
       },
       {
-        question: 'What is the result of `(5 > 3) && (10 < 5)`?',
+        question: 'What is the result of `gamepad1.a || gamepad1.b` if only button `b` is pressed?',
         options: ['true', 'false', 'Error', '1'],
-        correctAnswer: 'false',
-        explanation: 'The first part `(5 > 3)` is true, but the second part `(10 < 5)` is false. Since the logical AND (`&&`) requires both sides to be true, the final result is false.',
+        correctAnswer: 'true',
+        explanation: 'The logical OR (`||`) operator returns `true` if at least one of its conditions is true. Since `gamepad1.b` is true, the whole expression is true.',
       },
     ],
   },
@@ -275,7 +270,7 @@ System.out.println(x % y); // Modulus (remainder): 2`,
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'So far, our code has executed from top to bottom. **Control Flow** statements allow us to make decisions and execute different blocks of code based on certain conditions.',
+        text: 'So far, our code has executed from top to bottom. **Control Flow** statements allow us to make decisions and execute different blocks of code based on conditions, like a button press.',
       },
       { type: LessonContentType.Heading, text: 'The `if` Statement' },
       {
@@ -284,9 +279,9 @@ System.out.println(x % y); // Modulus (remainder): 2`,
       },
       {
         type: LessonContentType.Code,
-        code: `int score = 100;
-if (score > 90) {
-    System.out.println("Excellent score!");
+        code: `// If the 'A' button is pressed, turn on the intake motor
+if (gamepad1.a) {
+    intakeMotor.setPower(1.0);
 }`,
       },
       { type: LessonContentType.Heading, text: 'The `else` Statement' },
@@ -296,27 +291,27 @@ if (score > 90) {
       },
       {
         type: LessonContentType.Code,
-        code: `int time = 20;
-if (time < 18) {
-    System.out.println("Good day.");
+        code: `// If 'A' button is pressed, run intake. Otherwise, turn it off.
+if (gamepad1.a) {
+    intakeMotor.setPower(1.0);
 } else {
-    System.out.println("Good evening.");
+    intakeMotor.setPower(0.0);
 }`,
       },
       { type: LessonContentType.Heading, text: 'The `else if` Statement' },
       {
         type: LessonContentType.Paragraph,
-        text: 'The `else if` statement allows you to check for a new condition if the first condition was false.',
+        text: 'The `else if` statement allows you to check for a new condition if the first condition was false. This is great for controlling a mechanism with multiple actions.',
       },
       {
         type: LessonContentType.Code,
-        code: `int temperature = 22;
-if (temperature > 30) {
-    System.out.println("It's a hot day.");
-} else if (temperature > 20) {
-    System.out.println("It's a beautiful day.");
+        code: `// Control an arm with two buttons
+if (gamepad1.y) {
+    armMotor.setPower(0.5); // Move arm up
+} else if (gamepad1.a) {
+    armMotor.setPower(-0.5); // Move arm down
 } else {
-    System.out.println("It's a cold day.");
+    armMotor.setPower(0.0); // Stop the arm
 }`,
       },
     ],
@@ -328,16 +323,16 @@ if (temperature > 30) {
         explanation: 'The `if` and `else` blocks are mutually exclusive; one or the other will run, but never both.',
       },
       {
-        question: 'Can you have an `else` statement without a preceding `if` statement?',
-        options: ['Yes, always.', 'Yes, if you use `else if`.', 'No.', 'Only inside a method.'],
-        correctAnswer: 'No.',
-        explanation: 'An `else` statement is always linked to an `if` statement. It provides the alternative path for when the `if` condition is not met.',
+        question: 'Which of these would you use to check if EITHER button `x` OR button `y` is pressed?',
+        options: ['`if (gamepad1.x && gamepad1.y)`', '`if (gamepad1.x || gamepad1.y)`', '`if (gamepad1.x) else if (gamepad1.y)`', '`if (gamepad1.x == gamepad1.y)`'],
+        correctAnswer: '`if (gamepad1.x || gamepad1.y)`',
+        explanation: 'The logical OR operator (`||`) is perfect for checking if at least one of multiple boolean conditions is true.',
       },
       {
-        question: 'What is the purpose of `else if`?',
-        options: ['To run code if two conditions are true.', 'To check multiple conditions in a sequence.', 'To end the program.', 'To repeat a block of code.'],
-        correctAnswer: 'To check multiple conditions in a sequence.',
-        explanation: 'It allows you to create a chain of checks. The first one that evaluates to true will execute its block, and the rest are skipped.',
+        question: 'What is the purpose of the final `else` in an `if-else if-else` chain?',
+        options: ['To check one last condition.', 'To run a default block of code if none of the preceding conditions were true.', 'To end the program.', 'To repeat the code.'],
+        correctAnswer: 'To run a default block of code if none of the preceding conditions were true.',
+        explanation: 'It acts as a catch-all. In robot code, it\'s often used to set motors to zero power to ensure they stop when no control buttons are being pressed.',
       },
     ],
   },
@@ -347,69 +342,67 @@ if (temperature > 30) {
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'A **method** is a block of code which only runs when it is called. You can pass data, known as parameters, into a method. Methods are used to perform certain actions, and they are also known as **functions**.',
+        text: 'A **method** is a block of code which only runs when it is called. You can pass data, known as parameters, into a method. Methods are essential for organizing your robot code.',
       },
-      { type: LessonContentType.Heading, text: 'Why Use Methods?' },
+      { type: LessonContentType.Heading, text: 'Why Use Methods in FTC?' },
       {
         type: LessonContentType.List,
         items: [
-          '**Reusability:** Write the code once and use it many times.',
-          '**Organization:** Break down complex problems into smaller, manageable pieces.',
+          '**Reusability:** Have a complex autonomous step? Put it in a method and call it from different autonomous programs.',
+          '**Organization:** Instead of one giant `runOpMode`, you can have smaller methods like `driveForward(inches)`, `turnLeft(degrees)`, and `liftArmTo(position)`.',
         ],
       },
       { type: LessonContentType.Heading, text: 'Creating and Calling a Method' },
       {
-        type: LessonContentType.Code,
-        code: `public class Main {
-    // This is the method definition
-    static void myMethod() {
-        System.out.println("I just got executed!");
-    }
-
-    public static void main(String[] args) {
-        myMethod(); // This is the method call
-        myMethod(); // You can call it multiple times
-    }
-}`,
-      },
-      { type: LessonContentType.Heading, text: 'Parameters and Return Values' },
-      {
         type: LessonContentType.Paragraph,
-        text: 'You can send information to methods as **parameters**. Methods can also **return** a value back to the code that called it.',
+        text: 'Let\'s make a method to control our drivetrain.',
       },
       {
         type: LessonContentType.Code,
-        code: `public class Main {
-    // This method takes two int parameters and returns their sum
-    static int add(int x, int y) {
-        return x + y;
-    }
+        code: `// Assume leftDrive and rightDrive motors are already declared
 
-    public static void main(String[] args) {
-        int result = add(5, 3); // Call the method and store the returned value
-        System.out.println(result); // Prints 8
+// This method takes two power values and sets the drive motors
+void setDrivePower(double leftPower, double rightPower) {
+    leftDrive.setPower(leftPower);
+    rightDrive.setPower(rightPower);
+}
+
+// In your TeleOp loop, you can now call this method
+public void runOpMode() {
+    // ... init code ...
+    waitForStart();
+    while (opModeIsActive()) {
+        double drive = -gamepad1.left_stick_y;
+        double turn  =  gamepad1.right_stick_x;
+
+        // Calculate power for each wheel
+        double leftPower  = drive + turn;
+        double rightPower = drive - turn;
+        
+        // Call our method to set the powers
+        setDrivePower(leftPower, rightPower);
     }
 }`,
       },
     ],
     quiz: [
       {
-        question: 'What is the primary benefit of using methods in your code?',
-        options: ['To make the code run faster.', 'To use less memory.', 'To reuse code and keep it organized.', 'To make the code harder to read.'],
-        correctAnswer: 'To reuse code and keep it organized.',
-        explanation: 'Methods prevent you from having to write the same block of code over and over again, making your programs shorter and easier to manage.',
+        question: 'What is the primary benefit of putting your driving logic into an `encoderDrive()` method?',
+        options: ['It makes the robot drive faster.', 'It allows you to reuse the same driving code in multiple autonomous paths without copying and pasting.', 'It uses less battery.', 'The robot will drive straighter.'],
+        correctAnswer: 'It allows you to reuse the same driving code in multiple autonomous paths without copying and pasting.',
+        explanation: 'Methods are key to the DRY (Don\'t Repeat Yourself) principle. By encapsulating logic, you make your code cleaner, shorter, and easier to debug.',
       },
       {
-        question: 'What is a "parameter"?',
-        options: ['A variable that is returned from a method.', 'A variable that passes data into a method.', 'A special type of class.', 'A comment in the code.'],
-        correctAnswer: 'A variable that passes data into a method.',
-        explanation: 'Parameters act as placeholders for values that you provide when you call the method, allowing the method to work with different data.',
+        question: 'What is a "parameter" in the context of `liftArmTo(int position)`?',
+        options: ['A value returned from the method.', 'The data passed into the method (the target position).', 'A special type of class.', 'A comment in the code.'],
+        correctAnswer: 'The data passed into the method (the target position).',
+        explanation: 'Parameters allow methods to be flexible. You can call `liftArmTo(500)` or `liftArmTo(1200)` to move the arm to different heights using the same underlying logic.',
       },
       {
-        question: 'What does the `return` keyword do?',
-        options: ['It stops the program entirely.', 'It prints a value to the screen.', 'It sends a value back from the method to the calling code.', 'It deletes a variable.'],
-        correctAnswer: 'It sends a value back from the method to the calling code.',
-        explanation: 'A method with a return type (like `int` or `String`) must use `return` to give a result back. A method with `void` return type does not return a value.',
+        question: 'A method declared as `void myMethod()` can do what?',
+        options: ['Return an integer value.', 'Return a boolean value.', 'Not return any value.', 'Return a String value.'],
+        correctAnswer: 'Not return any value.',
+        explanation: 'The `void` keyword means the method performs an action but does not send a result back to the calling code. Most methods that control motors are `void`.',
       },
     ],
   },
@@ -419,72 +412,91 @@ if (temperature > 30) {
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'Java is an **Object-Oriented Programming (OOP)** language. The core concepts of OOP are **classes** and **objects**.',
+        text: 'Java is an **Object-Oriented Programming (OOP)** language. This is perfect for robotics. The core concepts are **classes** and **objects**.',
       },
       {
         type: LessonContentType.List,
         items: [
-          'A **Class** is a blueprint or template for creating objects.',
-          'An **Object** is an instance of a class.',
+          'A **Class** is a blueprint for a part of your robot (e.g., a `Drivetrain` class).',
+          'An **Object** is the specific instance of that part on your robot (e.g., `myRobot.drivetrain`).',
         ],
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'Think of a `Car` class. The blueprint would define that a car has attributes (like `color` and `maxSpeed`) and methods (like `drive()` and `brake()`). An individual car, like a "red Ferrari," would be an object created from that `Car` class.',
+        text: 'The FTC SDK provides classes like `DcMotor`, `Servo`, and `ColorSensor`. You create *objects* from these classes to represent your actual, physical hardware.',
       },
-      { type: LessonContentType.Heading, text: 'Creating a Class' },
-      {
-        type: LessonContentType.Code,
-        code: `public class Dog {
-    // Attribute (variable)
-    String breed;
-
-    // Method
-    public void bark() {
-        System.out.println("Woof!");
-    }
-}`,
-      },
-      { type: LessonContentType.Heading, text: 'Creating an Object' },
+      { type: LessonContentType.Heading, text: 'Creating a Simple Drivetrain Class' },
       {
         type: LessonContentType.Paragraph,
-        text: 'To create an object from a class, you use the `new` keyword. This is called **instantiation**.',
+        text: 'Instead of having all your motors declared in your main OpMode, you can group them into a `Drivetrain` class. This is a step towards building a full Hardware Class.',
       },
       {
         type: LessonContentType.Code,
-        code: `public class Main {
-    public static void main(String[] args) {
-        Dog myDog = new Dog(); // Create a Dog object
-        myDog.breed = "Golden Retriever"; // Set its attribute
+        code: `// In a new file: Drivetrain.java
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
-        System.out.println(myDog.breed); // Access the attribute
-        myDog.bark(); // Call the method
+public class Drivetrain {
+    // These are the objects for the motors
+    public DcMotor leftMotor;
+    public DcMotor rightMotor;
+
+    // This is a special method called a "constructor"
+    public Drivetrain(HardwareMap hardwareMap) {
+        leftMotor = hardwareMap.get(DcMotor.class, "left_drive");
+        rightMotor = hardwareMap.get(DcMotor.class, "right_drive");
+        
+        rightMotor.setDirection(DcMotor.Direction.REVERSE);
+    }
+
+    // A method to control this drivetrain
+    public void setPower(double left, double right) {
+        leftMotor.setPower(left);
+        rightMotor.setPower(right);
     }
 }`,
       },
+      { type: LessonContentType.Heading, text: 'Using the Drivetrain Object' },
       {
         type: LessonContentType.Paragraph,
-        text: 'In FTC, you don\'t create the `DcMotor` class, but you create `DcMotor` *objects* to represent the actual motors on your robot!',
+        text: 'Now, in your OpMode, you can create and use an instance of your Drivetrain class.',
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// In your OpMode
+Drivetrain drivetrain; // Declare a variable for the object
+
+public void runOpMode() {
+    // Create the object using its constructor
+    drivetrain = new Drivetrain(hardwareMap);
+
+    waitForStart();
+
+    while(opModeIsActive()) {
+        // Now you can use its methods!
+        drivetrain.setPower(-gamepad1.left_stick_y, -gamepad1.right_stick_y);
+    }
+}`,
       },
     ],
     quiz: [
       {
-        question: 'What is the relationship between a class and an object?',
-        options: ['They are the same thing.', 'An object is a blueprint for a class.', 'A class is a blueprint, and an object is an instance created from that blueprint.', 'A class is a type of variable.'],
-        correctAnswer: 'A class is a blueprint, and an object is an instance created from that blueprint.',
-        explanation: 'You define the structure and behavior in a class, and then you can create multiple objects, each with its own state, based on that class.',
+        question: 'In OOP, a Class is like a _______ and an Object is like a ________.',
+        options: ['house, blueprint', 'blueprint, house', 'method, variable', 'variable, method'],
+        correctAnswer: 'blueprint, house',
+        explanation: 'A class (the blueprint) defines the properties and abilities. An object (the house) is a tangible thing built from that blueprint.',
       },
       {
         question: 'What keyword is used to create an object from a class?',
         options: ['create', 'instance', 'new', 'object'],
         correctAnswer: 'new',
-        explanation: 'The `new` keyword allocates memory for a new object and returns a reference to it.',
+        explanation: 'The `new` keyword allocates memory for a new object and calls its constructor method to initialize it.',
       },
       {
         question: 'In FTC, if `DcMotor` is a class, what is `leftDrive` in the code `DcMotor leftDrive;`?',
         options: ['A method', 'A class', 'A variable that can hold a DcMotor object', 'A keyword'],
         correctAnswer: 'A variable that can hold a DcMotor object',
-        explanation: '`leftDrive` is a variable declared to hold a reference to an instance of the `DcMotor` class. It will become an object reference after instantiation (e.g., `leftDrive = new ...`).',
+        explanation: '`leftDrive` is a variable declared to hold a reference to an instance of the `DcMotor` class. It points to a `DcMotor` object after you initialize it with the hardware map.',
       },
     ],
   },
