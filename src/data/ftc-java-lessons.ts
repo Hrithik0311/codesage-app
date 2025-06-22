@@ -68,127 +68,173 @@ export const ftcJavaLessons: Lesson[] = [
   },
   {
     id: 'lesson1',
-    title: 'Java Basics',
+    title: 'Anatomy of an OpMode',
     type: 'lesson',
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'Welcome to the first lesson! Here, we will cover foundational concepts to get you started with Java for FTC programming.',
+        text: 'Welcome to your first lesson! Every robot program you write in FTC is called an **OpMode**. Let\'s break down the most common type, `LinearOpMode`.',
       },
-      { type: LessonContentType.Heading, text: 'What is Java?' },
+      { type: LessonContentType.Heading, text: 'The `LinearOpMode` Structure' },
       {
         type: LessonContentType.Paragraph,
-        text: 'Java is a versatile, object-oriented programming language. In FTC, Java is used to write programs called <b>OpModes</b>, which tell your robot how to behave during matches.',
-      },
-      { type: LessonContentType.Heading, text: 'Your First OpMode' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'An OpMode is like a mini program that runs on your robot. Below is an example of a simple OpMode that sends a message to the driver station:',
+        text: 'A `LinearOpMode` runs from top to bottom. It has one main method, `runOpMode()`, which contains all of your robot\'s logic. The code is split into two main phases: **Initialization** and the **Run Loop**.',
       },
       {
         type: LessonContentType.Code,
-        code: `@TeleOp(name="HelloFTC", group="Tutorial")
-public class HelloFTC extends LinearOpMode {
-  @Override
-  public void runOpMode() {
-    telemetry.addData("Message", "Hello FTC!");
-    telemetry.update();
-    waitForStart();
-    while (opModeIsActive()) {
-      // Robot code here
+        code: `/* Copyright (c) 2017 FIRST. All rights reserved. */
+
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+@TeleOp(name="Basic: Linear OpMode", group="Linear Opmode")
+public class BasicOpMode_Linear extends LinearOpMode {
+
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+
+        // Wait for the game to start (driver presses PLAY)
+        waitForStart();
+
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+            telemetry.addData("Status", "Running");
+            telemetry.update();
+        }
     }
-  }
 }`,
       },
-      { type: LessonContentType.Heading, text: 'Key Concepts' },
+      { type: LessonContentType.Heading, text: 'Key Parts Explained' },
       {
         type: LessonContentType.List,
         items: [
-            '<b>Class:</b> A blueprint for creating objects. `HelloFTC` is a class.',
-            '<b>Method:</b> A block of code that performs a specific task, like `runOpMode()`.',
-            '<b>Variable:</b> A container for storing data values.',
-            '<b>telemetry:</b> An object used to send data to the Driver Station screen for debugging.'
+            '<b><code>@TeleOp(...)</code>:</b> This is an *annotation* that registers your OpMode so it appears in the list on the Driver Hub. `name` is what you see, and `group` helps you organize OpModes.',
+            '<b><code>public class ... extends LinearOpMode</code>:</b> This declares your class. By *extending* `LinearOpMode`, your class inherits all the basic FTC functionality.',
+            '<b><code>runOpMode()</code>:</b> This is the main method where your code lives.',
+            '<b><code>telemetry</code>:</b> An object used to send text messages to the Driver Hub screen. Crucial for debugging!',
+            '<b><code>waitForStart()</code>:</b> This is a critical line! Code before this runs when you press **INIT**. The code after it only runs after the driver presses **PLAY**.',
+            '<b><code>while (opModeIsActive())</code>:</b> This is the main loop. Code inside this block will repeat over and over again until the driver presses **STOP**.'
         ]
       }
     ],
     quiz: [
       {
-        question: 'What programming language is used for FTC?',
-        options: ['Python', 'Java', 'C++', 'Blockly'],
-        correctAnswer: 'Java',
-        explanation: 'Java is the primary, text-based programming language used in the FIRST Tech Challenge, running on the Android-based robot controllers.'
+        question: 'What is the purpose of the `@TeleOp` annotation?',
+        options: ['To start the TeleOp period', 'To register the OpMode on the Driver Hub list', 'To connect to the gamepad', 'To declare TeleOp-only variables'],
+        correctAnswer: 'To register the OpMode on the Driver Hub list',
+        explanation: 'The `@TeleOp(...)` annotation tells the FTC app that this class is a runnable OpMode and defines the name and group that will appear on the selection screen.'
       },
       {
-        question: 'What is an OpMode?',
-        options: [
-            'A special mode for the robot\'s operator',
-            'A program that controls the robot during a match',
-            'An optical sensor module',
-            'A type of motor controller'
-        ],
-        correctAnswer: 'A program that controls the robot during a match',
-        explanation: 'An OpMode (Operation Mode) is a class in the FTC SDK that contains the logic for how your robot should behave, either autonomously or under driver control.'
+        question: 'Code placed BEFORE `waitForStart()` runs when you press...',
+        options: ['INIT', 'PLAY', 'STOP', 'It runs automatically'],
+        correctAnswer: 'INIT',
+        explanation: 'The section before `waitForStart()` is for initialization. It runs as soon as you select the OpMode and press the INIT button on the Driver Hub.'
       },
       {
-        question: 'What is the main purpose of the `telemetry.update()` command?',
+        question: 'What does the `while (opModeIsActive())` loop do?',
         options: [
-            'To update the robot\'s firmware',
-            'To save data to the robot controller phone',
-            'To send all added telemetry data to the Driver Station screen',
-            'To refresh the connection to the gamepad'
+            'Runs the code only once',
+            'Checks if the robot is turned on',
+            'Repeats the code inside it until the driver presses STOP',
+            'Activates the OpMode'
         ],
-        correctAnswer: 'To send all added telemetry data to the Driver Station screen',
-        explanation: 'You can add multiple pieces of data using `telemetry.addData()`, but none of it will appear on the Driver Station phone until you call `telemetry.update()`.'
+        correctAnswer: 'Repeats the code inside it until the driver presses STOP',
+        explanation: 'This is the main run loop. `opModeIsActive()` is `true` after PLAY is pressed and becomes `false` when STOP is pressed, ending the loop.'
       }
     ],
   },
   {
     id: 'lesson2',
-    title: 'Robot Structure',
+    title: 'Hardware Mapping',
     type: 'lesson',
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'Understanding how OpModes and robot hardware are structured is essential for FTC programming.',
+        text: 'To control your robot, your code needs to know about its physical parts. This is done through the `hardwareMap`.',
       },
-      { type: LessonContentType.Heading, text: 'Types of OpModes' },
+      { type: LessonContentType.Heading, text: 'The Hardware Map' },
       {
         type: LessonContentType.Paragraph,
-        text: 'There are two main types:',
+        text: 'The `hardwareMap` is an object provided by the FTC SDK that acts as a bridge between your software and the robot\'s configured hardware. You use it to get a reference to specific motors, servos, and sensors.',
       },
-      {
-        type: LessonContentType.List,
-        items: ['<b>TeleOp:</b> Runs during driver-controlled periods. You use this to map gamepad buttons to robot actions.', '<b>Autonomous:</b> Runs pre-programmed instructions without driver input.'],
-      },
-      { type: LessonContentType.Heading, text: 'Hardware Mapping' },
       {
         type: LessonContentType.Paragraph,
-        text: 'The `hardwareMap` links code names to physical robot hardware. It\'s crucial that the names you use in your code (like `"left_drive"`) exactly match the names in your robot\'s configuration file.',
+        text: 'It is **critical** that the text name you use in the code (e.g., `"left_drive"`) **exactly matches** the name you gave that component in the Robot Configuration screen on the Robot Controller.',
       },
       {
         type: LessonContentType.Code,
-        code: `// This line gets the motor named "left_drive" from the config
-leftDrive = hardwareMap.get(DcMotor.class, "left_drive");`
+        code: `/* Copyright (c) 2022 FIRST. All rights reserved. */
+
+package org.firstinspires.ftc.robotcontroller.external.samples;
+
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+public class RobotHardware {
+    /* Declare OpMode members. */
+    public DcMotor  leftDrive   = null;
+    public DcMotor  rightDrive  = null;
+    public DcMotor  leftArm     = null;
+    public Servo    leftClaw    = null;
+    public Servo    rightClaw   = null;
+
+    public final static double ARM_UP_POWER    =  0.60;
+    public final static double ARM_DOWN_POWER  = -0.45;
+
+    /* local OpMode members. */
+    HardwareMap hwMap = null;
+
+    /* Initialize standard Hardware interfaces */
+    public void init(HardwareMap ahwMap) {
+        // Save reference to Hardware map
+        hwMap = ahwMap;
+
+        // Define and Initialize Motors and Servos
+        leftDrive  = hwMap.get(DcMotor.class, "left_drive");
+        rightDrive = hwMap.get(DcMotor.class, "right_drive");
+        leftArm    = hwMap.get(DcMotor.class, "left_arm");
+        
+        // Set all motors to run without encoders by default
+        leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftArm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        // Define and initialize ALL installed servos.
+        leftClaw  = hwMap.get(Servo.class, "left_hand");
+        rightClaw = hwMap.get(Servo.class, "right_hand");
+    }
+ }
+`,
+      },
+      { type: LessonContentType.Heading, text: 'Good Practice: The Hardware Class' },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'The code above shows a common FTC design pattern: a dedicated `RobotHardware` class. Instead of declaring all your hardware in every OpMode, you create one class to handle all hardware initialization. This makes your code cleaner, more organized, and easier to maintain.'
       }
     ],
     quiz: [
       { 
-        question: "What are the two main types of OpModes?", 
-        options: ["Start and Stop", "Manual and Auto", "TeleOp and Autonomous", "Driver and Coder"],
-        correctAnswer: "TeleOp and Autonomous",
-        explanation: "TeleOp is for driver control, and Autonomous is for pre-programmed routines."
+        question: "What is the purpose of `hardwareMap.get()`?", 
+        options: ["To get the robot's position on the field", "To retrieve a reference to a configured hardware device", "To check if a hardware device is connected", "To get a list of all hardware"],
+        correctAnswer: "To retrieve a reference to a configured hardware device",
+        explanation: "The `hardwareMap.get()` method takes the device type (e.g., `DcMotor.class`) and its configured name to link your code variable to the physical device."
       },
       { 
-        question: "What object is used to link code variables to hardware devices?", 
-        options: ["deviceManager", "robotMap", "controlHub", "hardwareMap"],
-        correctAnswer: "hardwareMap",
-        explanation: "The hardwareMap is provided by the FTC SDK to get references to your configured motors, servos, and sensors."
+        question: "What happens if the name in `hardwareMap.get(DcMotor.class, \"motor_a\")` doesn't match the robot configuration?", 
+        options: ["The code guesses which motor you meant", "The code will crash when you press INIT", "The motor will run at half speed", "The motor will not be affected"],
+        correctAnswer: "The code will crash when you press INIT",
+        explanation: "This is a very common error. If the hardware map cannot find a device with the exact name you provided, your OpMode will fail to initialize and the app will stop."
       },
       { 
-        question: "Why might you need to set a motor's direction to REVERSE?", 
-        options: ["To make it spin slower", "Because it was wired backwards", "So it can drive backwards in autonomous", "If the motor is mounted opposite to another motor on the drivetrain"],
-        correctAnswer: "If the motor is mounted opposite to another motor on the drivetrain",
-        explanation: "On a standard drivetrain, motors on opposite sides are mirror images, so one needs to be electrically reversed for them to turn the same way."
+        question: "Why is creating a separate `RobotHardware` class a good idea?", 
+        options: ["It is required by the game rules", "It makes the robot drive faster", "It centralizes all hardware initialization, reducing code duplication", "It's the only way to use sensors"],
+        correctAnswer: "It centralizes all hardware initialization, reducing code duplication",
+        explanation: "By having one hardware class, you can initialize your robot with one line in any OpMode (`robot.init(hardwareMap)`) instead of repeating all the `hardwareMap.get()` calls."
       }
     ],
   },
@@ -198,7 +244,7 @@ leftDrive = hardwareMap.get(DcMotor.class, "left_drive");`
     type: 'test',
     content: [
       { type: LessonContentType.Heading, text: 'Unit 1 Knowledge Test' },
-      { type: LessonContentType.Paragraph, text: 'Let\'s review what you\'ve learned in the first couple of lessons.' },
+      { type: LessonContentType.Paragraph, text: 'Let\'s review what you\'ve learned about OpModes and hardware.' },
     ],
     quiz: [
       {
@@ -223,117 +269,148 @@ leftDrive = hardwareMap.get(DcMotor.class, "left_drive");`
   },
   { 
     id: 'lesson3', 
-    title: 'Motors & Movement', 
+    title: 'Controlling Motors', 
     type: 'lesson',
     content: [
-        {type: LessonContentType.Paragraph, text:"Controlling motors powers your robot’s movement and mechanisms. Let’s dive into how to control motors effectively."},
-        {type: LessonContentType.Heading, text:"Motor Initialization & Direction"},
-        {type: LessonContentType.Code, code: `leftDrive = hardwareMap.get(DcMotor.class, "left_drive");\nrightDrive = hardwareMap.get(DcMotor.class, "right_drive");\nleftDrive.setDirection(DcMotor.Direction.FORWARD);\nrightDrive.setDirection(DcMotor.Direction.REVERSE);`},
-        {type: LessonContentType.Heading, text:"Motor Power Range"},
-        {type: LessonContentType.Paragraph, text:"Power values range from -1.0 (full reverse) to 1.0 (full forward), with 0 being stop. Setting power controls motor speed and direction."},
-        {type: LessonContentType.Code, code: `// Set the left motor to 50% forward power\nleftDrive.setPower(0.5);`},
-        {type: LessonContentType.Heading, text:"Motor Modes"},
-        {type: LessonContentType.Paragraph, text:"Different motor modes include RUN_WITHOUT_ENCODER (simple power control) and RUN_TO_POSITION (move to a target position)."}
+        {type: LessonContentType.Paragraph, text:"Motors are the heart of your robot. Learning to control them precisely is key to building a competitive robot."},
+        {type: LessonContentType.Heading, text:"Setting Motor Direction"},
+        {type: LessonContentType.Paragraph, text:"On a standard drivetrain, motors on opposite sides are mounted as mirror images of each other. To make them both drive the robot forward, one side must be electronically reversed."},
+        {type: LessonContentType.Code, code: `// In your initialization
+leftDrive.setDirection(DcMotor.Direction.FORWARD);
+rightDrive.setDirection(DcMotor.Direction.REVERSE);`},
+        {type: LessonContentType.Heading, text:"Setting Motor Power"},
+        {type: LessonContentType.Paragraph, text:"Motor power is set with a value from **-1.0** (full power reverse) to **+1.0** (full power forward). A value of **0** is stop. You will update these power values continuously inside your main `while` loop based on gamepad input."},
+        {type: LessonContentType.Code, code: `// Inside the while(opModeIsActive()) loop
+double leftPower = -gamepad1.left_stick_y;
+double rightPower = -gamepad1.right_stick_y;
+
+// Send calculated power to wheels
+leftDrive.setPower(leftPower);
+rightDrive.setPower(rightPower);`},
+        {type: LessonContentType.Heading, text:"Stopping the Motors"},
+        {type: LessonContentType.Paragraph, text:"It's good practice to ensure all motors are stopped when your OpMode ends. You can do this by setting their power to 0 after the `while` loop finishes."},
+        {type: LessonContentType.Code, code:`// After the while loop exits
+leftDrive.setPower(0);
+rightDrive.setPower(0);`}
     ], 
     quiz: [
         {
-          question: "What is the valid range for motor power?", 
+          question: "What is the valid range for motor power values passed to `.setPower()`?", 
           options: ["0 to 100", "-1.0 to 1.0", "-255 to 255", "0 to 1.0"],
           correctAnswer: "-1.0 to 1.0",
-          explanation: "Motor power is represented as a decimal from -1.0 (full reverse) to 1.0 (full forward), with 0 being stopped."
+          explanation: "Motor power is represented as a decimal from -1.0 (full reverse) to 1.0 (full forward), with 0 indicating the motor should stop."
         },
         {
-          question: "To make a standard tank-drive robot turn right in place, what should you do?", 
-          options: ["Set left motor to 0.5, right motor to 0.5", "Set left motor to -0.5, right motor to -0.5", "Set left motor to 0.5, right motor to -0.5", "Set left motor to 0, right motor to 0.5"],
-          correctAnswer: "Set left motor to 0.5, right motor to -0.5",
-          explanation: "Spinning the wheels on opposite sides in opposite directions causes the robot to pivot, or turn in place."
+          question: "Why do you typically need to set one side of a drivetrain to `DcMotor.Direction.REVERSE`?", 
+          options: ["To make it spin slower", "Because motors on opposite sides are physically mirrored", "So it can drive backwards in autonomous", "To save battery power"],
+          correctAnswer: "Because motors on opposite sides are physically mirrored",
+          explanation: "For both sides to spin the wheels in the same direction (e.g., forward), one side's motor must be told to run in reverse from an electrical standpoint."
         },
         {
-          question: "Which motor mode would you use to have a motor move to a specific rotation and stop there?", 
-          options: ["RUN_WITHOUT_ENCODER", "RUN_USING_ENCODER", "RUN_TO_POSITION", "STOP_AND_RESET_ENCODER"],
-          correctAnswer: "RUN_TO_POSITION",
-          explanation: "RUN_TO_POSITION uses the motor's built-in encoder and a PID controller to move to a target position and hold it."
+          question: "Where should you put the code that sets motor power based on gamepad input?", 
+          options: ["Before `waitForStart()`", "Inside the `while (opModeIsActive())` loop", "After the `while` loop", "In a separate class"],
+          correctAnswer: "Inside the `while (opModeIsActive())` loop",
+          explanation: "You need to continuously check the gamepad values and update the motor power in every iteration of the loop to have real-time control."
         }
     ] 
   },
   { 
     id: 'lesson4', 
-    title: 'Sensors & Input', 
+    title: 'Reading Sensors: The IMU', 
     type: 'lesson',
     content: [
-        {type: LessonContentType.Paragraph, text:"Sensors give your robot the ability to “sense” its environment or its own state, which is critical for advanced behaviors."},
-        {type: LessonContentType.Heading, text:"Common FTC Sensors"},
-        {type: LessonContentType.List, items: ["<b>Touch Sensors:</b> Detect if a button is pressed.", "<b>Color Sensors:</b> Detect the color of a surface.", "<b>Distance Sensors:</b> Measure distance to an object.", "<b>IMU (Gyroscope):</b> Measures the robot's orientation and rotation."]},
-        {type: LessonContentType.Heading, text:"Reading Sensor Data"},
-        {type: LessonContentType.Code, code: `boolean isPressed = touchSensor.isPressed();\nint redValue = colorSensor.red();\ndouble distance_cm = distanceSensor.getDistance(DistanceUnit.CM);`},
-        {type: LessonContentType.Paragraph, text:"Using sensor data inside loops allows your robot to react to its environment in real time."}
+        {type: LessonContentType.Paragraph, text:"Sensors give your robot the ability to perceive its environment. The most important sensor for autonomous navigation is the Inertial Measurement Unit, or IMU."},
+        {type: LessonContentType.Heading, text:"What is an IMU?"},
+        {type: LessonContentType.Paragraph, text:"The IMU is a sensor built into the Control Hub or Expansion Hub. It contains a gyroscope and accelerometer, which allow it to measure the robot's orientation (which way it's facing) and rotation."},
+        {type: LessonContentType.Heading, text:"Initializing the IMU"},
+        {type: LessonContentType.Paragraph, text:"Like a motor, the IMU must be initialized from the hardware map. You also need to provide it with parameters, such as the logo direction and USB port orientation on your robot."},
+        {type: LessonContentType.Code, code: `// In your hardware class or before waitForStart()
+IMU imu = hardwareMap.get(IMU.class, "imu");
+IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+    RevHubOrientationOnRobot.LogoFacingDirection.UP,
+    RevHubOrientationOnRobot.UsbFacingDirection.FORWARD));
+imu.initialize(parameters);`},
+        {type: LessonContentType.Heading, text:"Getting the Robot's Heading"},
+        {type: LessonContentType.Paragraph, text:"Once initialized, you can get the robot's yaw (its rotation on the flat plane) at any time. This is fundamental for making precise turns in autonomous."},
+        {type: LessonContentType.Code, code:`// Inside your while loop
+double yawAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+telemetry.addData("Yaw", "%.2f", yawAngle);
+telemetry.update();`}
     ], 
     quiz: [
         {
-          question: "What does an IMU sensor typically measure?", 
-          options: ["The distance to an object", "The color of the floor", "The robot's orientation and rotation", "The current motor power"],
-          correctAnswer: "The robot's orientation and rotation",
-          explanation: "An IMU (Inertial Measurement Unit) contains a gyroscope and accelerometer to track the robot's heading and rotation."
+          question: "What does an IMU primarily measure for an FTC robot?", 
+          options: ["The distance to a wall", "The color of the floor", "The robot's orientation and rotational angle", "The battery voltage"],
+          correctAnswer: "The robot's orientation and rotational angle",
+          explanation: "The IMU (Inertial Measurement Unit) is key for tracking the robot's heading, which is essential for making accurate turns in autonomous mode."
         },
         {
-          question: "If a `touchSensor.isPressed()` returns `true`, what does it mean?", 
-          options: ["The sensor is not working", "The sensor's button is currently being pushed", "The sensor is ready to be pressed", "The sensor has been pressed in the past"],
-          correctAnswer: "The sensor's button is currently being pushed",
-          explanation: "The `.isPressed()` method returns the current state of the touch sensor's button."
+          question: "What information do you need to provide when initializing the IMU?", 
+          options: ["Your team number", "The current battery voltage", "The orientation of the Control Hub on your robot", "The robot's starting position"],
+          correctAnswer: "The orientation of the Control Hub on your robot",
+          explanation: "The IMU needs to know how it is mounted (e.g., logo facing up, USB port facing forward) to provide accurate angle readings relative to the robot."
         },
         {
-          question: "Which sensor would be best for determining the robot's heading (which way it's facing)?", 
-          options: ["Color Sensor", "Distance Sensor", "Touch Sensor", "IMU"],
-          correctAnswer: "IMU",
-          explanation: "The IMU is specifically designed to measure orientation and is the standard way to track the robot's heading."
+          question: "The 'Yaw' angle from the IMU represents what?", 
+          options: ["The robot's tilt forward or backward", "The robot's rotation on the flat ground (like turning left or right)", "The robot's tilt side to side", "The robot's altitude"],
+          correctAnswer: "The robot's rotation on the flat ground (like turning left or right)",
+          explanation: "In a 3D space, 'Yaw' is the term for rotation around the vertical axis, which corresponds to turning left and right for an FTC robot."
         }
     ] 
   },
   { 
     id: 'lesson5', 
-    title: 'Gamepad Controls', 
+    title: 'Advanced Gamepad Controls', 
     type: 'lesson',
     content: [
-        {type: LessonContentType.Paragraph, text:"Gamepads are the primary way drivers control the robot during TeleOp periods."},
-        {type: LessonContentType.Heading, text:"Accessing Gamepads"},
-        {type: LessonContentType.Paragraph, text:"The FTC SDK provides two objects, `gamepad1` and `gamepad2`, which represent the two controllers."},
+        {type: LessonContentType.Paragraph, text:"Drivers control the robot using gamepads. The FTC SDK provides `gamepad1` and `gamepad2` to read their inputs."},
         {type: LessonContentType.Heading, text:"Joystick and Button Inputs"},
-        {type: LessonContentType.List, items: ["<b>Joysticks:</b> Return decimal values (floats) from -1.0 to 1.0. Example: `gamepad1.left_stick_y`", "<b>Buttons:</b> Return boolean values (true or false). Example: `gamepad1.a`", "<b>Triggers:</b> Return decimal values (floats) from 0.0 to 1.0. Example: `gamepad1.right_trigger`"]},
-        {type: LessonContentType.Code, code: `// Arcade Drive Example
-double drive = -gamepad1.left_stick_y;  // Forward/Backward
-double turn  =  gamepad1.right_stick_x; // Left/Right Turn
-
+        {type: LessonContentType.List, items: ["<b>Joysticks:</b> Return decimal values from -1.0 to 1.0. Example: `gamepad1.left_stick_y`", "<b>Buttons:</b> Return boolean values (`true` or `false`). Example: `gamepad1.a`", "<b>Triggers:</b> Return decimal values from 0.0 to 1.0. Example: `gamepad1.right_trigger`"]},
+        {type: LessonContentType.Heading, text:"Tank Drive Example"},
+        {type: LessonContentType.Paragraph, text:"Tank Drive is a common control scheme where each joystick on one side controls the motors on that same side of the robot."},
+        {type: LessonContentType.Code, code: `// Inside the while(opModeIsActive()) loop
+// POV Mode uses left stick to go forward, and right stick to turn.
+// - This uses basic math to combine motions and is easier to drive straight.
+double drive = -gamepad1.left_stick_y;
+double turn  =  gamepad1.right_stick_x;
 double leftPower  = drive + turn;
 double rightPower = drive - turn;
 
-leftDrive.setPower(leftPower);
-rightDrive.setPower(rightPower);
-
-// Mechanism Control Example
-if (gamepad1.a) {
-  intakeMotor.setPower(1.0);
-} else {
-  intakeMotor.setPower(0.0);
-}`}
+// Send calculated power to wheels
+// Use Math.max and Math.min to clip the values to the -1.0 to 1.0 range
+leftDrive.setPower(Math.max(-1.0, Math.min(leftPower, 1.0)));
+rightDrive.setPower(Math.max(-1.0, Math.min(rightPower, 1.0)));`},
+        {type: LessonContentType.Heading, text:"Toggle and One-Shot Logic"},
+        {type: LessonContentType.Paragraph, text:"A common challenge is making a button press perform an action only once, not for as long as it's held down. This requires tracking the button's previous state."},
+        {type: LessonContentType.Code, code:`boolean a_was_pressed = false;
+boolean claw_is_open = false;
+// ... inside loop
+boolean a_is_pressed = gamepad1.a;
+if (a_is_pressed && !a_was_pressed) {
+    // The 'a' button was just pressed!
+    claw_is_open = !claw_is_open; // Toggle the state
+}
+a_was_pressed = a_is_pressed;
+// Now set servo position based on claw_is_open`}
     ], 
     quiz: [
         {
-          question: "In the code `double drive = -gamepad1.left_stick_y;`, why is the value from `left_stick_y` often negated (multiplied by -1)?", 
-          options: ["To make the robot go faster", "Because joysticks are inverted by default, where 'up' is negative", "To prevent the robot from driving backward", "Because it's a programming convention"],
-          correctAnswer: "Because joysticks are inverted by default, where 'up' is negative",
-          explanation: "Most gamepads report the 'up' direction on a Y-axis as a negative value, so you multiply by -1 to make 'up' correspond to positive motor power."
+          question: "In the code `double drive = -gamepad1.left_stick_y;`, why is the value often negated?", 
+          options: ["To make the robot go faster", "Because gamepads consider 'up' on the Y-axis to be a negative value", "To prevent the robot from driving backward", "Because it's a programming convention"],
+          correctAnswer: "Because gamepads consider 'up' on the Y-axis to be a negative value",
+          explanation: "By convention for most controllers, pushing a joystick forward results in a negative Y value. We multiply by -1 so that pushing forward corresponds to positive motor power."
         },
         {
-          question: "What is the difference between `gamepad1.a` and `gamepad1.right_trigger`?", 
-          options: ["There is no difference", "`a` is a button, `right_trigger` is a joystick", "`a` is a boolean (true/false), `right_trigger` is a float (0.0 to 1.0)", "`a` is for autonomous, `right_trigger` is for TeleOp"],
-          correctAnswer: "`a` is a boolean (true/false), `right_trigger` is a float (0.0 to 1.0)",
-          explanation: "Standard buttons like 'a' are digital and return true or false. Triggers are analog and return a decimal value indicating how far they are pressed."
+          question: "What is the difference between a button input (`gamepad1.a`) and a trigger input (`gamepad1.right_trigger`)?", 
+          options: ["There is no difference", "`a` is for player 1, `right_trigger` is for player 2", "`a` returns a boolean (true/false), while `right_trigger` returns a float (0.0 to 1.0)", "`a` is for autonomous, `right_trigger` is for TeleOp"],
+          correctAnswer: "`a` returns a boolean (true/false), while `right_trigger` returns a float (0.0 to 1.0)",
+          explanation: "Buttons like 'a' are digital (on/off). Triggers are analog and report how far they are being pressed, which is useful for variable speed control."
         },
         {
-          question: "Which gamepad property would you use to implement an 'arcade drive' where one stick controls forward/backward and the other controls turning?", 
-          options: ["left_stick_y and right_stick_y", "left_stick_y and left_stick_x", "dpad_up and dpad_down", "a and b buttons"],
-          correctAnswer: "left_stick_y and left_stick_x",
-          explanation: "Arcade drive typically maps the Y-axis of one stick to forward/backward motion and the X-axis of the same (or other) stick to turning."
+          question: "What is the purpose of tracking the previous state of a button (e.g., `a_was_pressed`)?", 
+          options: ["To see how long the button was held", "To make a button press perform an action only once, on the initial press", "To count how many times a button has been pressed", "To disable the button after one use"],
+          correctAnswer: "To make a button press perform an action only once, on the initial press",
+          explanation: "This logic creates a 'rising edge detector'. The action inside the `if` statement only runs on the single loop cycle where the button changes from not pressed to pressed."
         }
     ] 
   }
