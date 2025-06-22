@@ -108,6 +108,9 @@ export default {
           '50%': { filter: 'drop-shadow(0 0 20px hsl(var(--primary) / 0.5)) drop-shadow(0 0 30px hsl(var(--accent) / 0.3))' },
         },
         'pulse-slow': {
+          '0%, 100%': {
+            opacity: '1',
+          },
           '50%': {
             opacity: '0.7',
           },

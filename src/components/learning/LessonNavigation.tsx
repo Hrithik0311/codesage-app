@@ -76,7 +76,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
 
                     const nodeStateClasses = {
                         completed: "bg-green-500 border-green-400 text-white shadow-green-500/40",
-                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40 animate-pulse-slow",
+                        active: "bg-accent border-accent-foreground text-accent-foreground shadow-accent/40",
                         unlocked: "bg-primary border-primary/80 text-primary-foreground shadow-primary/40",
                         locked: "bg-muted border-border text-muted-foreground shadow-sm",
                     };
@@ -97,6 +97,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                         className={cn(
                                             "w-20 h-20 rounded-full flex flex-col items-center justify-center p-2 transition-all duration-300 transform hover:scale-110 shadow-lg border-4",
                                             nodeStateClasses[state],
+                                            isActive && "animate-pulse-slow",
                                             !isUnlocked && "cursor-not-allowed"
                                         )}
                                     >
