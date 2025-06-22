@@ -1,7 +1,9 @@
 
 export interface QuizItem {
   question: string;
-  answer: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
 }
 
 export enum LessonContentType {
@@ -9,8 +11,6 @@ export enum LessonContentType {
   Paragraph = 'paragraph',
   Code = 'code',
   List = 'list',
-  // YouTubeLink = 'youtubeLink', // Removed
-  // Iframe = 'iframe', // Removed
 }
 
 export interface LessonContentItem {
@@ -18,8 +18,8 @@ export interface LessonContentItem {
   text?: string;
   code?: string;
   items?: string[];
-  url?: string; // Kept for potential future use with other link types, though not used now
-  title?: string; // Kept for potential future use, though not used now
+  url?: string;
+  title?: string;
 }
 
 export interface Lesson {
@@ -76,17 +76,33 @@ public class HelloFTC extends LinearOpMode {
     ],
     quiz: [
       {
-        question: '1. What programming language is used for FTC?',
-        answer: 'Answer: Java is the programming language used in FTC.',
+        question: 'What programming language is used for FTC?',
+        options: ['Python', 'Java', 'C++', 'Blockly'],
+        correctAnswer: 'Java',
+        explanation: 'Java is the primary, text-based programming language used in the FIRST Tech Challenge, running on the Android-based robot controllers.'
       },
       {
-        question: '2. What is an OpMode?',
-        answer: 'Answer: An OpMode is a program that runs on the robot, controlling its behavior during matches.',
+        question: 'What is an OpMode?',
+        options: [
+            'A special mode for the robot\'s operator',
+            'A program that controls the robot during a match',
+            'An optical sensor module',
+            'A type of motor controller'
+        ],
+        correctAnswer: 'A program that controls the robot during a match',
+        explanation: 'An OpMode (Operation Mode) is a class in the FTC SDK that contains the logic for how your robot should behave, either autonomously or under driver control.'
       },
       {
-        question: '3. What does telemetry.update() do?',
-        answer: 'Answer: It sends updated data to the driver station screen for display.',
-      },
+        question: 'What is the main purpose of the `telemetry.update()` command?',
+        options: [
+            'To update the robot\'s firmware',
+            'To save data to the robot controller phone',
+            'To send all added telemetry data to the Driver Station screen',
+            'To refresh the connection to the gamepad'
+        ],
+        correctAnswer: 'To send all added telemetry data to the Driver Station screen',
+        explanation: 'You can add multiple pieces of data using `telemetry.addData()`, but none of it will appear on the Driver Station phone until you call `telemetry.update()`.'
+      }
     ],
   },
   {
@@ -141,9 +157,24 @@ public class BasicStructure extends LinearOpMode {
       },
     ],
     quiz: [
-        { question: "1. What are the two main types of OpModes?", answer: "Answer: TeleOp (driver controlled) and Autonomous (pre-programmed)." },
-        { question: "2. What is the purpose of hardwareMap?", answer: "Answer: It connects code variables to physical robot hardware devices." },
-        { question: "3. Why do motors need their direction set?", answer: "Answer: To ensure motors spin the correct way relative to robot design." }
+      { 
+        question: "What are the two main types of OpModes?", 
+        options: ["Start and Stop", "Manual and Auto", "TeleOp and Autonomous", "Driver and Coder"],
+        correctAnswer: "TeleOp and Autonomous",
+        explanation: "TeleOp is for driver control, and Autonomous is for pre-programmed routines."
+      },
+      { 
+        question: "What object is used to link code variables to hardware devices?", 
+        options: ["deviceManager", "robotMap", "controlHub", "hardwareMap"],
+        correctAnswer: "hardwareMap",
+        explanation: "The hardwareMap is provided by the FTC SDK to get references to your configured motors, servos, and sensors."
+      },
+      { 
+        question: "Why might you need to set a motor's direction to REVERSE?", 
+        options: ["To make it spin slower", "Because it was wired backwards", "So it can drive backwards in autonomous", "If the motor is mounted opposite to another motor on the drivetrain"],
+        correctAnswer: "If the motor is mounted opposite to another motor on the drivetrain",
+        explanation: "On a standard drivetrain, motors on opposite sides are mirror images, so one needs to be electrically reversed for them to turn the same way."
+      }
     ],
   },
   { 
@@ -161,9 +192,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Paragraph, text:"Different motor modes include RUN_WITHOUT_ENCODER (simple power control) and RUN_TO_POSITION (move to a target position)."}
     ], 
     quiz: [
-        {question: "1. What is the valid range of motor power?", answer: "Answer: -1.0 to 1.0, where negative is reverse and positive is forward."},
-        {question: "2. How do you make the robot turn right?", answer: "Answer: Set left motor power positive and right motor power negative."},
-        {question: "3. What does RUN_TO_POSITION mode do?", answer: "Answer: Moves the motor to a specific encoder target position automatically."}
+        {
+          question: "What is the valid range for motor power?", 
+          options: ["0 to 100", "-1.0 to 1.0", "-255 to 255", "0 to 1.0"],
+          correctAnswer: "-1.0 to 1.0",
+          explanation: "Motor power is represented as a decimal from -1.0 (full reverse) to 1.0 (full forward), with 0 being stopped."
+        },
+        {
+          question: "To make a standard tank-drive robot turn right in place, what should you do?", 
+          options: ["Set left motor to 0.5, right motor to 0.5", "Set left motor to -0.5, right motor to -0.5", "Set left motor to 0.5, right motor to -0.5", "Set left motor to 0, right motor to 0.5"],
+          correctAnswer: "Set left motor to 0.5, right motor to -0.5",
+          explanation: "Spinning the wheels on opposite sides in opposite directions causes the robot to pivot, or turn in place."
+        },
+        {
+          question: "Which motor mode would you use to have a motor move to a specific rotation and stop there?", 
+          options: ["RUN_WITHOUT_ENCODER", "RUN_USING_ENCODER", "RUN_TO_POSITION", "STOP_AND_RESET_ENCODER"],
+          correctAnswer: "RUN_TO_POSITION",
+          explanation: "RUN_TO_POSITION uses the motor's built-in encoder and a PID controller to move to a target position and hold it."
+        }
     ] 
   },
   { 
@@ -179,9 +225,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Paragraph, text:"Robots can stop on obstacles, align to objects, or balance using sensor inputs."}
     ], 
     quiz: [
-        {question: "1. Name three FTC sensors.", answer: "Answer: Touch sensor, color sensor, distance sensor, IMU."},
-        {question: "2. How do you read the red value from a color sensor?", answer: "Answer: Using colorSensor.red()."},
-        {question: "3. What does an IMU sensor provide?", answer: "Answer: Orientation and angular velocity data."}
+        {
+          question: "What does an IMU sensor typically measure?", 
+          options: ["The distance to an object", "The color of the floor", "The robot's orientation and rotation", "The current motor power"],
+          correctAnswer: "The robot's orientation and rotation",
+          explanation: "An IMU (Inertial Measurement Unit) contains a gyroscope and accelerometer to track the robot's heading and rotation."
+        },
+        {
+          question: "If a `touchSensor.isPressed()` returns `true`, what does it mean?", 
+          options: ["The sensor is not working", "The sensor's button is currently being pushed", "The sensor is ready to be pressed", "The sensor has been pressed in the past"],
+          correctAnswer: "The sensor's button is currently being pushed",
+          explanation: "The `.isPressed()` method returns the current state of the touch sensor's button."
+        },
+        {
+          question: "Which sensor would be best for determining the robot's heading (which way it's facing)?", 
+          options: ["Color Sensor", "Distance Sensor", "Touch Sensor", "IMU"],
+          correctAnswer: "IMU",
+          explanation: "The IMU is specifically designed to measure orientation and is the standard way to track the robot's heading."
+        }
     ] 
   },
   { 
@@ -197,9 +258,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Code, code: `if (gamepad1.a) {\n  // Activate mechanism\n}`}
     ], 
     quiz: [
-        {question: "1. How do you read the left joystick Y-axis?", answer: "Answer: Using gamepad1.left_stick_y, usually negated for forward."},
-        {question: "2. What is tank drive control?", answer: "Answer: Each joystick controls one side of the drivetrain."},
-        {question: "3. How to detect if button A is pressed?", answer: "Answer: Check gamepad1.a boolean."}
+        {
+          question: "In the code `double drive = -gamepad1.left_stick_y;`, why is the value from `left_stick_y` often negated (multiplied by -1)?", 
+          options: ["To make the robot go faster", "Because joysticks are inverted by default, where 'up' is negative", "To prevent the robot from driving backward", "Because it's a programming convention"],
+          correctAnswer: "Because joysticks are inverted by default, where 'up' is negative",
+          explanation: "Most gamepads report the 'up' direction on a Y-axis as a negative value, so you multiply by -1 to make 'up' correspond to positive motor power."
+        },
+        {
+          question: "What is the difference between `gamepad1.a` and `gamepad1.right_trigger`?", 
+          options: ["There is no difference", "`a` is a button, `right_trigger` is a joystick", "`a` is a boolean (true/false), `right_trigger` is a float (0.0 to 1.0)", "`a` is for autonomous, `right_trigger` is for TeleOp"],
+          correctAnswer: "`a` is a boolean (true/false), `right_trigger` is a float (0.0 to 1.0)",
+          explanation: "Standard buttons like 'a' are digital and return true or false. Triggers are analog and return a decimal value indicating how far they are pressed."
+        },
+        {
+          question: "Which gamepad property would you use to implement an 'arcade drive' where one stick controls forward/backward and the other controls turning?", 
+          options: ["left_stick_y and right_stick_y", "left_stick_y and left_stick_x", "dpad_up and dpad_down", "a and b buttons"],
+          correctAnswer: "left_stick_y and left_stick_x",
+          explanation: "Arcade drive typically maps the Y-axis of one stick to forward/backward motion and the X-axis of the same (or other) stick to turning."
+        }
     ] 
   },
   { 
@@ -215,9 +291,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Paragraph, text:"Sensors like IMU and distance sensors help the robot navigate accurately."}
     ], 
     quiz: [
-        {question: "1. What method starts an autonomous OpMode?", answer: "Answer: waitForStart() waits for the start signal."},
-        {question: "2. Why use sensors in autonomous mode?", answer: "Answer: To navigate accurately and interact with the field."},
-        {question: "3. What is LinearOpMode?", answer: "Answer: An OpMode that runs code sequentially, easier for autonomous routines."}
+      {
+        question: "In a `LinearOpMode`, what happens after the `waitForStart()` method is called?",
+        options: ["The OpMode ends immediately", "The code waits for the driver to press the Start button on the Driver Station", "It initializes all the hardware", "It runs the TeleOp code"],
+        correctAnswer: "The code waits for the driver to press the Start button on the Driver Station",
+        explanation: "`waitForStart()` pauses the program's execution until the match officially begins, preventing the robot from moving prematurely."
+      },
+      {
+        question: "Why are custom functions like `driveForward(distance)` or `turnDegrees(angle)` useful in autonomous?",
+        options: ["They are required by the FTC SDK", "They make the code easier to read and reuse", "They make the robot drive faster", "They are the only way to control motors"],
+        correctAnswer: "They make the code easier to read and reuse",
+        explanation: "Abstracting complex motor commands into simple, readable functions (a concept called 'abstraction') makes your autonomous routines much easier to write, debug, and modify."
+      },
+      {
+        question: "What is a major risk of creating an autonomous path that relies only on time-based movements (e.g., `drive forward for 2 seconds`)?",
+        options: ["It is too difficult to program", "It's the most accurate method", "Variations in battery voltage will cause inconsistent distances", "It requires too many sensors"],
+        correctAnswer: "Variations in battery voltage will cause inconsistent distances",
+        explanation: "As the battery drains, the motors will spin slower, so running them for a fixed amount of time will cover less distance. This is why encoders or other sensors are needed for accuracy."
+      }
     ] 
   },
   { 
@@ -233,9 +324,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.List, items: ["Smoother motion", "Less overshoot", "More accurate positioning"]}
     ], 
     quiz: [
-        {question: "1. What does PID stand for?", answer: "Answer: Proportional, Integral, Derivative."},
-        {question: "2. Which term reacts to current error?", answer: "Answer: Proportional (P) term."},
-        {question: "3. Why use PID instead of just proportional control?", answer: "Answer: PID reduces overshoot and improves accuracy by using integral and derivative terms."}
+        {
+          question: "What does the 'P' in PID stand for, and what does it do?", 
+          options: ["Power: It sets the motor's max speed", "Proportional: It reacts to the current error size", "Position: It calculates the target position", "Previous: It considers the last error"],
+          correctAnswer: "Proportional: It reacts to the current error size",
+          explanation: "The Proportional term provides a corrective force that is directly proportional to how far the system is from its target. A bigger error results in a bigger correction."
+        },
+        {
+          question: "A robot arm using only P-control consistently stops just short of its target. Which PID term is designed to fix this steady-state error?", 
+          options: ["The Proportional (P) term", "The Integral (I) term", "The Derivative (D) term", "The target position"],
+          correctAnswer: "The Integral (I) term",
+          explanation: "The Integral term accumulates small past errors over time. This accumulated value will eventually grow large enough to push the arm the final distance to its target."
+        },
+        {
+          question: "What is the primary role of the Derivative (D) term in a PID controller?", 
+          options: ["To eliminate steady-state error", "To speed up the initial movement", "To predict and counteract future error, reducing overshoot", "To calculate the total error"],
+          correctAnswer: "To predict and counteract future error, reducing overshoot",
+          explanation: "The Derivative term looks at how fast the error is changing. If the system is approaching the target very quickly, the D term applies a braking force to prevent it from overshooting."
+        }
     ] 
   },
   { 
@@ -251,9 +357,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Paragraph, text:"Vision data helps the robot decide paths and scoring actions dynamically."}
     ], 
     quiz: [
-        {question: "1. What is TensorFlow used for in FTC?", answer: "Answer: Detecting and identifying objects using machine learning."},
-        {question: "2. What are AprilTags?", answer: "Answer: Visual markers used for robot localization and identification."},
-        {question: "3. How does vision help autonomous mode?", answer: "Answer: By providing real-time object and field element information for decision-making."}
+      {
+        question: "What is the primary purpose of using AprilTags in an FTC match?",
+        options: ["To make the field look cooler", "To provide the robot with a known position and orientation on the field", "To detect the color of an object", "To measure the distance to the wall"],
+        correctAnswer: "To provide the robot with a known position and orientation on the field",
+        explanation: "AprilTags are like unique barcodes that the robot can see. Since their exact location on the field is known, the robot can calculate its own position by looking at them."
+      },
+      {
+        question: "If your autonomous needs to detect one of three different game elements placed randomly, which technology would be most suitable?",
+        options: ["IMU", "Touch Sensor", "TensorFlow Object Detection", "A simple color sensor"],
+        correctAnswer: "TensorFlow Object Detection",
+        explanation: "TensorFlow is ideal for this because you can train a model to recognize and differentiate between multiple distinct objects."
+      },
+      {
+        question: "Why is a vision system often more reliable for autonomous navigation than just using encoders?",
+        options: ["It's not; encoders are always better", "Wheel slip can cause encoder measurements to become inaccurate", "Vision systems don't require a camera", "Encoders use too much battery"],
+        correctAnswer: "Wheel slip can cause encoder measurements to become inaccurate",
+        explanation: "If the wheels slip on the mat, the encoders will count rotations, but the robot isn't actually moving that far. A vision system corrects for this by looking at the field itself."
+      }
     ] 
   },
   { 
@@ -269,9 +390,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.List, items: ["Limit travel ranges to prevent damage.", "Use sensors to detect end limits.", "Use PID for smooth and controlled movement."]}
     ], 
     quiz: [
-        {question: "1. How do you move a servo?", answer: "Answer: By setting its position between 0.0 and 1.0 using setPosition()."},
-        {question: "2. What motor mode moves to a set position?", answer: "Answer: RUN_TO_POSITION mode."},
-        {question: "3. Why use sensors on arms?", answer: "Answer: To detect limits and avoid mechanical damage."}
+        {
+          question: "What is a key difference between a regular servo and a continuous rotation servo?", 
+          options: ["Regular servos can only move 90 degrees", "Continuous rotation servos are much stronger", "Regular servos move to a specific position (angle), while continuous servos rotate at a specific speed", "Regular servos are analog, continuous are digital"],
+          correctAnswer: "Regular servos move to a specific position (angle), while continuous servos rotate at a specific speed",
+          explanation: "A standard servo is for precise angular positioning (e.g., a grabber), while a continuous servo acts more like a small, speed-controllable motor."
+        },
+        {
+          question: "You want to move a robot lift to a specific height and have it hold that position against gravity. What is the best approach?", 
+          options: ["Run the motor at full power until a button is pressed", "Use a servo", "Use a motor in `RUN_TO_POSITION` mode with PID", "Run the motor at low power constantly"],
+          correctAnswer: "Use a motor in `RUN_TO_POSITION` mode with PID",
+          explanation: "`RUN_TO_POSITION` is designed for this. It moves to the target encoder count and will automatically apply power to hold that position if gravity tries to pull it down."
+        },
+        {
+          question: "What is the purpose of a limit switch on a robot arm?", 
+          options: ["To make the arm move faster", "To provide a hard stop and prevent the arm from moving past its safe physical limits", "To measure the arm's angle", "To make the arm stronger"],
+          correctAnswer: "To provide a hard stop and prevent the arm from moving past its safe physical limits",
+          explanation: "A limit switch is a touch sensor that tells the code when the mechanism has reached the end of its travel, preventing it from breaking itself."
+        }
     ] 
   },
   { 
@@ -291,11 +427,24 @@ public class BasicStructure extends LinearOpMode {
         {type: LessonContentType.Paragraph, text:"Have plans for quick fixes and backups during matches."}
     ], 
     quiz: [
-        {question: "1. Why is scouting important?", answer: "Answer: To understand other teams and plan alliances or counter strategies."},
-        {question: "2. Name two key match strategies.", answer: "Answer: Maximizing autonomous scoring and practicing driver control."},
-        {question: "3. How does communication help your team?", answer: "Answer: It ensures everyone knows their role and can adapt quickly."}
+      {
+        question: "During autonomous, your alliance partner's robot is very inconsistent. What is a good strategy?",
+        options: ["Ignore them and run your own routine", "Try to push their robot out of the way", "Design a more conservative autonomous path that avoids their side of the field to guarantee some points", "Tell the judges their robot is broken"],
+        correctAnswer: "Design a more conservative autonomous path that avoids their side of the field to guarantee some points",
+        explanation: "It's often better to guarantee a smaller number of points for your alliance than to risk getting zero points because of a collision or interference."
+      },
+      {
+        question: "What is the primary goal of scouting other teams at a competition?",
+        options: ["To see if their robot is better than yours", "To identify their strengths and weaknesses for alliance selection and match strategy", "To copy their design ideas", "To distract their drive team"],
+        correctAnswer: "To identify their strengths and weaknesses for alliance selection and match strategy",
+        explanation: "Good scouting data is crucial for choosing the best alliance partner and for knowing how to play against your opponents in a match."
+      },
+      {
+        question: "Your robot's intake mechanism breaks just before a qualification match. What is the most important first step?",
+        options: ["Panic and give up", "Spend 10 minutes trying a complex fix", "Quickly assess if a very simple, partial fix can be done in 2 minutes to make it somewhat functional", "Argue with the referees for more time"],
+        correctAnswer: "Quickly assess if a very simple, partial fix can be done in 2 minutes to make it somewhat functional",
+        explanation: "In the pits, time is critical. A robot that is 50% functional is infinitely better than a robot that is 0% functional because you ran out of time trying for a perfect fix."
+      }
     ] 
   },
 ];
-
-    
