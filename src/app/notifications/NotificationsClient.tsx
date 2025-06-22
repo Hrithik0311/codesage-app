@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
@@ -44,7 +44,7 @@ interface Chat {
     id: string;
     name: string;
     avatar: string;
-    hint: string;
+    hint: 'person' | 'megaphone' | 'robot';
     type: 'dm' | 'channel' | 'ai';
     members?: Record<string, boolean>;
     lastMessage?: {
@@ -138,7 +138,7 @@ export default function NotificationsClient() {
             const updateState = () => {
                 const allChats = [
                     {
-                        id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot', type: 'ai' as const,
+                        id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
                         lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
                     },
                     ...Object.values(currentChats)
@@ -146,11 +146,13 @@ export default function NotificationsClient() {
 
                 setChats(allChats);
                 setActiveChatId(currentId => {
-                    // If the current chat is still in the list, keep it.
                     if (currentId && allChats.find(c => c.id === currentId)) {
                         return currentId;
                     }
-                    // Otherwise, default to the first chat in the list or null.
+                    const hashId = window.location.hash.substring(1);
+                    if (hashId && allChats.find(c => c.id === hashId)) {
+                        return hashId;
+                    }
                     return allChats.length > 0 ? allChats[0].id : null;
                 });
                 setLoadingState('ready');
@@ -225,6 +227,13 @@ export default function NotificationsClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleSetActiveChat = useCallback((chatId: string | null) => {
+    setActiveChatId(chatId);
+    if (chatId) {
+        router.replace(`#${chatId}`);
+    }
+  }, [router]);
+
 
   // --- Actions ---
   const handleSendMessage = async () => {
@@ -258,13 +267,8 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembers.find(m => m.id === user.uid)?.name;
-        if (!myName) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not find your user name in the team.' });
-            setIsSending(false);
-            return;
-        }
-
+        const myName = teamMembers.find(m => m.id === user.uid)?.name || 'Team Member';
+        
         const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
         const updates: { [key: string]: any } = {};
@@ -276,6 +280,35 @@ export default function NotificationsClient() {
             timestamp: serverTimestamp()
         };
 
+        const createNotification = (recipientId: string, title: string, description: string) => {
+            const notificationRef = push(dbRef(database, `notifications/${recipientId}`));
+            const notificationKey = notificationRef.key;
+            if (notificationKey) {
+                updates[`/notifications/${recipientId}/${notificationKey}`] = {
+                    title: title,
+                    description: description,
+                    link: `/notifications#${activeChat.id}`,
+                    timestamp: serverTimestamp(),
+                    read: false,
+                    senderId: user.uid,
+                    chatId: activeChat.id,
+                };
+            }
+        };
+
+        if (activeChat.type === 'dm') {
+            const otherUserId = Object.keys(activeChat.members!).find(id => id !== user.uid);
+            if (otherUserId) {
+                createNotification(otherUserId, `New message from ${myName}`, newMessage);
+            }
+        } else if (activeChat.type === 'channel') {
+            Object.keys(activeChat.members!).forEach(memberId => {
+                if (memberId !== user.uid) {
+                    createNotification(memberId, `New message in #${activeChat.name}`, `${myName}: ${newMessage}`);
+                }
+            });
+        }
+        
         await update(dbRef(database), updates);
         setNewMessage("");
     } catch (error) {
@@ -296,7 +329,7 @@ export default function NotificationsClient() {
 
       const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
       if (existingDm) {
-          setActiveChatId(existingDm.id);
+          handleSetActiveChat(existingDm.id);
           setSearchTerm("");
           return;
       }
@@ -317,7 +350,7 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      setActiveChatId(newChatId);
+      handleSetActiveChat(newChatId);
   };
 
 
@@ -388,7 +421,7 @@ export default function NotificationsClient() {
                     <SidebarMenu>
                          {chats.map((chat) => (
                             <SidebarMenuItem key={chat.id}>
-                                <button onClick={() => setActiveChatId(chat.id)} className={cn("flex items-start gap-3 text-left w-full p-3 rounded-lg transition-colors", activeChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50')}>
+                                <button onClick={() => handleSetActiveChat(chat.id)} className={cn("flex items-start gap-3 text-left w-full p-3 rounded-lg transition-colors", activeChatId === chat.id ? 'bg-muted' : 'hover:bg-muted/50')}>
                                     <Avatar className="h-10 w-10 flex-shrink-0">
                                         <AvatarImage src={chat.avatar} data-ai-hint={chat.hint} />
                                         <AvatarFallback>{chat.name.substring(0, 1)}</AvatarFallback>

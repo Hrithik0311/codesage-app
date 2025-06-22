@@ -4,19 +4,33 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, database } from '@/lib/firebase';
-import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp } from 'firebase/database';
+import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove } from 'firebase/database';
 
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  timestamp: number;
+  read: boolean;
+  senderId: string;
+  chatId: string;
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  notifications: Notification[];
+  markNotificationsAsRead: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Effect to handle basic auth state changes
   useEffect(() => {
@@ -35,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  // Effect to handle user presence, runs only when the user object changes
+  // Effect to handle user presence and notifications
   useEffect(() => {
     if (user && database) {
         const userStatusDatabaseRef = dbRef(database, `/status/${user.uid}`);
@@ -71,15 +85,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         });
 
+        const notificationsRef = dbRef(database, `notifications/${user.uid}`);
+        const notificationsSub = onValue(notificationsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const newNotifications = Object.entries(data).map(([id, value]) => ({
+              id,
+              ...(value as Omit<Notification, 'id'>),
+            })).sort((a, b) => b.timestamp - a.timestamp);
+            setNotifications(newNotifications);
+        });
+
         // This is the cleanup function for THIS effect.
-        // It runs when the user logs out (user becomes null) or the component unmounts.
         return () => {
-            connectedSub(); // Detach the '.info/connected' listener
+            connectedSub();
+            notificationsSub();
             window.removeEventListener('mousemove', resetIdleTimer);
             window.removeEventListener('keydown', resetIdleTimer);
             window.removeEventListener('scroll', resetIdleTimer);
             clearTimeout(idleTimer);
-            // Set user to offline immediately on cleanup
             if (userStatusDatabaseRef) {
                 set(userStatusDatabaseRef, {
                     state: 'offline',
@@ -87,10 +110,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
             }
         };
+      } else {
+        setNotifications([]);
       }
-  }, [user]); // Re-run this effect whenever the user object changes
+  }, [user]);
 
-  const value = { user, loading };
+  const markNotificationsAsRead = () => {
+    if (user && database && notifications.length > 0) {
+      const userNotificationsRef = dbRef(database, `notifications/${user.uid}`);
+      // This simply removes all notifications for the user.
+      // A more advanced system might mark them as read instead.
+      remove(userNotificationsRef);
+    }
+  };
+
+  const value = { user, loading, notifications, markNotificationsAsRead };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

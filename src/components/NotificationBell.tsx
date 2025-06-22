@@ -14,21 +14,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import { formatDistanceToNowStrict } from 'date-fns';
 
 
 export function NotificationBell() {
-  const { user, loading } = useAuth();
-  const [hasUnread, setHasUnread] = React.useState(true);
+  const { user, loading, notifications, markNotificationsAsRead } = useAuth();
   
-  // In a real application, this would be fetched from an API or a global state.
-  const notifications: any[] = [];
+  const hasUnread = notifications.length > 0;
 
   if (loading || !user) {
     return null; // Don't show notifications if not logged in
   }
 
-  const handleMarkAllRead = () => {
-    setHasUnread(false);
+  const handleMarkAllRead = (e: React.MouseEvent) => {
+    e.preventDefault();
+    markNotificationsAsRead();
   }
 
   return (
@@ -65,13 +65,15 @@ export function NotificationBell() {
         <DropdownMenuSeparator />
         <div className="max-h-80 overflow-y-auto">
             {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                    <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
-                        <div className="flex justify-between w-full">
-                            <p className="font-semibold text-sm">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground">{notification.time}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground w-full truncate">{notification.description}</p>
+                notifications.slice(0, 5).map((notification) => (
+                    <DropdownMenuItem key={notification.id} asChild className="flex flex-col items-start gap-1 p-3 cursor-pointer">
+                        <Link href={notification.link}>
+                            <div className="flex justify-between w-full">
+                                <p className="font-semibold text-sm">{notification.title}</p>
+                                <p className="text-xs text-muted-foreground">{notification.timestamp ? formatDistanceToNowStrict(new Date(notification.timestamp), { addSuffix: true }) : 'just now'}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground w-full truncate">{notification.description}</p>
+                        </Link>
                     </DropdownMenuItem>
                 ))
             ) : (
@@ -83,7 +85,7 @@ export function NotificationBell() {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="justify-center p-0">
           <Button asChild variant="link" className="w-full rounded-none text-accent hover:text-accent/80">
-            <Link href="/notifications">View more</Link>
+            <Link href="/notifications">View all</Link>
           </Button>
         </DropdownMenuItem>
       </DropdownMenuContent>
