@@ -22,7 +22,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const { user, loading, completeLesson } = useAuth();
+  const { user, loading, completeLesson, completedLessons } = useAuth();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -51,6 +51,15 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
 
 
   const handleLessonComplete = (lessonId: string) => {
+    if (completedLessons.has(lessonId)) {
+        const currentIndex = lessons.findIndex(l => l.id === lessonId);
+        if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+            const nextLesson = lessons[currentIndex + 1];
+            handleSelectLesson(nextLesson.id);
+        }
+        return;
+    }
+
     completeLesson(lessonId);
 
     const currentIndex = lessons.findIndex(l => l.id === lessonId);
@@ -107,6 +116,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
           lessons={lessons}
           activeLessonId={activeLessonId}
           onSelectLesson={handleSelectLesson}
+          completedLessonIds={completedLessons}
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (
