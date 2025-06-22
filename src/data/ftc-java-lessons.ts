@@ -26,6 +26,7 @@ export interface LessonContentItem {
 export interface Lesson {
   id: string;
   title: string;
+  type: 'placement' | 'lesson' | 'test';
   content: LessonContentItem[];
   quiz: QuizItem[];
 }
@@ -36,7 +37,8 @@ export const ftcJavaLessons: Lesson[] = [
   // =================================================================
   {
     id: 'lesson1',
-    title: '1. What is Java?',
+    type: 'lesson',
+    title: '1. Your First OpMode',
     content: [
       {
         type: LessonContentType.SectionBreak,
@@ -44,518 +46,7 @@ export const ftcJavaLessons: Lesson[] = [
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'Welcome to your first lesson in programming for FTC! **Programming** is the process of writing instructions that a computer can understand and execute. We use programming languages to write these instructions. For FTC Robotics, the primary language is **Java**.',
-      },
-      { type: LessonContentType.Heading, text: 'Why Java for FTC?' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Java is a powerful, widely-used, and **object-oriented** programming language. This "object-oriented" nature makes it excellent for robotics, as you can model real-world robot parts (like motors, servos, and sensors) as "objects" in your code. An object in code is a representation of a thing that has properties (data) and can perform actions (methods). For example, a motor object might have a `power` property and a `setPower()` action.',
-      },
-      { type: LessonContentType.Heading, text: 'A Simple Java Program' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Let\'s look at a simple program. In regular Java, you might see `System.out.println("Hello, World!");` to print text to a console. In FTC, our "console" is the Driver Hub screen, and we use a special built-in object called `telemetry` to display information on it.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// This code would be inside an FTC OpMode, which we'll learn about later.
-
-// This adds a line of text to be displayed. "Status" is the label, and
-// "Hello, World!" is the value that will be shown next to it.
-telemetry.addData("Status", "Hello, World!");
-
-// This command actually sends all the staged data to the Driver Hub screen.
-// Without it, nothing will appear!
-telemetry.update();`,
-      },
-      { type: LessonContentType.Heading, text: 'Key Parts Explained' },
-      {
-        type: LessonContentType.List,
-        items: [
-          '<b><code>telemetry.addData("Key", "Value")</code>:</b> This is a method call. We are calling the `addData` method on the `telemetry` object. It stages a line of text to be sent to the Driver Hub screen. It takes a "Key" (a label) and a "Value" (the data to display).',
-          '<b><code>telemetry.update()</code>:</b> This is another method call that actually sends all the staged data to the screen. You only need to call this once per loop.',
-          '<b><code>;</code> (Semicolon):</b> Every complete statement in Java must end with a semicolon. It\'s like the period at the end of a sentence, telling the compiler the instruction is finished.',
-          '<b><code>//</code> (Comments):</b> Lines starting with `//` are comments. The computer ignores them completely. They are notes for humans reading the code to explain what\'s happening.',
-        ],
-      },
-    ],
-    quiz: [
-      {
-        question: 'What is the main purpose of a programming language?',
-        options: [
-          'To make computers run faster.',
-          'To write instructions for a computer to execute.',
-          'To design computer hardware.',
-          'To browse the internet.',
-        ],
-        correctAnswer: 'To write instructions for a computer to execute.',
-        explanation: 'Programming languages provide a structured way for humans to give commands to computers.',
-      },
-      {
-        question: 'In FTC, what must you call after `telemetry.addData()` to make the text appear on the Driver Hub?',
-        options: [
-          'telemetry.display()',
-          'telemetry.send()',
-          'telemetry.update()',
-          'telemetry.print()',
-        ],
-        correctAnswer: 'telemetry.update()',
-        explanation: '`addData` only prepares the text. `update` is the command that sends it to the screen.',
-      },
-      {
-        question: 'Which character is used to end a statement in Java?',
-        options: [
-          'A period (.)',
-          'A comma (,)',
-          'A colon (:)',
-          'A semicolon (;)',
-        ],
-        correctAnswer: 'A semicolon (;)',
-        explanation: 'The semicolon is crucial for the Java compiler to understand where one instruction ends and the next begins.',
-      },
-    ],
-  },
-  {
-    id: 'lesson2',
-    title: '2. Variables & Data Types',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'A **variable** is a named container for storing data values. Think of it like a labeled box where you can put information. In Java, you must declare the **type** of the variable, which tells the computer what kind of data the box is designed to hold.',
-      },
-      { type: LessonContentType.Heading, text: 'Declaring Variables for a Robot' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'To create a variable, you specify the type, give it a name (a convention is to use `camelCase`), and optionally assign it an initial value using the `=` sign.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// Syntax: type variableName = value;
-
-int teamNumber = 12345;      // An integer (whole number)
-double motorPower = 0.75;    // A floating-point number (decimal)
-boolean isClawOpen = true;   // A boolean (true or false)
-String motorName = "left_drive"; // A string of text
-
-// You can also declare a variable without initializing it:
-int encoderTicks;
-// And assign a value later:
-encoderTicks = 1120;`,
-      },
-      { type: LessonContentType.Heading, text: 'Common FTC Data Types' },
-      {
-        type: LessonContentType.List,
-        items: [
-          '<b><code>int</code>:</b> Stores integers (whole numbers like -5, 0, 42). Useful for counting things or for encoder tick values.',
-          '<b><code>double</code>:</b> Stores floating-point numbers with decimals. This is the **most important** type for robot control, as it is used for motor power (-1.0 to 1.0) and servo positions (0.0 to 1.0).',
-          '<b><code>boolean</code>:</b> Stores one of two states: `true` or `false`. Essential for logic, like checking if a button is pressed (`gamepad1.a`) or a sensor is triggered.',
-          '<b><code>String</code>:</b> stores text, which must be enclosed in double quotes (`"`). Used for device names in the configuration (e.g., "left_drive") or telemetry messages.',
-        ],
-      },
-      { type: LessonContentType.Heading, text: 'Constants with `final`' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'If you have a value that should never change, like the home position for an arm, you can declare it as a `final` variable. This prevents accidental changes in your code. It is conventional to name constants in `ALL_CAPS_WITH_UNDERSCORES`.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// A constant for the servo position
-static final double CLAW_OPEN_POSITION = 0.8;
-static final double CLAW_CLOSED_POSITION = 0.3;
-
-// In your code, you can now use this readable name
-clawServo.setPosition(CLAW_OPEN_POSITION);`,
-      },
-    ],
-    quiz: [
-      {
-        question: 'Which data type would you use to store motor power, e.g., `-0.5`?',
-        options: [
-          'String',
-          'double',
-          'int',
-          'boolean'
-        ],
-        correctAnswer: 'double',
-        explanation: 'Motor power is a decimal value between -1.0 and 1.0, so `double` is the correct choice.',
-      },
-      {
-        question: 'What is a key benefit of using a `final` variable for a constant like `ARM_UP_POSITION`?',
-        options: [
-          'It makes the robot arm move faster.',
-          'It allows the value to be changed easily.',
-          'It prevents the value from being accidentally changed and makes the code more readable.',
-          'It uses less memory than a regular variable.'
-        ],
-        correctAnswer: 'It prevents the value from being accidentally changed and makes the code more readable.',
-        explanation: '`final` ensures the value is constant, and using a descriptive name makes your code self-documenting.',
-      },
-      {
-        question: 'How do you declare a variable to hold the configuration name for your drive motor, "left_drive"?',
-        options: [
-          'String motorName = left_drive;',
-          'int motorName = "left_drive";',
-          'String motorName = "left_drive";',
-          'text motorName = "left_drive";'
-        ],
-        correctAnswer: 'String motorName = "left_drive";',
-        explanation: 'Configuration names are text, so they are stored in a `String` variable, and the value must be enclosed in double quotes.',
-      },
-    ],
-  },
-  {
-    id: 'lesson3',
-    title: '3. Operators',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Operators are special symbols that perform operations on variables and values. They are the building blocks of any calculation or decision in your code.',
-      },
-      { type: LessonContentType.Heading, text: 'Arithmetic Operators' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'These are used to perform common mathematical calculations. They are essential for manipulating joystick inputs and sensor values.',
-      },
-      {
-        type: LessonContentType.List,
-        items: [
-          '`+` (Addition)',
-          '`-` (Subtraction)',
-          '`*` (Multiplication)',
-          '`/` (Division)',
-          '`%` (Modulus - gives the remainder of a division)',
-        ],
-      },
-      {
-        type: LessonContentType.Code,
-        code: `double joystickValue = 0.8;
-double speedFactor = 0.5; // Let's scale the speed down
-
-// Multiply to reduce the speed
-double motorPower = joystickValue * speedFactor; // Result is 0.4
-telemetry.addData("Power", motorPower);`,
-      },
-      { type: LessonContentType.Heading, text: 'Comparison Operators' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'These are used to compare two values. The result of a comparison is always a `boolean` (`true` or `false`). This is the foundation of all decision making (`if` statements).',
-      },
-      {
-        type: LessonContentType.List,
-        items: [
-          '`==` (Equal to)',
-          '`!=` (Not equal to)',
-          '`>` (Greater than)',
-          '`<` (Less than)',
-          '`>=` (Greater than or equal to)',
-          '`<=` (Less than or equal to)',
-        ],
-      },
-      {
-        type: LessonContentType.Code,
-        code: `int targetPosition = 1000;
-int currentPosition = armMotor.getCurrentPosition();
-
-boolean isAtTarget = (currentPosition == targetPosition);
-telemetry.addData("Is Arm at Target?", isAtTarget);`,
-      },
-      { type: LessonContentType.Heading, text: 'Logical Operators' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'These are used to combine multiple boolean expressions, which is crucial for complex game logic.',
-      },
-      {
-        type: LessonContentType.List,
-        items: [
-          '`&&` (AND - true only if both sides are true)',
-          '`||` (OR - true if at least one side is true)',
-          '`!` (NOT - inverts the boolean value, `!true` is `false`)',
-        ],
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// Check if driver is holding the left bumper AND pressing the 'A' button
-boolean activateClaw = gamepad1.left_bumper && gamepad1.a;
-
-// Check if EITHER the touch sensor is pressed OR the distance is too small
-boolean emergencyStop = touchSensor.isPressed() || (distance < 5.0);`
-      },
-    ],
-    quiz: [
-      {
-        question: 'A joystick provides a value of `0.9`. You want to drive at half that speed. Which expression do you use?',
-        options: ['`0.9 + 0.5`', '`0.9 / 0.5`', '`0.9 * 0.5`', '`0.9 - 0.5`'],
-        correctAnswer: '`0.9 * 0.5`',
-        explanation: 'Multiplying by 0.5 scales the value down by half, resulting in a motor power of 0.45.',
-      },
-      {
-        question: 'Which operator is used to check if a motor\'s encoder count is exactly `1000`?',
-        options: ['`=`', '`===`', '`!=`', '`==`'],
-        correctAnswer: '`==`',
-        explanation: 'A single equals sign (`=`) is for assignment (putting a value in a variable). The double equals sign (`==`) is for comparison (checking if two values are equal).',
-      },
-      {
-        question: 'What is the result of `(gamepad1.a || gamepad1.b) && gamepad1.x` if only buttons `b` and `x` are pressed?',
-        options: ['true', 'false', 'Error', '1'],
-        correctAnswer: 'true',
-        explanation: 'First, `(gamepad1.a || gamepad1.b)` evaluates to `true` because `b` is pressed. Then, `true && gamepad1.x` evaluates to `true` because `x` is also pressed. Both sides of the `&&` are true.',
-      },
-    ],
-  },
-  {
-    id: 'lesson4',
-    title: '4. Control Flow: If-Else',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'So far, our code has executed sequentially from top to bottom. **Control Flow** statements allow our program to make decisions and execute different blocks of code based on conditions, making our robot responsive.',
-      },
-      { type: LessonContentType.Heading, text: 'The `if` Statement' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'The `if` statement is the most basic control flow statement. It executes a block of code (wrapped in `{...}`) only if a specified condition evaluates to `true`.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// If the 'A' button is pressed, turn on the intake motor
-if (gamepad1.a == true) { // The '== true' is optional but can make it clearer
-    intakeMotor.setPower(1.0);
-}`,
-      },
-      { type: LessonContentType.Heading, text: 'The `else` Statement' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Often, you want to do something else if the condition is false. The `else` statement provides an alternative block of code that runs only when the `if` condition is `false`.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// If 'A' button is pressed, run the intake. Otherwise (if it's not pressed), turn it off.
-if (gamepad1.a) {
-    intakeMotor.setPower(1.0);
-} else {
-    intakeMotor.setPower(0.0); // This ensures the motor stops!
-}`,
-      },
-      { type: LessonContentType.Heading, text: 'The `else if` Statement' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'What if you have multiple conditions to check? The `else if` statement allows you to build a chain of checks. It only runs if all preceding `if` and `else if` conditions were false. This is perfect for controlling a mechanism with multiple actions.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// Control an arm with two buttons
-if (gamepad1.y) {
-    // If Y is pressed, move arm up
-    armMotor.setPower(0.5);
-} else if (gamepad1.a) {
-    // If Y is NOT pressed, BUT A is, move arm down
-    armMotor.setPower(-0.5);
-} else {
-    // If NEITHER Y nor A is pressed, stop the arm
-    armMotor.setPower(0.0); 
-}`,
-      },
-    ],
-    quiz: [
-      {
-        question: 'In an `if-else` statement, when does the code inside the `else` block run?',
-        options: ['Always', 'Only when the `if` condition is false.', 'Only when the `if` condition is true.', 'Never'],
-        correctAnswer: 'Only when the `if` condition is false.',
-        explanation: 'The `if` and `else` blocks are mutually exclusive; one or the other will run for a given check, but never both.',
-      },
-      {
-        question: 'What is the most important role of the final `else { motor.setPower(0); }` in robot control logic?',
-        options: ['It makes the code look complete.', 'It saves battery by turning off the motor when no button is pressed.', 'It prevents the motor from continuing to run with its last power setting after you let go of the button.', 'Both B and C.'],
-        correctAnswer: 'Both B and C.',
-        explanation: 'Without a final `else`, the motor would keep running with whatever power it was last given. This default "stop" case is critical for predictable robot behavior.',
-      },
-      {
-        question: 'Which of these would you use to check if button `x` is pressed but button `y` is NOT pressed?',
-        options: ['`if (gamepad1.x && !gamepad1.y)`', '`if (gamepad1.x || !gamepad1.y)`', '`if (gamepad1.x but not gamepad1.y)`', '`if (gamepad1.x != gamepad1.y)`'],
-        correctAnswer: '`if (gamepad1.x && !gamepad1.y)`',
-        explanation: 'The logical AND (`&&`) ensures both conditions must be met. The logical NOT (`!`) inverts the value of `gamepad1.y`, so `!gamepad1.y` is true only when `y` is not pressed.',
-      },
-    ],
-  },
-  {
-    id: 'lesson5',
-    title: '5. Methods',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'A **method** is a named block of code that performs a specific task. Methods are the key to writing organized, reusable, and easy-to-read robot code.',
-      },
-      { type: LessonContentType.Heading, text: 'Why Use Methods in FTC?' },
-      {
-        type: LessonContentType.List,
-        items: [
-          '<b>Reusability (DRY Principle):</b> DRY stands for "Don\'t Repeat Yourself". If you have a sequence to drive forward 12 inches, put it in a method `driveForward(12)`. Now you can reuse that sequence anywhere without copy-pasting code.',
-          '**Organization:** Instead of one giant `runOpMode` method that is hundreds of lines long, you can break your logic into smaller, understandable pieces like `controlDrivetrain()`, `controlIntake()`, and `updateTelemetry()`.',
-          '**Abstraction:** You can create a method `liftArmTo(Position.HIGH)` and not worry about the specific encoder ticks. The method handles the details ("the how"), and the main code just says what it wants to do ("the what").',
-        ],
-      },
-      { type: LessonContentType.Heading, text: 'Anatomy of a Method' },
-      {
-        type: LessonContentType.Code,
-        code: `// access_modifier return_type methodName(parameter_type parameter_name) {
-//   ... method body ...
-// }
-
-// A method that takes two power values and sets the drive motors
-void setDrivePower(double leftPower, double rightPower) {
-    leftDrive.setPower(leftPower);
-    rightDrive.setPower(rightPower);
-}`,
-      },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'In this example, `void` is the **return type** (meaning it returns nothing), `setDrivePower` is the **method name**, and `double leftPower` and `double rightPower` are **parameters** (data passed into the method).',
-      },
-      { type: LessonContentType.Heading, text: 'Methods that Return Values' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Methods can also perform a calculation and return a result. Instead of `void`, you use the data type of the value being returned.'
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// This method calculates the average of two encoder positions
-double getAverageEncoderPosition() {
-    int leftPosition = leftDrive.getCurrentPosition();
-    int rightPosition = rightDrive.getCurrentPosition();
-    double average = (leftPosition + rightPosition) / 2.0;
-    return average;
-}
-
-// You can then use this in your main loop:
-double avgTicks = getAverageEncoderPosition();
-telemetry.addData("Average Ticks", avgTicks);`
-      }
-    ],
-    quiz: [
-      {
-        question: 'What is the primary benefit of putting your driving logic into an `encoderDrive()` method?',
-        options: ['It makes the robot drive faster.', 'It allows you to reuse the same driving code in multiple autonomous paths without copying and pasting.', 'It uses less battery.', 'The robot will drive straighter.'],
-        correctAnswer: 'It allows you to reuse the same driving code in multiple autonomous paths without copying and pasting.',
-        explanation: 'Methods are key to the DRY (Don\'t Repeat Yourself) principle. By encapsulating logic, you make your code cleaner, shorter, and easier to debug.',
-      },
-      {
-        question: 'What is a "parameter" in the context of `liftArmTo(int targetPosition)`?',
-        options: ['A value returned from the method.', 'The input data passed into the method (the target position).', 'A special type of class.', 'A comment in the code.'],
-        correctAnswer: 'The input data passed into the method (the target position).',
-        explanation: 'Parameters allow methods to be flexible. You can call `liftArmTo(500)` or `liftArmTo(1200)` to move the arm to different heights using the same underlying logic.',
-      },
-      {
-        question: 'A method declared as `boolean isArmAtTop()` should do what?',
-        options: ['Move the arm to the top.', 'Return a `true` or `false` value indicating if the arm is at the top.', 'Not return any value.', 'Return a String value like "at top".'],
-        correctAnswer: 'Return a `true` or `false` value indicating if the arm is at the top.',
-        explanation: 'The return type (`boolean`) is a contract. The method promises to return a boolean value, which is perfect for checking the state of a sensor or mechanism.',
-      },
-    ],
-  },
-  {
-    id: 'lesson6',
-    title: '6. Classes and Objects',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Java is an **Object-Oriented Programming (OOP)** language. This paradigm is perfect for robotics because it allows us to model our physical robot in software. The two core concepts are **classes** and **objects**.',
-      },
-      {
-        type: LessonContentType.List,
-        items: [
-          'A **Class** is a blueprint. It defines the properties (variables) and behaviors (methods) that a certain type of thing will have. Example: A `DcMotor` class defines that all DC motors will have a `power` level and a `setPower()` method.',
-          'An **Object** is a specific instance created from that blueprint. Your physical `"left_drive"` motor is an object of the `DcMotor` class.',
-        ],
-      },
-      { type: LessonContentType.Heading, text: 'Creating Your Own Class' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Instead of having all your motors and their logic spread out in your main OpMode, you can group them into a custom `Drivetrain` class. This is the first step towards a full Hardware Class.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// In a new file: Drivetrain.java
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-
-public class Drivetrain {
-    // These are the member variables (properties) of the class
-    public DcMotor leftMotor;
-    public DcMotor rightMotor;
-
-    // This is a special method called a "constructor". It runs when you create a new Drivetrain object.
-    public Drivetrain(HardwareMap hardwareMap) {
-        // Initialize the motor objects from the hardware map
-        leftMotor = hardwareMap.get(DcMotor.class, "left_drive");
-        rightMotor = hardwareMap.get(DcMotor.class, "right_drive");
-        
-        // Set properties for this drivetrain
-        rightMotor.setDirection(DcMotor.Direction.REVERSE);
-    }
-
-    // This is a behavior (method) of the class
-    public void setPower(double left, double right) {
-        leftMotor.setPower(left);
-        rightMotor.setPower(right);
-    }
-    
-    public void stop() {
-        setPower(0, 0);
-    }
-}`,
-      },
-      { type: LessonContentType.Heading, text: 'Using Your Custom Object' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Now, in your OpMode, you can create and use an instance (an object) of your new `Drivetrain` class. This makes your OpMode code much cleaner.',
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// In your OpMode
-Drivetrain drivetrain; // Declare a variable to hold the Drivetrain object
-
-@Override
-public void runOpMode() {
-    // Create the object using the 'new' keyword, which calls the constructor
-    drivetrain = new Drivetrain(hardwareMap);
-
-    waitForStart();
-
-    while(opModeIsActive()) {
-        // Now you can use its methods! This is much cleaner.
-        drivetrain.setPower(-gamepad1.left_stick_y, -gamepad1.right_stick_y);
-    }
-}`,
-      },
-    ],
-    quiz: [
-      {
-        question: 'In OOP, a Class is like a _______ and an Object is like a ________.',
-        options: ['house, blueprint', 'blueprint, house', 'method, variable', 'variable, method'],
-        correctAnswer: 'blueprint, house',
-        explanation: 'A class (the blueprint) defines the properties and abilities. An object (the house) is a tangible thing built from that blueprint.',
-      },
-      {
-        question: 'What is the special method that is called when you use the `new` keyword to create an object?',
-        options: ['The `init()` method', 'The `start()` method', 'The constructor', 'The `main()` method'],
-        correctAnswer: 'The constructor',
-        explanation: 'The constructor is a special method with the same name as the class. Its job is to initialize the object and its properties.',
-      },
-      {
-        question: 'In FTC, if `DcMotor` is a class, what is `leftDrive` in the code `DcMotor leftDrive;`?',
-        options: ['A method', 'A class', 'A variable that can hold a reference to a DcMotor object', 'A keyword'],
-        correctAnswer: 'A variable that can hold a reference to a DcMotor object',
-        explanation: '`leftDrive` is a variable (a reference) declared to hold a reference to an instance of the `DcMotor` class. It points to a `DcMotor` object after you initialize it.',
-      },
-    ],
-  },
-  {
-    id: 'lesson7',
-    title: '7. Your First FTC OpMode',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Now let\'s put our Java knowledge into a real FTC program! Every program you write that runs on the robot is an **OpMode**. There are two main types: `LinearOpMode` and `OpMode`. We\'ll start with `LinearOpMode` because it\'s simpler to understand.',
+        text: 'Welcome to your first lesson in programming for FTC! Every program you write that runs on the robot is an **OpMode**. We use the **Java** programming language to create these OpModes. There are two main types: `LinearOpMode` and `OpMode`. We\'ll start with `LinearOpMode` because it\'s simpler to understand.',
       },
       { type: LessonContentType.Heading, text: 'The `LinearOpMode` Structure' },
       {
@@ -581,6 +72,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
         // INITIALIZATION PHASE: Code here runs when you press INIT.
         // =======================================================
         
+        // Use telemetry to send messages to the Driver Hub screen.
         telemetry.addData("Status", "Initialized");
         telemetry.addData(">", "Press Play to start.");
         telemetry.update();
@@ -607,9 +99,8 @@ public class BasicOpMode_Linear extends LinearOpMode {
         items: [
           '<b><code>@TeleOp(...)</code>:</b> This is an *annotation*. It\'s metadata that tells the FTC app "this is a driver-controlled program". An `@Autonomous` annotation does the same for autonomous programs.',
           '<b><code>public class ... extends LinearOpMode</code>:</b> This declares your class. By *extending* `LinearOpMode`, your class inherits all the basic FTC functionality, like `telemetry`, `hardwareMap`, and `gamepad1`.',
-          '<b><code>@Override</code>:</b> This is another annotation. It indicates that we are providing our own version of a method that is defined in the parent class (`LinearOpMode`).',
           '<b><code>waitForStart()</code>:</b> This is a critical line! It pauses your code. Code *before* this runs when you press **INIT**. The code *after* it only runs after the driver presses **PLAY**.',
-          '<b><code>while (opModeIsActive())</code>:</b> This is the main loop. `opModeIsActive()` is a method that returns `true` after PLAY is pressed and becomes `false` when STOP is pressed, ending the loop.',
+          '<b><code>while (opModeIsActive())</code>:</b> This is the main run loop. `opModeIsActive()` is a method that returns `true` after PLAY is pressed and becomes `false` when STOP is pressed, ending the loop.',
         ],
       },
     ],
@@ -635,8 +126,9 @@ public class BasicOpMode_Linear extends LinearOpMode {
     ],
   },
   {
-    id: 'lesson8',
-    title: '8. Hardware Mapping',
+    id: 'lesson2',
+    type: 'lesson',
+    title: '2. Hardware Mapping',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -704,8 +196,9 @@ public void runOpMode() {
     ],
   },
   {
-    id: 'lesson9',
-    title: '9. Controlling Motors & Servos',
+    id: 'lesson3',
+    type: 'lesson',
+    title: '3. Controlling Motors & Servos',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -753,7 +246,7 @@ if (gamepad1.a) {
        { type: LessonContentType.Heading, text: 'Continuous Rotation (CR) Servos' },
        {
         type: LessonContentType.Paragraph,
-        text: 'CR Servos are a hybrid. They are packaged like a servo but controlled like a weak DC motor. You use `.setPower()` on them, just like a motor, with 1.0 being full speed one way, -1.0 full speed the other, and 0 being stop.',
+        text: 'CR Servos are a hybrid. They are packaged like a servo but controlled like a weak DC motor. You use `.setPower()` on them, just like a motor, with 1.0 being full speed one way, -1.0 full speed the other, and 0.5 being stop (the stop point can vary and may need tuning).',
       },
     ],
     quiz: [
@@ -778,8 +271,9 @@ if (gamepad1.a) {
     ],
   },
   {
-    id: 'lesson10',
-    title: '10. Reading Gamepad Inputs',
+    id: 'lesson4',
+    type: 'lesson',
+    title: '4. Reading Gamepad Inputs',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -868,17 +362,11 @@ if (clawIsOpen) {
       },
     ],
   },
-  // =================================================================
-  // INTERMEDIATE SECTION
-  // =================================================================
   {
-    id: 'lesson11',
-    title: '11. Using Sensors',
+    id: 'lesson5',
+    type: 'lesson',
+    title: '5. Using Sensors',
     content: [
-      {
-        type: LessonContentType.SectionBreak,
-        text: 'Intermediate',
-      },
       {
         type: LessonContentType.Paragraph,
         text: 'Sensors are the eyes and ears of your robot. They allow it to perceive its environment and react intelligently, which is the key to a robust autonomous program. We will cover three common types: Touch, Distance, and Color.',
@@ -966,9 +454,10 @@ telemetry.update();`
       }
     ]
   },
-  {
-    id: 'lesson12',
-    title: '12. Introduction to Encoders',
+    {
+    id: 'lesson6',
+    type: 'lesson',
+    title: '6. Introduction to Encoders',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1047,8 +536,9 @@ rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     ]
   },
   {
-    id: 'lesson13',
-    title: '13. Building a Hardware Class',
+    id: 'lesson7',
+    type: 'lesson',
+    title: '7. Building a Hardware Class',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1159,8 +649,9 @@ public class MyTeleOp extends LinearOpMode {
     ]
   },
   {
-    id: 'lesson14',
-    title: '14. Simple Autonomous with State Machines',
+    id: 'lesson8',
+    type: 'lesson',
+    title: '8. Simple Autonomous with State Machines',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1252,8 +743,9 @@ switch (currentState) {
     ]
   },
   {
-    id: 'lesson15',
-    title: '15. Mecanum Drive',
+    id: 'lesson9',
+    type: 'lesson',
+    title: '9. Mecanum Drive',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1329,17 +821,11 @@ backRightMotor.setPower(backRightPower);
       }
     ]
   },
-  // =================================================================
-  // ADVANCED SECTION
-  // =================================================================
   {
-    id: 'lesson16',
-    title: '16. Introduction to PID Control',
+    id: 'lesson10',
+    type: 'lesson',
+    title: '10. Introduction to PID Control',
     content: [
-       {
-        type: LessonContentType.SectionBreak,
-        text: 'Advanced',
-      },
       {
         type: LessonContentType.Paragraph,
         text: 'PID is a powerful and ubiquitous control loop algorithm used to get a system to a target state and keep it there. It stands for **Proportional, Integral, Derivative**. In FTC, it\'s used for everything from precisely holding an arm against gravity to making a robot turn to an exact angle. The `RUN_TO_POSITION` motor mode uses a PID controller internally!'
@@ -1411,13 +897,21 @@ telemetry.update();
       }
     ]
   },
+  // =================================================================
+  // INTERMEDIATE SECTION
+  // =================================================================
   {
-    id: 'lesson17',
-    title: '17. Introduction to the IMU',
+    id: 'lesson11',
+    type: 'lesson',
+    title: '11. The IMU & Field-Centric Drive',
     content: [
+       {
+        type: LessonContentType.SectionBreak,
+        text: 'Intermediate',
+      },
       {
         type: LessonContentType.Paragraph,
-        text: 'The **Inertial Measurement Unit (IMU)** is a powerful sensor built into the Control Hub and Expansion Hub. It measures the robot\'s orientation in 3D space. Its most common and important use is to get an accurate heading (angle) for the robot, which is crucial for making precise, non-encoder-based turns in autonomous mode.'
+        text: 'The **Inertial Measurement Unit (IMU)** is a powerful sensor built into the Control Hub and Expansion Hub. It measures the robot\'s orientation in 3D space. Its most common and important use is to get an accurate heading (angle) for the robot, which enables **field-centric drive**.'
       },
       { type: LessonContentType.Heading, text: 'Initializing the IMU' },
       {
@@ -1442,123 +936,61 @@ IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
 // Initialize the IMU with the parameters
 imu.initialize(parameters);`
       },
-      { type: LessonContentType.Heading, text: 'Reading and Resetting the Robot\'s Angle' },
+      { type: LessonContentType.Heading, text: 'Robot-Centric vs. Field-Centric' },
       {
         type: LessonContentType.Paragraph,
-        text: 'You can get the robot\'s current **yaw** (the angle on the flat plane) in your loop. It\'s also good practice to reset the IMU\'s yaw angle to zero at the start of your autonomous so all your turns are relative to the robot\'s starting orientation.'
+        text: 'With normal mecanum control, "forward" on the joystick is always "forward" from the robot\'s perspective. This is **robot-centric**. If the robot turns 90 degrees, pushing forward on the stick now drives it sideways relative to the field. This can be confusing for drivers.'
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: '**Field-centric** drive uses the IMU. "Forward" on the joystick is *always* "forward" relative to the field (e.g., towards the opposing alliance wall), no matter which way the robot itself is facing. The drive inputs from the joystick are mathematically rotated by the robot\'s current angle before being sent to the mecanum drive equations.'
       },
       {
         type: LessonContentType.Code,
-        code: `// At the start of autonomous, after initializing:
-imu.resetYaw();
+        code: `// Inside the loop of your TeleOp
+double y = -gamepad1.left_stick_y;
+double x = gamepad1.left_stick_x;
+double rx = gamepad1.right_stick_x;
 
-// Inside the while(opModeIsActive()) loop
-double yawAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+// Get the robot's current heading in radians
+double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
-telemetry.addData("Yaw (Degrees)", yawAngle);
-telemetry.update();`
+// Rotate the drive inputs by the negative of the robot's heading
+double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+// Denominator is the largest possible sum of wheel powers
+double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
+double frontLeftPower = (rotY + rotX + rx) / denominator;
+// ... and so on for the other 3 wheels ...
+`
       }
     ],
     quiz: [
       {
-        question: 'What is the primary purpose of the IMU in FTC autonomous routines?',
-        options: ['To measure distance to a wall', 'To detect what color the floor is', 'To provide an accurate robot heading for making precise turns', 'To control motor speed'],
-        correctAnswer: 'To provide an accurate robot heading for making precise turns',
-        explanation: 'While encoders are great for linear distance, the IMU is the best sensor for measuring rotational distance (turning).'
+        question: 'What is the primary purpose of the IMU in a TeleOp program?',
+        options: ['To measure distance to a wall', 'To detect what color the floor is', 'To provide the robot\'s current heading, enabling features like field-centric drive.', 'To control motor speed'],
+        correctAnswer: 'To provide the robot\'s current heading, enabling features like field-centric drive.',
+        explanation: 'The IMU provides the angle data needed to mathematically adjust joystick inputs so that the robot\'s movement is relative to the field, not its own front.'
       },
       {
-        question: 'What will happen if you provide the wrong `LogoFacingDirection` and `UsbFacingDirection` when initializing the IMU?',
-        options: ['The IMU will not turn on.', 'The reported angles will be incorrect relative to the robot\'s frame, causing turns to be inaccurate.', 'The robot will drive slower.', 'Nothing, these parameters are optional.'],
-        correctAnswer: 'The reported angles will be incorrect relative to the robot\'s frame, causing turns to be inaccurate.',
-        explanation: 'The IMU needs to know its own physical orientation so it can mathematically adjust its readings to match the robot\'s orientation. Incorrect parameters will lead to incorrect angle data.'
+        question: 'If your robot is using field-centric drive and you push the left stick straight forward, what happens?',
+        options: ['The robot drives toward its own front.', 'The robot drives toward the audience.', 'The robot drives away from the driver, towards the other side of the field, regardless of how it is rotated.', 'The robot spins in place.'],
+        correctAnswer: 'The robot drives away from the driver, towards the other side of the field, regardless of how it is rotated.',
+        explanation: 'Field-centric drive makes "forward" on the joystick always correspond to a single direction on the field, making it much more intuitive to drive.'
       },
       {
         question: 'Which method call resets the robot\'s current heading to be the new zero-degree reference?',
         options: ['`imu.reboot()`', '`imu.resetYaw()`', '`imu.getYaw()`', '`imu.initialize()`'],
         correctAnswer: '`imu.resetYaw()`',
-        explanation: '`resetYaw()` sets the current yaw angle to be the new zero point. This is very useful to do at the beginning of an OpMode so all subsequent turns are relative to the starting position.'
+        explanation: '`resetYaw()` sets the current yaw angle to be the new zero point. This is very useful to do at the beginning of an OpMode or even with a button press during the match to re-orient the field-centric controls if needed.'
       }
     ]
   },
-  {
-    id: 'lesson18',
-    title: '18. Introduction to AprilTags',
-    content: [
-      {
-        type: LessonContentType.Paragraph,
-        text: 'Computer vision is a huge part of modern robotics. In recent FTC games, the primary vision target has been **AprilTags**. These are like advanced QR codes for robots. By detecting these tags on the field with a camera, the robot can determine its exact position and orientation relative to the tag.'
-      },
-      { type: LessonContentType.Heading, text: 'Setting up the AprilTag Processor' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'The FTC SDK has a powerful, built-in system for vision processing. You create a `VisionPortal` and attach an `AprilTagProcessor` to it. This handles all the complex image analysis for you.'
-      },
-      {
-        type: LessonContentType.Code,
-        code: `private AprilTagProcessor aprilTag;
-private VisionPortal visionPortal;
-
-// In your initialization section
-aprilTag = new AprilTagProcessor.Builder()
-    // You can add settings here, like lens intrinsics for your specific camera
-    .build();
-
-visionPortal = new VisionPortal.Builder()
-    .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
-    .addProcessor(aprilTag)
-    .build();
-`
-      },
-      { type: LessonContentType.Heading, text: 'Using Detection Data' },
-      {
-        type: LessonContentType.Paragraph,
-        text: 'In your loop, you can get a list of all the AprilTags the camera currently sees. Each `AprilTagDetection` object provides a wealth of information, including the tag\'s ID and its 3D pose (position and orientation) relative to the camera.'
-      },
-      {
-        type: LessonContentType.Code,
-        code: `// Inside the while(opModeIsActive()) loop
-List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-
-telemetry.addData("# AprilTags Detected", currentDetections.size());
-
-// Loop through all the detections
-for (AprilTagDetection detection : currentDetections) {
-    // Check if the detection has known metadata (is part of the official field tag family)
-    if (detection.metadata != null) {
-        telemetry.addLine(String.format("Found Tag ID %d, named %s", detection.id, detection.metadata.name));
-        telemetry.addLine(String.format("Range: %.2f inches", detection.ftcPose.range));
-        telemetry.addLine(String.format("Bearing: %.2f degrees", detection.ftcPose.bearing)); // Angle left/right
-        telemetry.addLine(String.format("Yaw: %.2f degrees", detection.ftcPose.yaw)); // Rotational difference
-    }
-}
-telemetry.update();
-`
-      }
-    ],
-    quiz: [
-      {
-        question: 'What is an AprilTag?',
-        options: ['A special type of motor', 'A tag that tells you the date', 'A visual fiducial marker that allows a robot to determine its position and orientation', 'A type of sensor'],
-        correctAnswer: 'A visual fiducial marker that allows a robot to determine its position and orientation',
-        explanation: 'AprilTags are visual markers that are easy for computers to recognize. The FTC software can calculate a 6-DoF (3D position and 3D orientation) pose from a single image of a tag.'
-      },
-      {
-        question: 'What hardware is required to detect AprilTags?',
-        options: ['A touch sensor', 'An IMU', 'A webcam or phone camera', 'A distance sensor'],
-        correctAnswer: 'A webcam or phone camera',
-        explanation: 'AprilTag detection is a computer vision task, which requires a camera to see the tags.'
-      },
-      {
-        question: 'If `detection.ftcPose.range` gives you a value, what does that value represent?',
-        options: ['The ID number of the tag', 'The color of the tag', 'How far away the tag is from the camera\'s center', 'The size of the tag'],
-        correctAnswer: 'How far away the tag is from the camera\'s center',
-        explanation: 'The `ftcPose` object contains useful information about the tag\'s position relative to the camera, including range (distance), bearing (angle left/right), and yaw (rotational difference).'
-      }
-    ]
-  },
-  {
-    id: 'lesson19',
-    title: '19. Advanced State Machines',
+   {
+    id: 'lesson12',
+    type: 'lesson',
+    title: '12. Advanced State Machines',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1634,9 +1066,182 @@ case TURN_LEFT:
       }
     ]
   },
+  // =================================================================
+  // ADVANCED SECTION
+  // =================================================================
   {
-    id: 'lesson20',
-    title: '20. Next Steps & Road Runner',
+    id: 'lesson13',
+    type: 'lesson',
+    title: '13. Introduction to AprilTags',
+    content: [
+      {
+        type: LessonContentType.SectionBreak,
+        text: 'Advanced',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Computer vision is a huge part of modern robotics. In recent FTC games, the primary vision target has been **AprilTags**. These are like advanced QR codes for robots. By detecting these tags on the field with a camera, the robot can determine its exact position and orientation relative to the tag.'
+      },
+      { type: LessonContentType.Heading, text: 'Setting up the AprilTag Processor' },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'The FTC SDK has a powerful, built-in system for vision processing. You create a `VisionPortal` and attach an `AprilTagProcessor` to it. This handles all the complex image analysis for you.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `private AprilTagProcessor aprilTag;
+private VisionPortal visionPortal;
+
+// In your initialization section
+aprilTag = new AprilTagProcessor.Builder()
+    // You can add settings here, like lens intrinsics for your specific camera
+    .build();
+
+visionPortal = new VisionPortal.Builder()
+    .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+    .addProcessor(aprilTag)
+    .build();
+`
+      },
+      { type: LessonContentType.Heading, text: 'Using Detection Data' },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'In your loop, you can get a list of all the AprilTags the camera currently sees. Each `AprilTagDetection` object provides a wealth of information, including the tag\'s ID and its 3D pose (position and orientation) relative to the camera.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// Inside the while(opModeIsActive()) loop
+List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+
+telemetry.addData("# AprilTags Detected", currentDetections.size());
+
+// Loop through all the detections
+for (AprilTagDetection detection : currentDetections) {
+    // Check if the detection has known metadata (is part of the official field tag family)
+    if (detection.metadata != null) {
+        telemetry.addLine(String.format("Found Tag ID %d, named %s", detection.id, detection.metadata.name));
+        telemetry.addLine(String.format("Range: %.2f inches", detection.ftcPose.range));
+        telemetry.addLine(String.format("Bearing: %.2f degrees", detection.ftcPose.bearing)); // Angle left/right
+        telemetry.addLine(String.format("Yaw: %.2f degrees", detection.ftcPose.yaw)); // Rotational difference
+    }
+}
+telemetry.update();
+`
+      }
+    ],
+    quiz: [
+      {
+        question: 'What is an AprilTag?',
+        options: ['A special type of motor', 'A tag that tells you the date', 'A visual fiducial marker that allows a robot to determine its position and orientation', 'A type of sensor'],
+        correctAnswer: 'A visual fiducial marker that allows a robot to determine its position and orientation',
+        explanation: 'AprilTags are visual markers that are easy for computers to recognize. The FTC software can calculate a 6-DoF (3D position and 3D orientation) pose from a single image of a tag.'
+      },
+      {
+        question: 'What hardware is required to detect AprilTags?',
+        options: ['A touch sensor', 'An IMU', 'A webcam or phone camera', 'A distance sensor'],
+        correctAnswer: 'A webcam or phone camera',
+        explanation: 'AprilTag detection is a computer vision task, which requires a camera to see the tags.'
+      },
+      {
+        question: 'If `detection.ftcPose.range` gives you a value, what does that value represent?',
+        options: ['The ID number of the tag', 'The color of the tag', 'How far away the tag is from the camera\'s center', 'The size of the tag'],
+        correctAnswer: 'How far away the tag is from the camera\'s center',
+        explanation: 'The `ftcPose` object contains useful information about the tag\'s position relative to the camera, including range (distance), bearing (angle left/right), and yaw (rotational difference).'
+      }
+    ]
+  },
+  {
+    id: 'lesson14',
+    type: 'lesson',
+    title: '14. Advanced Vision: Tensorflow',
+    content: [
+      {
+        type: LessonContentType.Paragraph,
+        text: 'While AprilTags are great for localization, sometimes you need to identify game-specific objects, like a decorated Team Prop. For this, FTC provides a **TensorFlow Object Detection (TFOD)** processor. You can train your own custom machine learning model to recognize specific objects.'
+      },
+      { type: LessonContentType.Heading, text: 'Setting up the TFOD Processor' },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Similar to AprilTags, you add a `TfodProcessor` to your `VisionPortal`. The key difference is that you must provide a `.tflite` model file, which you place in the `assets` folder of your FTC project.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `private static final String TFOD_MODEL_ASSET = "MyCustomModel.tflite";
+private static final String[] LABELS = { "BlueProp", "RedProp" };
+
+private TfodProcessor tfod;
+private VisionPortal visionPortal;
+
+// In initialization
+tfod = new TfodProcessor.Builder()
+    .setModelAssetName(TFOD_MODEL_ASSET)
+    .setModelLabels(LABELS)
+    .build();
+
+visionPortal = new VisionPortal.Builder()
+    .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+    .addProcessor(tfod)
+    .build();`
+      },
+      { type: LessonContentType.Heading, text: 'Using TFOD Detections' },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'In your loop, you can get a list of recognized objects. This is powerful for autonomous routines where the robot needs to determine where the Team Prop is (e.g., left, middle, or right spike mark) before performing an action.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// Inside the loop
+List<Recognition> recognitions = tfod.getRecognitions();
+
+// Default to one position
+SpikeMarkPosition detectedPosition = SpikeMarkPosition.LEFT;
+
+for (Recognition recognition : recognitions) {
+    String label = recognition.getLabel();
+    float confidence = recognition.getConfidence();
+
+    // Get the horizontal center of the detected object
+    double x = (recognition.getLeft() + recognition.getRight()) / 2;
+
+    telemetry.addData(label, "Conf: %.2f", confidence);
+
+    if (x < 200) { // Example pixel value for the middle zone
+        detectedPosition = SpikeMarkPosition.MIDDLE;
+    } else {
+        detectedPosition = SpikeMarkPosition.RIGHT;
+    }
+}
+telemetry.addData("Detected Position", detectedPosition);
+telemetry.update();
+
+// Now you can use 'detectedPosition' in your state machine!`
+      }
+    ],
+    quiz: [
+      {
+        question: 'What is TensorFlow Object Detection (TFOD) used for in FTC?',
+        options: ['To measure distance', 'To determine the robot\'s angle', 'To recognize custom game objects using a trained machine learning model', 'To control motors'],
+        correctAnswer: 'To recognize custom game objects using a trained machine learning model',
+        explanation: 'TFOD allows teams to go beyond standard markers like AprilTags and train a model to identify unique game elements, which is often necessary for autonomous tasks.'
+      },
+      {
+        question: 'Where must you place your custom `.tflite` model file for the SDK to find it?',
+        options: ['On a USB drive', 'In the root of the project', 'In the `FIRST/assets` folder on the robot controller', 'In a folder named `models`'],
+        correctAnswer: 'In the `FIRST/assets` folder on the robot controller',
+        explanation: 'The FTC SDK is specifically configured to look for TFOD models and other assets in the `/FIRST/assets/` directory on the controller\'s internal storage.'
+      },
+      {
+        question: 'What does `recognition.getConfidence()` tell you?',
+        options: ['How far away the object is', 'How large the object is', 'The model\'s confidence level (from 0.0 to 1.0) that it has correctly identified the object', 'The color of the object'],
+        correctAnswer: 'The model\'s confidence level (from 0.0 to 1.0) that it has correctly identified the object',
+        explanation: 'Confidence is a key value in machine learning. It\'s a good practice to only trust detections that have a high confidence score (e.g., > 0.75).'
+      }
+    ]
+  },
+  {
+    id: 'lesson15',
+    type: 'lesson',
+    title: '15. Next Steps & Road Runner',
     content: [
       {
         type: LessonContentType.Paragraph,
@@ -1686,6 +1291,53 @@ case TURN_LEFT:
         correctAnswer: 'No, it is a complex library that requires significant setup, physical build quality, and a multi-step tuning process.',
         explanation: 'While incredibly powerful, Road Runner is an advanced tool. Successfully implementing it requires a solid understanding of the underlying robotics concepts and a willingness to follow the detailed tuning process.'
       }
+    ]
+  },
+  {
+    id: 'lesson16',
+    type: 'test',
+    title: 'Unit 3 Test',
+     content: [
+      {
+        type: LessonContentType.Heading,
+        text: 'Test your knowledge on advanced FTC concepts.',
+      },
+       {
+        type: LessonContentType.Paragraph,
+        text: 'This test covers material from the advanced lessons, including AprilTags, TFOD, and the concepts behind Road Runner.'
+      }
+    ],
+    quiz: [
+        {
+            question: 'What kind of information does an AprilTag provide to a robot?',
+            options: ['The current game score', 'The robot\'s position and orientation relative to the tag', 'The temperature of the field', 'The time remaining in the match'],
+            correctAnswer: 'The robot\'s position and orientation relative to the tag',
+            explanation: 'AprilTags are fiducial markers that allow for 6-DOF pose estimation, meaning the robot can determine its X, Y, Z position and its yaw, pitch, roll orientation relative to the tag.'
+        },
+        {
+            question: 'When using TensorFlow Object Detection (TFOD), what does the `.tflite` file contain?',
+            options: ['A list of all the AprilTags on the field', 'The Java code for your OpMode', 'A trained machine learning model for recognizing objects', 'The robot\'s hardware configuration'],
+            correctAnswer: 'A trained machine learning model for recognizing objects',
+            explanation: 'The `.tflite` file is the result of training a TensorFlow model and converting it to a lightweight format suitable for running on devices like the Robot Controller.'
+        },
+        {
+            question: 'What is the primary advantage of field-centric drive over robot-centric drive?',
+            options: ['It uses less battery.', 'It makes the robot move faster.', 'It is easier to program.', 'The robot\'s movement corresponds to the field directions, making it more intuitive for the driver.'],
+            correctAnswer: 'The robot\'s movement corresponds to the field directions, making it more intuitive for the driver.',
+            explanation: 'In field-centric drive, pushing forward on the joystick always moves the robot away from the driver, regardless of which way the robot is facing, which simplifies driving.'
+        },
+        {
+            question: 'Which component of a PID controller is primarily responsible for preventing the system from overshooting its target?',
+            options: ['Proportional (P)', 'Integral (I)', 'Derivative (D)', 'Feedforward (F)'],
+            correctAnswer: 'Derivative (D)',
+            explanation: 'The Derivative term looks at the rate of change of the error. If the error is decreasing quickly (i.e., the system is moving fast towards the target), it applies a counteracting force to act as a "brake" and dampen the response.'
+        },
+        {
+            question: 'Why does the advanced motion planning library Road Runner often use dedicated, unpowered odometry wheels?',
+            options: ['Because they are cheaper than motors.', 'Because they are required by the game rules.', 'Because they are not subject to slip like powered wheels, providing a much more accurate position measurement.', 'Because they add weight to the robot to prevent it from tipping.'],
+            correctAnswer: 'Because they are not subject to slip like powered wheels, providing a much more accurate position measurement.',
+            explanation: 'Powered wheels can slip during fast acceleration or turning, making their encoder readings unreliable for position tracking. Free-spinning odometry wheels maintain constant contact with the ground, giving a true measure of distance traveled.'
+        }
     ]
   }
 ];

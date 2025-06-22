@@ -1,10 +1,12 @@
 
 "use client";
 
-import React from 'react';
-import { Lesson, LessonContentItem, LessonContentType, QuizItem } from '@/data/ftc-java-lessons';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ListChecks, Code2, FileText, Heading2Icon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import type { Lesson, LessonContentItem, LessonContentType, QuizItem } from '@/data/ftc-java-lessons';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
+import { ListChecks, Code2, FileText, Heading2Icon, CheckCircle, XCircle, Award } from 'lucide-react';
 
 
 const renderContentItem = (item: LessonContentItem, index: number) => {
@@ -40,6 +42,134 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
+const InteractiveQuiz = ({ quiz }: { quiz: QuizItem[] }) => {
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [score, setScore] = useState(0);
+    const [quizCompleted, setQuizCompleted] = useState(false);
+
+    useEffect(() => {
+        // Reset quiz state when a new lesson's quiz is loaded
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setIsAnswered(false);
+        setScore(0);
+        setQuizCompleted(false);
+    }, [quiz]);
+
+    if (!quiz || quiz.length === 0) {
+        return null;
+    }
+    
+    // Safeguard against index out of bounds
+    if (quizCompleted) {
+        return (
+            <div className="text-center p-8 bg-muted/30 rounded-lg border border-border/50">
+                <Award className="mx-auto text-yellow-400 w-16 h-16 mb-4" />
+                <h3 className="text-2xl font-bold font-headline">Quiz Complete!</h3>
+                <p className="text-lg mt-2">You scored {score} out of {quiz.length}!</p>
+                <Button onClick={() => {
+                    setQuizCompleted(false);
+                    setCurrentQuestionIndex(0);
+                    setScore(0);
+                }} className="mt-6">
+                    Try Again
+                </Button>
+            </div>
+        );
+    }
+    
+    const currentQuestion = quiz[currentQuestionIndex];
+    if (!currentQuestion) {
+        // This should not happen with the completed check, but it's a good safeguard
+        setQuizCompleted(true);
+        return null;
+    }
+
+    const progress = ((currentQuestionIndex) / quiz.length) * 100;
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+
+    const handleSelectAnswer = (option: string) => {
+        if (isAnswered) return;
+        setSelectedAnswer(option);
+        setIsAnswered(true);
+        if (option === currentQuestion.correctAnswer) {
+            setScore(prev => prev + 1);
+        }
+    };
+
+    const handleContinue = () => {
+        if (currentQuestionIndex < quiz.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setSelectedAnswer(null);
+            setIsAnswered(false);
+        } else {
+            setQuizCompleted(true);
+        }
+    };
+    
+    const getButtonClass = (option: string) => {
+        if (!isAnswered) {
+            return "bg-muted/50 border-border/50 hover:bg-muted";
+        }
+        if (option === currentQuestion.correctAnswer) {
+            return "bg-green-500/20 border-green-500 text-green-300 ring-2 ring-green-500";
+        }
+        if (option === selectedAnswer) {
+            return "bg-red-500/20 border-red-500 text-red-300";
+        }
+        return "bg-muted/30 border-transparent opacity-60";
+    };
+
+    return (
+        <div className="mt-12">
+          <h2 className="flex items-center gap-2 text-2xl md:text-3xl font-semibold font-headline text-primary mt-12 mb-6 border-b-2 border-primary/30 pb-3">
+            <ListChecks size={28} className="text-primary/80" />
+            Knowledge Check
+          </h2>
+          <div className="space-y-6 bg-card/50 p-6 rounded-lg border border-border/40">
+            <Progress value={progress} indicatorClassName="bg-primary" />
+            <p className="text-xl font-semibold text-foreground/90 text-center">
+              {currentQuestion.question}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currentQuestion.options.map((option, index) => (
+                <Button
+                  key={index}
+                  onClick={() => handleSelectAnswer(option)}
+                  disabled={isAnswered}
+                  variant="outline"
+                  className={cn("h-auto min-h-[4rem] py-3 px-4 justify-start text-left whitespace-normal font-medium text-base transition-all duration-200 ease-in-out border-2", getButtonClass(option))}
+                >
+                  <div className="flex-grow">{option}</div>
+                </Button>
+              ))}
+            </div>
+            {isAnswered && (
+              <div className={cn("p-4 rounded-lg text-white transition-all duration-300 animate-fade-in-up-hero", isCorrect ? 'bg-green-600/80' : 'bg-red-600/80')}>
+                <div className="flex items-start gap-3">
+                    {isCorrect ? <CheckCircle className="h-6 w-6 mt-1 flex-shrink-0" /> : <XCircle className="h-6 w-6 mt-1 flex-shrink-0" />}
+                    <div>
+                        <h4 className="font-bold text-lg">{isCorrect ? 'Correct!' : 'Incorrect'}</h4>
+                        <p className="mt-1 text-white/90">{currentQuestion.explanation}</p>
+                    </div>
+                </div>
+              </div>
+            )}
+            {isAnswered && (
+                <div className="flex justify-end">
+                    <Button onClick={handleContinue} className="w-full md:w-auto bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                        Continue
+                    </Button>
+                </div>
+            )}
+          </div>
+        </div>
+    );
+};
+
+
 interface LessonDisplayProps {
     lesson: Lesson;
 }
@@ -64,23 +194,7 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson }) => {
       {lesson.content.map(renderContentItem)}
 
       {lesson.quiz && lesson.quiz.length > 0 && (
-        <div className="mt-12">
-          <h2 className="flex items-center gap-2 text-2xl md:text-3xl font-semibold font-headline text-primary mt-12 mb-6 border-b-2 border-primary/30 pb-3">
-            <ListChecks size={28} className="text-primary/80" />
-            Knowledge Check
-          </h2>
-          <Accordion type="single" collapsible className="w-full space-y-3">
-            {lesson.quiz.map((q, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-muted/30 border-border/50 rounded-lg">
-                <AccordionTrigger className="hover:no-underline px-4 text-left font-semibold">{q.question}</AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 space-y-2">
-                    <p className="text-foreground/90"><b>Answer:</b> {q.correctAnswer}</p>
-                    <p className="text-foreground/70"><b>Explanation:</b> {q.explanation}</p>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
+        <InteractiveQuiz quiz={lesson.quiz} />
       )}
       <style jsx>{`
         .animate-fadeInUpHeroCustom {
