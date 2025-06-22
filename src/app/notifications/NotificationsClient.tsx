@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
@@ -89,133 +89,101 @@ export default function NotificationsClient() {
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
-  // --- Data Loading Effect ---
+  // Effect 1: Load Team and Members
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push('/auth');
-      return;
-    }
-    if (!database) {
-        toast({variant: 'destructive', title: 'Database Error', description: 'Could not connect to the database.'});
-        return;
-    }
-
-    let teamListenerUnsubscribe: (() => void) | null = null;
-    let chatListListenerUnsubscribe: (() => void) | null = null;
-    let individualChatListeners: (() => void)[] = [];
-
-    const cleanup = () => {
-        if (teamListenerUnsubscribe) teamListenerUnsubscribe();
-        if (chatListListenerUnsubscribe) chatListListenerUnsubscribe();
-        individualChatListeners.forEach(unsub => unsub());
-    };
-
+    if (authLoading || !user || !database) return;
+    let isMounted = true;
     setLoadingState('loading_team');
+
     get(dbRef(database, `users/${user.uid}/teamCode`)).then(teamCodeSnapshot => {
+        if (!isMounted) return;
         if (!teamCodeSnapshot.exists()) {
             setLoadingState('no_team');
             return;
         }
         const teamCode = teamCodeSnapshot.val();
         
-        const teamRef = dbRef(database, `teams/${teamCode}`);
-
-        // 1. Listen for Team Data changes
-        teamListenerUnsubscribe = onValue(teamRef, (teamSnapshot) => {
-            if (!teamSnapshot.exists()) {
+        get(dbRef(database, `teams/${teamCode}`)).then(teamSnapshot => {
+            if (!isMounted || !teamSnapshot.exists()) {
                 setLoadingState('no_team');
                 return;
             }
-
             const teamData = teamSnapshot.val();
             const currentTeam = { id: teamCode, ...teamData };
-            setTeam(currentTeam);
-
             const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
                 Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
             );
+            
+            setTeam(currentTeam);
             setTeamMembers(members);
-            teamMembersRef.current = members; // Keep ref for actions
-            
-            // Now that we have members, listen for chats
+            teamMembersRef.current = members;
             setLoadingState('loading_chats');
-            const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-            
-            // 2. Listen for User's Chat List
-            chatListListenerUnsubscribe = onValue(userChatsRef, (chatListSnapshot) => {
-                individualChatListeners.forEach(unsub => unsub());
-                individualChatListeners = [];
-
-                const chatIds = chatListSnapshot.val() || {};
-                let currentChats: { [key: string]: Chat } = {};
-                const totalChats = Object.keys(chatIds).length;
-                let processedChats = 0;
-
-                const updateState = () => {
-                    const sortedChats = [
-                        {
-                            id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
-                            lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
-                        },
-                        ...Object.values(currentChats)
-                    ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
-
-                    setChats(sortedChats);
-                    
-                    setActiveChatId(currentId => {
-                        if (currentId && sortedChats.some(c => c.id === currentId)) return currentId;
-                        const hashId = window.location.hash.substring(1);
-                        if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
-                        return sortedChats.length > 0 ? sortedChats[0].id : null;
-                    });
-                    
-                    setLoadingState('ready');
-                };
-
-                if (totalChats === 0) {
-                    updateState();
-                    return;
-                }
-                
-                Object.keys(chatIds).forEach(chatId => {
-                    const chatMetaRef = dbRef(database, `chats/${chatId}/metadata`);
-                    const unsubscribeChatMeta = onValue(chatMetaRef, (metaSnap) => {
-                        if (metaSnap.exists()) {
-                            const meta = metaSnap.val();
-                            let name = meta.name;
-                            let hint: 'person' | 'megaphone' = 'megaphone';
-                            if (meta.type === 'dm') {
-                                const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-                                name = members.find(m => m.id === otherUserId)?.name || 'Unknown User';
-                                hint = 'person';
-                            }
-                            currentChats[chatId] = {
-                                id: chatId, name, hint, type: meta.type, members: meta.members,
-                                avatar: 'https://placehold.co/40x40.png',
-                                lastMessage: meta.lastMessage,
-                            };
-                        } else {
-                            delete currentChats[chatId];
-                        }
-                        
-                        processedChats++;
-                        if (processedChats >= totalChats) {
-                             updateState();
-                        }
-                    });
-                    individualChatListeners.push(unsubscribeChatMeta);
-                });
-            });
         });
     }).catch(error => {
         console.error("Error fetching team data:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-        setLoadingState('no_team');
+        if (isMounted) setLoadingState('no_team');
     });
 
-    return cleanup;
-}, [user, authLoading, router, toast]);
+    return () => { isMounted = false; };
+  }, [user, authLoading, router, toast]);
+
+  // Effect 2: Load Chats, depends on members being loaded
+  useEffect(() => {
+    if (loadingState !== 'loading_chats' || !user || !database || teamMembers.length === 0) return;
+
+    const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+    const chatListListenerUnsubscribe = onValue(userChatsRef, (chatListSnapshot) => {
+        const chatIds = chatListSnapshot.val() || {};
+        
+        const chatPromises = Object.keys(chatIds).map(chatId => 
+            get(dbRef(database, `chats/${chatId}/metadata`)).then(metaSnap => {
+                if (metaSnap.exists()) {
+                    const meta = metaSnap.val();
+                    let name = meta.name;
+                    let hint: 'person' | 'megaphone' = 'megaphone';
+                    if (meta.type === 'dm') {
+                        const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
+                        // Now we can safely use teamMembers from state because this effect depends on it.
+                        name = teamMembers.find(m => m.id === otherUserId)?.name || 'Unknown User';
+                        hint = 'person';
+                    }
+                    return {
+                        id: chatId, name, hint, type: meta.type, members: meta.members,
+                        avatar: 'https://placehold.co/40x40.png',
+                        lastMessage: meta.lastMessage,
+                    };
+                }
+                return null;
+            })
+        );
+        
+        Promise.all(chatPromises).then(resolvedChats => {
+            const validChats = resolvedChats.filter(c => c !== null) as Chat[];
+
+            const sortedChats = [
+                {
+                    id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
+                    lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
+                },
+                ...validChats
+            ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+
+            setChats(sortedChats);
+            
+            setActiveChatId(currentId => {
+                if (currentId && sortedChats.some(c => c.id === currentId)) return currentId;
+                const hashId = window.location.hash.substring(1);
+                if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
+                return sortedChats.length > 0 ? sortedChats[0].id : null;
+            });
+
+            setLoadingState('ready');
+        });
+    });
+
+    return () => chatListListenerUnsubscribe();
+  }, [loadingState, teamMembers, user, toast]);
 
   // --- Message Fetching Effect ---
   useEffect(() => {
@@ -284,7 +252,7 @@ export default function NotificationsClient() {
     }
 
     try {
-        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "User";
+        const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "Anonymous";
         
         const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
@@ -341,7 +309,7 @@ export default function NotificationsClient() {
     handleSendMessage();
   };
 
-  const handleStartChat = async (member: TeamMember) => {
+  const handleStartChat = useCallback(async (member: TeamMember) => {
       if (!user || !database || !team) return;
 
       const existingDm = chats.find(c => c.type === 'dm' && c.members && c.members[member.id]);
@@ -368,9 +336,11 @@ export default function NotificationsClient() {
       
       setSearchTerm("");
       
-      setActiveChatId(newChatId);
+      // We don't set active chat id here, we let the listener pick up the new chat
+      // which prevents race conditions. The user might see a brief flicker, but it's safer.
+      // However, we can update the URL hash to trigger selection when the list updates.
       router.replace(`#${newChatId}`);
-  };
+  }, [user, database, team, chats, router, toast]);
 
 
   // --- Render Logic ---
@@ -492,8 +462,8 @@ export default function NotificationsClient() {
                              <div key={msg.key} className={cn("flex items-end gap-3", isSender && "flex-row-reverse")}>
                                 <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>
                                 <div className={cn("flex flex-col gap-1", isSender ? "items-end" : "items-start")}>
+                                    {!isSender && <p className="text-xs font-bold pb-1 text-accent ml-4">{msg.senderName}</p>}
                                     <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
-                                        {!isSender && <p className="text-xs font-bold pb-1 text-accent">{msg.senderName}</p>}
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">{formatTimestamp(msg.timestamp)}</p>
