@@ -4,30 +4,29 @@ import { getDatabase, type Database } from "firebase/database";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyANXI_daofPZ9TOwAEBKsV0xAc3RzPi0KU",
-  authDomain: "work-ftc.firebaseapp.com",
-  projectId: "work-ftc",
-  storageBucket: "work-ftc.firebasestorage.app",
-  messagingSenderId: "899528797860",
-  appId: "1:899528797860:web:68a1a471d44192738d4031",
-  measurementId: "G-9L13PTJ89L"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 
-let app: FirebaseApp;
-let auth: Auth;
-let database: Database;
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let database: Database | null = null;
 
 // This check prevents Firebase from being initialized on the server.
-if (typeof window !== "undefined") {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  auth = getAuth(app);
-  database = getDatabase(app);
+if (typeof window !== "undefined" && firebaseConfig.apiKey) {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApp();
+    }
+    auth = getAuth(app);
+    database = getDatabase(app);
 }
 
-// @ts-ignore
 export { app, auth, database };
