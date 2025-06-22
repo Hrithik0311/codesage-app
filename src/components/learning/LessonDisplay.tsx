@@ -23,16 +23,12 @@ const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({ quiz, onComplete, onC
     const [score, setScore] = useState(0);
     const [quizFinished, setQuizFinished] = useState(false);
 
-    const currentQuestion = quiz[currentQuestionIndex];
-    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-    const progress = (currentQuestionIndex / quiz.length) * 100;
-
     const handleSelectAnswer = (option: string) => {
         if (showFeedback) return;
 
         setSelectedAnswer(option);
         setShowFeedback(true);
-        if (option === currentQuestion.correctAnswer) {
+        if (option === quiz[currentQuestionIndex].correctAnswer) {
             setScore(prev => prev + 1);
         }
     };
@@ -84,6 +80,28 @@ const InteractiveQuiz: React.FC<InteractiveQuizProps> = ({ quiz, onComplete, onC
             </Card>
         );
     }
+    
+    if (currentQuestionIndex >= quiz.length) {
+      // This is an invalid state, likely from a race condition on the continue button.
+      // Instead of crashing, we gracefully end the quiz.
+      if (!quizFinished) {
+        // This will trigger a re-render to the finished state.
+        setQuizFinished(true);
+        onComplete(score, quiz.length);
+      }
+      // Return a temporary "calculating" view while the state updates.
+      return (
+        <Card className="text-center p-6 md:p-8">
+            <CardContent className="p-0">
+                <p className="text-lg">Calculating results...</p>
+            </CardContent>
+        </Card>
+      );
+    }
+
+    const currentQuestion = quiz[currentQuestionIndex];
+    const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+    const progress = (currentQuestionIndex / quiz.length) * 100;
     
     return (
         <div className="w-full max-w-3xl mx-auto">
