@@ -45,6 +45,13 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   completedLessonIds,
   onResetProgress,
 }) => {
+  const handleReset = () => {
+    onResetProgress();
+    if (lessons.length > 0) {
+      onSelectLesson(lessons[0].id);
+    }
+  };
+
   return (
     <nav className="w-full md:w-80 bg-card/70 backdrop-blur-md p-3 md:p-5 rounded-xl shadow-xl border border-border/30 md:sticky md:top-[calc(theme(spacing.4)_+_6rem)] max-h-[40vh] md:max-h-[calc(100vh-12rem)] mb-4 md:mb-0 flex flex-col">
        <h2 className="text-xl font-semibold font-headline text-foreground mb-4 p-2 flex items-center gap-2 border-b border-border/50 pb-3">
@@ -63,7 +70,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                 <TooltipProvider>
                 {lessons.map((lesson, index) => {
                     const isCompleted = completedLessonIds.has(lesson.id);
-                    const isUnlocked = index === 0 || completedLessonIds.has(lessons[index-1]?.id);
+                    const isUnlocked = index === 0 || (lessons[index-1] && completedLessonIds.has(lessons[index-1].id));
                     const isActive = lesson.id === activeLessonId;
                     const Icon = getIconForLesson(lesson.type);
 
@@ -125,7 +132,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onResetProgress} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Yes, reset my progress
               </AlertDialogAction>
             </AlertDialogFooter>
