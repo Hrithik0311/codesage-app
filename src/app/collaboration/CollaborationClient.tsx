@@ -286,6 +286,7 @@ export default function CollaborationClient() {
         values.members.forEach(member => {
             userUpdates[`/users/${member.id}/teamCode`] = values.teamCode;
             userUpdates[`/users/${member.id}/chats/${announcementsChatId}`] = true;
+            userUpdates[`/users/${member.id}/name`] = member.name;
         });
         await update(dbRef(database), userUpdates);
 
@@ -318,17 +319,18 @@ export default function CollaborationClient() {
         
         const newMemberId = user.uid;
         const isAlreadyMember = Object.values(teamData.roles || {}).some(roleMembers => newMemberId in (roleMembers as object));
+        const memberName = user.displayName || user.email?.split('@')[0] || 'New Member';
 
         const updates: { [key: string]: any } = {};
         
         if (isAlreadyMember) {
             toast({ title: "Already a member", description: "You are already a member of this team." });
         } else {
-            const memberName = user.displayName || user.email?.split('@')[0] || 'New Member';
             const memberPath = `teams/${values.teamCode}/roles/Member/${newMemberId}`;
             updates[memberPath] = memberName;
         }
 
+        updates[`/users/${user.uid}/name`] = memberName;
         updates[`/users/${user.uid}/teamCode`] = values.teamCode;
         if (teamData.announcementsChatId) {
             updates[`/users/${user.uid}/chats/${teamData.announcementsChatId}`] = true;
@@ -348,21 +350,26 @@ export default function CollaborationClient() {
         }
 
         const newRoles: { [key: string]: { [uid: string]: string } } = {};
+        const userUpdates: { [key: string]: any } = {};
+
         values.members.forEach(member => {
             if (!newRoles[member.role]) {
                 newRoles[member.role] = {};
             }
             newRoles[member.role][member.id] = member.name;
+            userUpdates[`/users/${member.id}/name`] = member.name;
         });
 
-        const updates = {
+        const teamUpdates = {
             name: values.teamName,
             pin: values.pin,
             roles: newRoles,
         };
 
         try {
-            await update(dbRef(database, `teams/${team.id}`), updates);
+            await update(dbRef(database, `teams/${team.id}`), teamUpdates);
+            await update(dbRef(database), userUpdates);
+
             toast({ title: 'Success!', description: 'Team settings have been updated.' });
             setIsSettingsOpen(false);
         } catch (error) {
