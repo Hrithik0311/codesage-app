@@ -59,7 +59,7 @@ interface TeamMember {
     role: string;
 }
 
-type LoadingState = 'initializing' | 'loading_team' | 'no_team' | 'loading_chats' | 'ready';
+type LoadingState = 'initializing' | 'loading_team' | 'no_team' | 'ready';
 
 
 // --- Helper Functions ---
@@ -78,7 +78,6 @@ export default function NotificationsClient() {
   // --- State ---
   const [loadingState, setLoadingState] = useState<LoadingState>('initializing');
   const [team, setTeam] = useState<any | null>(null);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const teamMembersRef = useRef<TeamMember[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -89,114 +88,120 @@ export default function NotificationsClient() {
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
-  // Effect 1: Load Team and Members
+  // Combined Effect for loading all data sequentially
   useEffect(() => {
-    if (authLoading || !user || !database) return;
-    let isMounted = true;
+    if (authLoading || !user || !database) {
+      return;
+    }
+
     setLoadingState('loading_team');
+    let teamUnsubscribe: () => void = () => {};
+    let chatsUnsubscribe: () => void = () => {};
 
-    get(dbRef(database, `users/${user.uid}/teamCode`)).then(teamCodeSnapshot => {
-        if (!isMounted) return;
-        if (!teamCodeSnapshot.exists()) {
-            setLoadingState('no_team');
-            return;
+    const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+    get(userTeamRef).then(teamCodeSnapshot => {
+      if (!teamCodeSnapshot.exists()) {
+        setLoadingState('no_team');
+        return;
+      }
+      const teamCode = teamCodeSnapshot.val();
+      const teamRef = dbRef(database, `teams/${teamCode}`);
+
+      teamUnsubscribe = onValue(teamRef, (teamSnapshot) => {
+        if (!teamSnapshot.exists()) {
+          setLoadingState('no_team');
+          setTeam(null);
+          teamMembersRef.current = [];
+          setChats([]);
+          return;
         }
-        const teamCode = teamCodeSnapshot.val();
-        
-        get(dbRef(database, `teams/${teamCode}`)).then(teamSnapshot => {
-            if (!isMounted || !teamSnapshot.exists()) {
-                setLoadingState('no_team');
-                return;
-            }
-            const teamData = teamSnapshot.val();
-            const currentTeam = { id: teamCode, ...teamData };
-            const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
-                Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
-            );
-            
-            setTeam(currentTeam);
-            setTeamMembers(members);
-            teamMembersRef.current = members;
-            setLoadingState('loading_chats');
-        });
-    }).catch(error => {
-        console.error("Error fetching team data:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-        if (isMounted) setLoadingState('no_team');
-    });
 
-    return () => { isMounted = false; };
-  }, [user, authLoading, router, toast]);
-
-  // Effect 2: Load Chats, depends on members being loaded
-  useEffect(() => {
-    if (loadingState !== 'loading_chats' || !user || !database || teamMembers.length === 0) return;
-
-    const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
-    const chatListListenerUnsubscribe = onValue(userChatsRef, (chatListSnapshot) => {
-        const chatIds = chatListSnapshot.val() || {};
-        
-        const chatPromises = Object.keys(chatIds).map(chatId => 
-            get(dbRef(database, `chats/${chatId}/metadata`)).then(metaSnap => {
-                if (metaSnap.exists()) {
-                    const meta = metaSnap.val();
-                    let name = meta.name;
-                    let hint: 'person' | 'megaphone' = 'megaphone';
-                    if (meta.type === 'dm') {
-                        const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
-                        // Now we can safely use teamMembers from state because this effect depends on it.
-                        name = teamMembers.find(m => m.id === otherUserId)?.name || 'Unknown User';
-                        hint = 'person';
-                    }
-                    return {
-                        id: chatId, name, hint, type: meta.type, members: meta.members,
-                        avatar: 'https://placehold.co/40x40.png',
-                        lastMessage: meta.lastMessage,
-                    };
-                }
-                return null;
-            })
+        const teamData = teamSnapshot.val();
+        const currentTeam = { id: teamCode, ...teamData };
+        const members: TeamMember[] = Object.entries(teamData.roles || {}).flatMap(([role, roleMembers]: [string, any]) =>
+          Object.entries(roleMembers).map(([id, name]) => ({ id, name: name as string, role }))
         );
+
+        setTeam(currentTeam);
+        teamMembersRef.current = members;
+
+        if (chatsUnsubscribe) {
+          chatsUnsubscribe();
+        }
         
-        Promise.all(chatPromises).then(resolvedChats => {
-            const validChats = resolvedChats.filter(c => c !== null) as Chat[];
+        const userChatsRef = dbRef(database, `users/${user.uid}/chats`);
+        chatsUnsubscribe = onValue(userChatsRef, async (chatListSnapshot) => {
+          const chatIds = chatListSnapshot.val() || {};
+          
+          const chatPromises = Object.keys(chatIds).map(async (chatId) => {
+            const metaSnap = await get(dbRef(database, `chats/${chatId}/metadata`));
+            if (!metaSnap.exists()) return null;
 
-            const sortedChats = [
-                {
-                    id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
-                    lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
-                },
-                ...validChats
-            ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+            const meta = metaSnap.val();
+            let name = meta.name;
+            let hint: Chat['hint'] = 'megaphone';
 
-            setChats(sortedChats);
-            
-            setActiveChatId(currentId => {
-                if (currentId && sortedChats.some(c => c.id === currentId)) return currentId;
-                const hashId = window.location.hash.substring(1);
-                if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
-                return sortedChats.length > 0 ? sortedChats[0].id : null;
-            });
+            if (meta.type === 'dm') {
+              const otherUserId = Object.keys(meta.members).find(id => id !== user.uid);
+              name = teamMembersRef.current.find(m => m.id === otherUserId)?.name || 'Unknown User';
+              hint = 'person';
+            }
+            return {
+              id: chatId, name, hint, type: meta.type, members: meta.members,
+              avatar: 'https://placehold.co/40x40.png',
+              lastMessage: meta.lastMessage,
+            };
+          });
 
-            setLoadingState('ready');
+          const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
+
+          const sortedChats = [
+              {
+                  id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
+                  lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
+              },
+              ...resolvedChats
+          ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+
+          setChats(sortedChats);
+          
+          setActiveChatId(currentId => {
+              if (currentId && sortedChats.some(c => c.id === currentId)) return currentId;
+              const hashId = window.location.hash.substring(1);
+              if (hashId && sortedChats.some(c => c.id === hashId)) return hashId;
+              return sortedChats.length > 0 ? sortedChats[0].id : null;
+          });
+
+          setLoadingState('ready');
         });
+      });
+    }).catch(error => {
+      console.error("Error fetching initial team data:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+      setLoadingState('no_team');
     });
 
-    return () => chatListListenerUnsubscribe();
-  }, [loadingState, teamMembers, user, toast]);
+    return () => {
+      teamUnsubscribe();
+      chatsUnsubscribe();
+    };
+  }, [user, authLoading, database, toast]);
 
   // --- Message Fetching Effect ---
   useEffect(() => {
-    if (!activeChat || !database) {
+    if (!activeChatId || !database) {
       setMessages([]);
       return;
     }
-    if (activeChat.type === 'ai') {
+    const currentActiveChat = chats.find(c => c.id === activeChatId);
+    if (!currentActiveChat) return;
+
+    if (currentActiveChat.type === 'ai') {
         setMessages([{ key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Hello! I am CodeSage AI. I'm here to assist with your development process. You can paste code snippets for analysis, ask for suggestions, or generate unit tests. How can I help you today?", timestamp: Date.now() }]);
         return;
     }
 
-    const messagesRef = dbRef(database, `chats/${activeChat.id}/messages`);
+    const messagesRef = dbRef(database, `chats/${activeChatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
     const unsubscribe = onValue(messagesQuery, (snapshot) => {
         const messagesData: Message[] = [];
@@ -205,7 +210,7 @@ export default function NotificationsClient() {
     });
 
     return () => unsubscribe();
-  }, [activeChatId, activeChat]);
+  }, [activeChatId, chats, database]);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -225,19 +230,19 @@ export default function NotificationsClient() {
     if (!newMessage.trim() || !user || !activeChat || isSending) return;
     
     setIsSending(true);
-    
+    const currentInput = newMessage;
+    setNewMessage("");
+
     if (activeChat.type === 'ai') {
         const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || 'Anonymous';
         const userMessage: Message = { 
             key: Date.now().toString(), 
-            text: newMessage,
+            text: currentInput,
             senderId: user.uid,
             senderName: myName,
             timestamp: Date.now() 
         };
         setMessages(prev => [...prev, userMessage]);
-        const currentInput = newMessage;
-        setNewMessage("");
         
         setTimeout(() => {
             const aiResponse: Message = {
@@ -253,15 +258,15 @@ export default function NotificationsClient() {
 
     try {
         const myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0] || "Anonymous";
-        
-        const messageData = { text: newMessage, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
+
+        const messageData = { text: currentInput, senderId: user.uid, senderName: myName, timestamp: serverTimestamp() };
         
         const updates: { [key: string]: any } = {};
         const newMessageKey = push(dbRef(database, `chats/${activeChat.id}/messages`)).key;
         
         updates[`/chats/${activeChat.id}/messages/${newMessageKey}`] = messageData;
         updates[`/chats/${activeChat.id}/metadata/lastMessage`] = {
-            text: newMessage,
+            text: currentInput,
             timestamp: serverTimestamp()
         };
 
@@ -284,18 +289,17 @@ export default function NotificationsClient() {
         if (activeChat.type === 'dm') {
             const otherUserId = Object.keys(activeChat.members!).find(id => id !== user.uid);
             if (otherUserId) {
-                createNotification(otherUserId, `New message from ${myName}`, newMessage);
+                createNotification(otherUserId, `New message from ${myName}`, currentInput);
             }
         } else if (activeChat.type === 'channel') {
             Object.keys(activeChat.members!).forEach(memberId => {
                 if (memberId !== user.uid) {
-                    createNotification(memberId, `New message in #${activeChat.name}`, `${myName}: ${newMessage}`);
+                    createNotification(memberId, `New message in #${activeChat.name}`, `${myName}: ${currentInput}`);
                 }
             });
         }
         
         await update(dbRef(database), updates);
-        setNewMessage("");
     } catch (error) {
         console.error("Error sending message:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not send message.' });
@@ -335,16 +339,13 @@ export default function NotificationsClient() {
       await update(dbRef(database), updates);
       
       setSearchTerm("");
-      
-      // We don't set active chat id here, we let the listener pick up the new chat
-      // which prevents race conditions. The user might see a brief flicker, but it's safer.
-      // However, we can update the URL hash to trigger selection when the list updates.
       router.replace(`#${newChatId}`);
+
   }, [user, database, team, chats, router, toast]);
 
 
   // --- Render Logic ---
-  const filteredUsers = searchTerm ? teamMembers.filter(m => 
+  const filteredUsers = searchTerm ? teamMembersRef.current.filter(m => 
       m.id !== user?.uid && m.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
