@@ -274,15 +274,10 @@ export default function NotificationsClient() {
     }
 
     try {
-        let myName = teamMembersRef.current.find(m => m.id === user.uid)?.name;
+        let myName = teamMembersRef.current.find(m => m.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
 
         if (!myName) {
-            // Fallback if the name isn't in the team list, this prevents race conditions on load
-            myName = user.displayName || user.email?.split('@')[0];
-        }
-
-        if (!myName) {
-            toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not determine your name to send a message.' });
+            toast({ variant: 'destructive', title: 'Authentication Error', description: "Could not verify your identity to send a message." });
             setIsSending(false);
             return;
         }
@@ -369,12 +364,9 @@ export default function NotificationsClient() {
       
       setSearchTerm("");
       
-      // We set the active chat id directly here to avoid waiting for the onValue listener to fire
-      // which can be slow and cause a UI lag.
-      setActiveChatId(newActiveChatId => {
-        router.replace(`#${newChatId}`);
-        return newActiveChatId;
-      });
+      // FIX: Separate state update from navigation side-effect
+      setActiveChatId(newChatId);
+      router.replace(`#${newChatId}`);
   };
 
 
@@ -549,5 +541,3 @@ export default function NotificationsClient() {
     </SidebarProvider>
   );
 }
-
-    
