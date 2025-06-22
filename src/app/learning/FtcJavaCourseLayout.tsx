@@ -25,7 +25,6 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const { user, loading } = useAuth();
   
-  // Mock user progress. In a real app, this would come from a database.
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [showPlacementResult, setShowPlacementResult] = useState(false);
   const [placementScore, setPlacementScore] = useState(0);
@@ -55,32 +54,41 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
     const lesson = lessons.find(l => l.id === lessonId);
     if (!lesson) return;
 
-    setCompletedIds(prev => new Set(prev).add(lessonId));
-    
     if (lesson.type === 'placement' && score !== undefined && total !== undefined) {
-        const percentage = (score / total) * 100;
-        setPlacementScore(percentage);
-        
-        let lessonsToUnlock = 0;
-        if (percentage >= 80) lessonsToUnlock = 4;
-        else if (percentage >= 50) lessonsToUnlock = 2;
+      // This is the PLACEMENT TEST completion logic
+      const percentage = (score / total) * 100;
+      setPlacementScore(percentage);
+      
+      let lessonsToSkip = 0;
+      if (percentage >= 80) lessonsToSkip = 4;
+      else if (percentage >= 50) lessonsToSkip = 2;
 
-        const unlockedIds = lessons
-            .filter(l => l.type === 'lesson')
-            .slice(0, lessonsToUnlock)
-            .map(l => l.id);
+      const lessonIdsToComplete = lessons
+          .filter(l => l.type === 'lesson')
+          .slice(0, lessonsToSkip)
+          .map(l => l.id);
 
-        setCompletedIds(prev => new Set([...prev, ...unlockedIds]));
-        setShowPlacementResult(true);
-        toast({
-          title: "Placement Test Complete!",
-          description: `Great job! You've unlocked ${lessonsToUnlock + 1} lessons based on your score.`,
-        });
+      // Atomically update state with the placement test ID AND the skipped lesson IDs
+      setCompletedIds(prev => {
+        const newCompleted = new Set(prev);
+        newCompleted.add(lessonId); // Add the placement test itself
+        lessonIdsToComplete.forEach(id => newCompleted.add(id)); // Add all skipped lessons
+        return newCompleted;
+      });
+
+      setShowPlacementResult(true);
+      toast({
+        title: "Placement Test Complete!",
+        description: `Great job! You've unlocked and completed ${lessonsToSkip} lessons based on your score.`,
+      });
+
     } else {
-       toast({
-          title: "Lesson Complete!",
-          description: `Great work on finishing "${lesson.title}".`,
-        });
+      // This is the REGULAR lesson completion logic for any other type
+      setCompletedIds(prev => new Set(prev).add(lessonId));
+      toast({
+        title: "Lesson Complete!",
+        description: `Great work on finishing "${lesson.title}".`,
+      });
     }
   };
 
