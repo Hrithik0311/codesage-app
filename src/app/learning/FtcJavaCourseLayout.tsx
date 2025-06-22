@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Lesson } from '@/data/ftc-java-lessons';
+import LessonNavigation from '@/components/learning/LessonNavigation';
 import LessonDisplay from '@/components/learning/LessonDisplay';
 import { Zap, BookOpen, Trophy } from 'lucide-react';
 import Link from 'next/link';
@@ -11,8 +12,6 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
-import LessonPath from '@/components/learning/LessonPath';
-import { useToast } from '@/hooks/use-toast';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
@@ -21,14 +20,9 @@ interface FtcJavaCourseLayoutProps {
 const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { toast } = useToast();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const { user, loading } = useAuth();
   
-  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
-  const [showPlacementResult, setShowPlacementResult] = useState(false);
-  const [placementScore, setPlacementScore] = useState(0);
-
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
@@ -38,6 +32,10 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const handleSelectLesson = useCallback((lessonId: string) => {
     setActiveLessonId(lessonId);
     router.replace(`${pathname}#${lessonId}`, { scroll: false });
+    const mainContent = document.getElementById('lesson-main-content');
+    if (mainContent) {
+        mainContent.scrollTop = 0;
+    }
   }, [pathname, router]);
 
   useEffect(() => {
@@ -48,57 +46,6 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
       handleSelectLesson(lessons[0].id);
     }
   }, [lessons, handleSelectLesson]);
-
-
-  const handleLessonComplete = (lessonId: string, score?: number, total?: number) => {
-    const lesson = lessons.find(l => l.id === lessonId);
-    if (!lesson) return;
-
-    if (lesson.type === 'placement' && score !== undefined && total !== undefined) {
-      // This is the PLACEMENT TEST completion logic
-      const percentage = (score / total) * 100;
-      setPlacementScore(percentage);
-      
-      let lessonsToSkip = 0;
-      if (percentage >= 80) lessonsToSkip = 4;
-      else if (percentage >= 50) lessonsToSkip = 2;
-
-      const lessonIdsToComplete = lessons
-          .filter(l => l.type === 'lesson')
-          .slice(0, lessonsToSkip)
-          .map(l => l.id);
-
-      // Atomically update state with the placement test ID AND the skipped lesson IDs
-      setCompletedIds(prev => {
-        const newCompleted = new Set(prev);
-        newCompleted.add(lessonId); // Add the placement test itself
-        lessonIdsToComplete.forEach(id => newCompleted.add(id)); // Add all skipped lessons
-        return newCompleted;
-      });
-
-      setShowPlacementResult(true);
-      toast({
-        title: "Placement Test Complete!",
-        description: `Great job! You've unlocked and completed ${lessonsToSkip} lessons based on your score.`,
-      });
-
-    } else {
-      // This is the REGULAR lesson completion logic for any other type
-      setCompletedIds(prev => new Set(prev).add(lessonId));
-      toast({
-        title: "Lesson Complete!",
-        description: `Great work on finishing "${lesson.title}".`,
-      });
-    }
-  };
-
-  const handleNavigateToNextLesson = (currentLessonId: string) => {
-    const currentIndex = lessons.findIndex(l => l.id === currentLessonId);
-    const nextLesson = lessons[currentIndex + 1];
-    if (nextLesson) {
-        handleSelectLesson(nextLesson.id);
-    }
-  }
 
 
   const activeLesson = lessons.find(lesson => lesson.id === activeLessonId);
@@ -138,19 +85,14 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
       </header>
 
       <div className="flex flex-1 container mx-auto px-2 sm:px-4 py-6 md:py-8 gap-4 md:gap-8">
-        <LessonPath
+        <LessonNavigation
           lessons={lessons}
           activeLessonId={activeLessonId}
-          completedLessonIds={completedIds}
           onSelectLesson={handleSelectLesson}
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (
-            <LessonDisplay 
-              lesson={activeLesson} 
-              onComplete={(score, total) => handleLessonComplete(activeLesson.id, score, total)}
-              onContinue={() => handleNavigateToNextLesson(activeLesson.id)}
-            />
+            <LessonDisplay lesson={activeLesson} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Trophy size={64} className="text-primary mb-6 opacity-70" />
