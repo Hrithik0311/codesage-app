@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import type { Lesson, LessonContentItem, LessonContentType, QuizItem } from '@/data/ftc-java-lessons';
+import { type Lesson, type LessonContentItem, LessonContentType, type QuizItem } from '@/data/ftc-java-lessons';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
