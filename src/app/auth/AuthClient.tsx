@@ -265,8 +265,6 @@ export default function AuthClient() {
             className="mr-2 h-4 w-4"
             aria-hidden="true"
             focusable="false"
-            data-prefix="fab"
-            data-icon="google"
             role="img"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 488 512"
