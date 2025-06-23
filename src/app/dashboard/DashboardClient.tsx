@@ -11,7 +11,12 @@ import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, Arro
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
+
+// Import all lesson data
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
+import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
+import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
+
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
@@ -46,8 +51,8 @@ const ProgressItem = ({ icon: Icon, label, value, total, unit, indicatorClassNam
             </div>
             <span className="font-bold text-foreground">{value} {total ? `/ ${total}` : ''} {unit}</span>
         </div>
-        {total && (
-             <Progress value={total ? (value / total) * 100 : 0} className="h-2" indicatorClassName={indicatorClassName} />
+        {total != null && (
+             <Progress value={total > 0 ? (value / total) * 100 : 0} className="h-2" indicatorClassName={indicatorClassName} />
         )}
     </div>
 );
@@ -79,8 +84,18 @@ export default function DashboardClient() {
     );
   }
 
-  const lessonsCompletedCount = passedLessonIds.size;
-  const totalLessons = ftcJavaLessons.length;
+  const beginnerLessonIds = new Set(ftcJavaLessons.map(l => l.id));
+  const intermediateLessonIds = new Set(ftcJavaLessonsIntermediate.map(l => l.id));
+  const advancedLessonIds = new Set(ftcJavaLessonsAdvanced.map(l => l.id));
+
+  const beginnerCompleted = [...passedLessonIds].filter(id => beginnerLessonIds.has(id)).length;
+  const intermediateCompleted = [...passedLessonIds].filter(id => intermediateLessonIds.has(id)).length;
+  const advancedCompleted = [...passedLessonIds].filter(id => advancedLessonIds.has(id)).length;
+
+  const totalBeginner = ftcJavaLessons.length;
+  const totalIntermediate = ftcJavaLessonsIntermediate.length;
+  const totalAdvanced = ftcJavaLessonsAdvanced.length;
+
 
   return (
     <div className="w-full flex flex-col items-center min-h-screen">
@@ -161,15 +176,24 @@ export default function DashboardClient() {
                 {/* Right Column */}
                 <div className="lg:col-span-1 space-y-8">
                     <section>
-                        <h2 className="font-headline text-2xl font-bold mb-6">Your Stats</h2>
+                        <h2 className="font-headline text-2xl font-bold mb-6">Course Completion</h2>
                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                             <CardContent className="p-6 space-y-6">
-                               <ProgressItem icon={Trophy} label="Lessons Completed" value={lessonsCompletedCount} total={totalLessons} unit="" indicatorClassName="bg-green-500" />
-                               <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
-                               <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
+                               <ProgressItem icon={Trophy} label="Beginner" value={beginnerCompleted} total={totalBeginner} unit="" indicatorClassName="bg-green-500" />
+                               <ProgressItem icon={Trophy} label="Intermediate" value={intermediateCompleted} total={totalIntermediate} unit="" indicatorClassName="bg-blue-500" />
+                               <ProgressItem icon={Trophy} label="Advanced" value={advancedCompleted} total={totalAdvanced} unit="" indicatorClassName="bg-purple-500" />
                             </CardContent>
                         </Card>
                     </section>
+                     <section>
+                         <h2 className="font-headline text-2xl font-bold mb-6">Activity Stats</h2>
+                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+                             <CardContent className="p-6 space-y-6">
+                                <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
+                                <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
+                             </CardContent>
+                         </Card>
+                     </section>
                      <section>
                         <h2 className="font-headline text-2xl font-bold mb-6">Quick Tip</h2>
                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
