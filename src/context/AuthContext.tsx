@@ -5,6 +5,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, database } from '@/lib/firebase';
 import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update } from 'firebase/database';
+import { ftcJavaLessons } from '@/data/ftc-java-lessons';
+import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
+import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 
 
 export interface Notification {
@@ -31,6 +34,10 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {} });
+
+// Create a single source of truth for all lesson data
+const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
+const lessonsById = new Map(allLessons.map(l => [l.id, l]));
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -109,7 +116,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setNotifications(newNotifications);
         });
         
-        const PASS_THRESHOLD = 2 / 3;
         const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
         const lessonsSub = onValue(lessonsRef, (snapshot) => {
             const data: Record<string, number> = snapshot.val() || {};
@@ -117,13 +123,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLessonProgress(newLessonProgress);
 
             const newPassedLessonIds = new Set<string>();
+            const PASS_THRESHOLD = 2 / 3;
+
             newLessonProgress.forEach((score, lessonId) => {
-                // Specific hardcoded checks for final tests
-                if (lessonId === 'final-course-test') {
-                    if (score >= 17) newPassedLessonIds.add(lessonId);
-                } else if (lessonId === 'intermediate-final-test') {
-                    if (score >= 4) newPassedLessonIds.add(lessonId);
-                } else if (score >= PASS_THRESHOLD) { // General check for quizzes
+                const lesson = lessonsById.get(lessonId);
+                if (!lesson) return; // Skip if the lesson isn't in our known list
+
+                let isPassed = false;
+                if (lesson.type === 'test' && lesson.passingScore) {
+                    // For tests, the score is a raw value. Compare against the test's passingScore.
+                    if (score >= lesson.passingScore) {
+                        isPassed = true;
+                    }
+                } else if (lesson.type !== 'test') {
+                    // For lessons/quizzes, the score is a percentage (0-1).
+                    if (score >= PASS_THRESHOLD) {
+                        isPassed = true;
+                    }
+                }
+
+                if (isPassed) {
                     newPassedLessonIds.add(lessonId);
                 }
             });
