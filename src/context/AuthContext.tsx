@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean;
   notifications: Notification[];
   markNotificationsAsRead: () => void;
-  lessonProgress: Map<string, number>; // lessonId -> score (0 to 1)
+  lessonProgress: Map<string, number>; // lessonId -> score (0 to 1 for quizzes, raw for tests)
   passedLessonIds: Set<string>;
   updateLessonProgress: (lessonId: string, score: number) => void;
   resetAllProgress: () => void;
@@ -118,9 +118,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             const newPassedLessonIds = new Set<string>();
             newLessonProgress.forEach((score, lessonId) => {
+                // Specific hardcoded checks for final tests
                 if (lessonId === 'final-course-test') {
                     if (score >= 17) newPassedLessonIds.add(lessonId);
-                } else if (score >= PASS_THRESHOLD) {
+                } else if (lessonId === 'intermediate-final-test') {
+                    if (score >= 4) newPassedLessonIds.add(lessonId);
+                } else if (score >= PASS_THRESHOLD) { // General check for quizzes
                     newPassedLessonIds.add(lessonId);
                 }
             });

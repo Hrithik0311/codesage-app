@@ -4,10 +4,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { ftcJavaLessons } from '@/data/ftc-java-lessons';
+import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import FtcJavaCourseLayout from '@/app/learning/FtcJavaCourseLayout';
 
-export default function LearningPageClient() {
+export default function IntermediateLearningPageClient() {
   const { user, loading, passedLessonIds } = useAuth();
   const router = useRouter();
 
@@ -15,15 +15,14 @@ export default function LearningPageClient() {
     if (!loading) {
       if (passedLessonIds.has('intermediate-final-test')) {
         router.replace('/learning/advanced');
-      } else if (passedLessonIds.has('final-course-test')) {
-        router.replace('/learning/intermediate');
+      } else if (!passedLessonIds.has('final-course-test')) {
+        // If for some reason user got here without passing beginner course, send them back
+        router.replace('/learning');
       }
     }
   }, [loading, passedLessonIds, router]);
 
-  // While loading auth state, or if we know we are about to redirect,
-  // show a loading spinner to prevent the beginner course from flashing.
-  if (loading || (!loading && (passedLessonIds.has('final-course-test') || passedLessonIds.has('intermediate-final-test')))) {
+  if (loading || !user || (!loading && !passedLessonIds.has('final-course-test'))) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background/70 backdrop-blur-xl">
         <div className="loading-spinner"></div>
@@ -31,10 +30,10 @@ export default function LearningPageClient() {
     );
   }
 
-  // Otherwise, show the beginner course.
+  // Show intermediate course
   return (
     <div className="relative z-10 min-h-screen">
-      <FtcJavaCourseLayout lessons={ftcJavaLessons} courseTitle="Beginner FTC Java" nextCoursePath="/learning/intermediate" />
+      <FtcJavaCourseLayout lessons={ftcJavaLessonsIntermediate} courseTitle="Intermediate FTC Java" nextCoursePath="/learning/advanced" />
     </div>
   );
 }

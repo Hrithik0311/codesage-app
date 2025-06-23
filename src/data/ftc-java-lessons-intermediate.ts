@@ -471,5 +471,79 @@ while (opModeIsActive()) {
         explanation: 'The OpMode is the "conductor." It tells each subsystem what its goal is (e.g., `lift.goToPosition()`) and then repeatedly calls `update()` on all of them, allowing each one to run its own logic in parallel without blocking.'
       }
     ]
+  },
+  {
+    id: 'intermediate-final-test',
+    type: 'test',
+    title: 'Intermediate Final Test',
+    isFinalTestForCourse: true,
+    passingScore: 4,
+    content: [
+      {
+        type: LessonContentType.Heading,
+        text: 'Intermediate Course Test',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'This test covers the intermediate lessons. You must score at least 4 out of 5 to pass and unlock the advanced course. Good luck!',
+      }
+    ],
+    quiz: [
+      {
+        question: "In Road Runner, what is the most important prerequisite for accurate path following?",
+        options: [
+          "Having a fast robot.",
+          "A precise and thorough tuning process of the robot's physical and dynamic properties.",
+          "Using the largest possible wheels.",
+          "Writing very long trajectories."
+        ],
+        correctAnswer: "A precise and thorough tuning process of the robot's physical and dynamic properties.",
+        explanation: "Road Runner's accuracy is fundamentally dependent on having an accurate model of the robot. The tuning process provides the essential constants for this model."
+      },
+      {
+        question: "You want to raise a lift halfway through a `splineTo()` maneuver in Road Runner. Which type of marker is best suited for this?",
+        options: [
+          "Temporal Marker",
+          "Spatial Marker",
+          "Displacement Marker",
+          "Spline Marker"
+        ],
+        correctAnswer: "Displacement Marker",
+        explanation: "A Displacement Marker triggers after a specific distance has been traveled along the path, making it ideal for actions that need to occur at a percentage of a movement's completion."
+      },
+      {
+        question: "Why is it a good practice to disable the TensorFlow (TFOD) processor in your `VisionPortal` after it's no longer needed in an OpMode?",
+        options: [
+          "To save battery.",
+          "To free up significant CPU resources, leading to better overall robot performance.",
+          "The rules require it.",
+          "To prevent the camera from overheating."
+        ],
+        correctAnswer: "To free up significant CPU resources, leading to better overall robot performance.",
+        explanation: "Vision processing is one of the most CPU-intensive tasks. Turning it off when not needed allows the robot controller to dedicate more processing power to other critical tasks like motor control loops."
+      },
+      {
+        question: "What is the primary problem with putting a `while(motor.isBusy())` loop inside your main TeleOp `while(opModeIsActive())` loop?",
+        options: [
+          "It makes the code harder to read.",
+          "It is 'blocking code' that freezes the entire loop, preventing gamepad inputs from being read and making the robot unresponsive.",
+          "It can cause the motor to burn out.",
+          "It uses too much telemetry."
+        ],
+        correctAnswer: "It is 'blocking code' that freezes the entire loop, preventing gamepad inputs from being read and making the robot unresponsive.",
+        explanation: "Any code that waits or sleeps inside the main TeleOp loop will stop the loop from repeating quickly, which is essential for responsive driver control. This logic should be handled asynchronously."
+      },
+      {
+        question: "In Road Runner, what is the main functional difference between `.lineTo()` and `.splineTo()`?",
+        options: [
+          "`.lineTo()` is for autonomous, `.splineTo()` is for TeleOp.",
+          "`.lineTo()` moves in a straight line, while `.splineTo()` allows for smooth, curved paths by changing heading and position simultaneously.",
+          "`.splineTo()` is less accurate than `.lineTo()`.",
+          "There is no functional difference."
+        ],
+        correctAnswer: "`.lineTo()` moves in a straight line, while `.splineTo()` allows for smooth, curved paths by changing heading and position simultaneously.",
+        explanation: "Splines are what give Road Runner its characteristic fluid motion, enabling the robot to follow complex curves efficiently."
+      }
+    ]
   }
 ];

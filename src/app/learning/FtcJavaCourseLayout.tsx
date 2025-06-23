@@ -17,9 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
   courseTitle?: string;
+  nextCoursePath?: string;
 }
 
-const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, courseTitle = "FTC Java Course" }) => {
+const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, courseTitle = "FTC Java Course", nextCoursePath }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -72,20 +73,27 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
 
 
   const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
-    const isFinalTest = lessonId === 'final-course-test';
-    const scoreToStore = isFinalTest ? rawScore : (totalQuestions > 0 ? rawScore / totalQuestions : 1);
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (!lesson) return;
+
+    const scoreToStore = lesson.type === 'test' ? rawScore : (totalQuestions > 0 ? rawScore / totalQuestions : 1);
     updateLessonProgress(lessonId, scoreToStore);
     
     const PASS_THRESHOLD = 2 / 3;
-    const isPassed = isFinalTest ? rawScore >= 17 : scoreToStore >= PASS_THRESHOLD;
+    let isPassed;
+    if (lesson.type === 'test' && lesson.passingScore) {
+        isPassed = rawScore >= lesson.passingScore;
+    } else {
+        isPassed = scoreToStore >= PASS_THRESHOLD;
+    }
 
     if (isPassed) {
-       if (isFinalTest) {
+       if (lesson.isFinalTestForCourse && nextCoursePath) {
             toast({
                 title: "Course Complete!",
-                description: "Congratulations! You've unlocked the intermediate lessons.",
+                description: `Congratulations! You've unlocked the next course.`,
             });
-            router.push('/learning/intermediate');
+            router.push(nextCoursePath);
             return;
         }
 
@@ -104,7 +112,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
        toast({
           variant: "destructive",
           title: "Quiz Failed",
-          description: isFinalTest ? `You need to score at least 17 points to pass. Please try again.` : `You need to score at least 67% to pass. Please try again.`,
+          description: lesson.type === 'test' && lesson.passingScore ? `You need to score at least ${lesson.passingScore} to pass. Please try again.` : `You need to score at least 67% to pass. Please try again.`,
        });
     }
   };

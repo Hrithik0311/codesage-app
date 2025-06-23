@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import type { Lesson, LessonContentItem, QuizItem } from '@/data/ftc-java-lessons';
+import type { Lesson, QuizItem } from '@/data/ftc-java-lessons';
 import { LessonContentType } from '@/data/ftc-java-lessons';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -74,8 +74,17 @@ const InteractiveQuiz = ({ lesson, quiz, onComplete }: { lesson: Lesson; quiz: Q
     if (quizCompleted) {
         const finalScore = score;
         const totalQuestions = quiz.length;
-        const isFinalTest = lesson.id === 'final-course-test';
-        const isPassed = isFinalTest ? finalScore >= 17 : (totalQuestions > 0 ? (finalScore / totalQuestions) >= (2/3) : true);
+        const PASS_THRESHOLD = 2 / 3;
+
+        let isPassed;
+        let passMessage;
+        if (lesson.type === 'test' && lesson.passingScore) {
+            isPassed = finalScore >= lesson.passingScore;
+            passMessage = `You need to score at least ${lesson.passingScore} to pass. Please try again.`
+        } else {
+            isPassed = (totalQuestions > 0 ? (finalScore / totalQuestions) >= PASS_THRESHOLD : true);
+            passMessage = "You need to score at least 67% to pass. Please try again.";
+        }
 
         return (
             <div className="text-center p-8 bg-muted/30 rounded-lg border border-border/50">
@@ -85,14 +94,14 @@ const InteractiveQuiz = ({ lesson, quiz, onComplete }: { lesson: Lesson; quiz: Q
                 {isPassed ? (
                     <p className="text-green-400 font-semibold mt-1">You passed!</p>
                 ) : (
-                    <p className="text-red-400 font-semibold mt-1">{isFinalTest ? "You need to score at least 17 to continue." : "You need to score at least 67% to pass. Please try again."}</p>
+                    <p className="text-red-400 font-semibold mt-1">{passMessage}</p>
                 )}
 
                 <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
                     <Button onClick={handleTryAgain} variant="outline">
                         Try Again
                     </Button>
-                    <Button onClick={handleQuizFinish} disabled={isFinalTest && !isPassed} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                    <Button onClick={handleQuizFinish} disabled={lesson.isFinalTestForCourse && !isPassed} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
                         Continue
                     </Button>
                 </div>

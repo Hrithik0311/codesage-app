@@ -29,6 +29,8 @@ export interface Lesson {
   type: 'placement' | 'lesson' | 'test';
   content: LessonContentItem[];
   quiz: QuizItem[];
+  isFinalTestForCourse?: boolean;
+  passingScore?: number; // Raw score for tests
 }
 
 export const ftcJavaLessons: Lesson[] = [
@@ -522,10 +524,10 @@ rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         explanation: 'Encoders are feedback devices that are essential for accurate and repeatable autonomous movements.'
       },
       {
-        question: 'Which `RunMode` must you set the motor to before calling `setTargetPosition()`?',
-        options: ['RUN_USING_ENCODER', 'RUN_TO_POSITION', 'STOP_AND_RESET_ENCODER', 'You can set it anytime.'],
-        correctAnswer: 'STOP_AND_RESET_ENCODER',
-        explanation: 'You must first stop the motor and reset its internal tick counter to zero before setting a new target. This ensures your movement is relative to the current position.',
+        question: 'Which `RunMode` must you set the motor to before setting a new target with `setTargetPosition()`?',
+        options: ['RUN_USING_ENCODER', 'RUN_TO_POSITION', 'STOP_AND_RESET_ENCODER', 'RUN_WITHOUT_ENCODER'],
+        correctAnswer: 'RUN_TO_POSITION',
+        explanation: 'The motor needs to be in `RUN_TO_POSITION` mode for the controller to actively use the encoder feedback to drive to the specified target. `STOP_AND_RESET_ENCODER` should be done before setting the target to ensure movement is relative.'
       },
       {
         question: 'What does the `isBusy()` method tell you when a motor is in `RUN_TO_POSITION` mode?',
@@ -980,9 +982,9 @@ double frontLeftPower = (rotY + rotX + rx) / denominator;
         explanation: 'Field-centric drive makes "forward" on the joystick always correspond to a single direction on the field, making it much more intuitive to drive.'
       },
       {
-        question: 'Which method call resets the robot\'s current heading to be the new zero-degree reference?',
-        options: ['`imu.reboot()`', '`imu.resetYaw()`', '`imu.getYaw()`', '`imu.initialize()`'],
-        correctAnswer: '`imu.resetYaw()`',
+        question: 'What does the method `imu.resetYaw()` do?',
+        options: ['It reboots the IMU.', 'It sets the current heading of the robot to be the new zero-degree reference point.', 'It gets the current yaw value.', 'It initializes the IMU from scratch.'],
+        correctAnswer: 'It sets the current heading of the robot to be the new zero-degree reference point.',
         explanation: '`resetYaw()` sets the current yaw angle to be the new zero point. This is very useful to do at the beginning of an OpMode or even with a button press during the match to re-orient the field-centric controls if needed.'
       }
     ]
@@ -1157,7 +1159,7 @@ telemetry.update();
     content: [
       {
         type: LessonContentType.Paragraph,
-        text: 'While AprilTags are great for localization, sometimes you need to identify game-specific objects, like a decorated Team Prop. For this, FTC provides a **TensorFlow Object Detection (TFOD)** processor. You can train your own custom machine learning model to recognize specific objects.'
+        text: 'While AprilTags are great for localization, sometimes you need to identify game-specific objects, like a decorated Team Prop. For this, FTC provides a **TensorFlow Object Detection (TFOD)** processor. You can train your own machine learning model to recognize specific objects.'
       },
       { type: LessonContentType.Heading, text: 'Setting up the TFOD Processor' },
       {
@@ -1296,7 +1298,9 @@ telemetry.update();
   {
     id: 'final-course-test',
     type: 'test',
-    title: 'Final Course Test',
+    title: 'Beginner Final Test',
+    isFinalTestForCourse: true,
+    passingScore: 17,
     content: [
       {
         type: LessonContentType.Heading,
@@ -1304,7 +1308,7 @@ telemetry.update();
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'This final test covers concepts from all the previous lessons. You must score at least 67% to pass the course. Good luck!'
+        text: 'This final test covers concepts from all the beginner lessons. You must score at least 17/21 to pass the course and unlock intermediate lessons. Good luck!'
       }
     ],
     quiz: [

@@ -51,7 +51,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
 
   const handleResetIntermediate = () => {
     const intermediateLessonIds = lessons.map(l => l.id);
-    resetCourseProgress(intermediateLessonIds);
+    // Also remove the advanced course progress if any exists
+    const advancedCourseIds = ['advanced-lesson1']; // This should be dynamic if more are added
+    resetCourseProgress([...intermediateLessonIds, ...advancedCourseIds]);
     if (lessons.length > 0) {
       onSelectLesson(lessons[0].id);
     }
@@ -62,6 +64,13 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
     // No explicit navigation needed here. The LearningPageClient component
     // will detect the change in progress and redirect to the beginner course.
   };
+
+  const getUnlockMessage = (lesson: Lesson) => {
+    if (lesson.isFinalTestForCourse) {
+      return "Pass all lessons in this course to unlock";
+    }
+    return "Pass previous lesson to unlock";
+  }
 
   return (
     <nav className="w-full md:w-80 bg-card/70 backdrop-blur-md p-3 md:p-5 rounded-xl shadow-xl border border-border/30 md:sticky md:top-[calc(theme(spacing.4)_+_6rem)] max-h-[40vh] md:max-h-[calc(100vh-12rem)] mb-4 md:mb-0 flex flex-col">
@@ -84,21 +93,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                     const isActive = lesson.id === activeLessonId;
                     const Icon = getIconForLesson(lesson.type);
 
-                    let isUnlocked;
-                    if (lesson.id === 'final-course-test') {
-                        // The final test is unlocked if all previous lessons are passed
-                        isUnlocked = lessons.slice(0, index).every(l => passedLessonIds.has(l.id));
-                    } else if (isIntermediateCourse) {
-                        // An intermediate lesson is unlocked if the final beginner test is passed
-                        // AND the previous intermediate lesson is passed (or it's the first one).
-                        const hasAccessToCourse = passedLessonIds.has('final-course-test');
-                        const previousLessonPassed = index === 0 || passedLessonIds.has(lessons[index - 1].id);
-                        isUnlocked = hasAccessToCourse && previousLessonPassed;
-                    }
-                    else {
-                        // A regular lesson is unlocked if it's the first one or the previous one is passed
-                        isUnlocked = index === 0 || passedLessonIds.has(lessons[index - 1].id);
-                    }
+                    // A lesson is unlocked if it's the first one in the course,
+                    // or if the previous lesson in the same course has been passed.
+                    const isUnlocked = index === 0 || passedLessonIds.has(lessons[index-1].id);
 
                     const nodeStateClasses = {
                         completed: "bg-green-500 border-green-400 text-white shadow-green-500/40",
@@ -131,7 +128,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                                     <p className="font-semibold">{lesson.title}</p>
-                                    {!isUnlocked && <p className="text-xs text-muted-foreground">{lesson.id === 'final-course-test' ? "Pass all lessons to unlock" : "Pass previous lesson to unlock"}</p>}
+                                    {!isUnlocked && <p className="text-xs text-muted-foreground">{getUnlockMessage(lesson)}</p>}
                                 </TooltipContent>
                             </Tooltip>
                         </li>
@@ -159,7 +156,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
                 <AlertDialogAction onClick={handleResetIntermediate}>
-                  Reset Intermediate Progress Only
+                  Reset Intermediate & Advanced Progress
                 </AlertDialogAction>
                 <AlertDialogAction
                   className={cn(buttonVariants({ variant: 'destructive' }), "mt-0")}
