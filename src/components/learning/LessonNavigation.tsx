@@ -25,7 +25,7 @@ interface LessonNavigationProps {
   lessons: Lesson[];
   activeLessonId: string | null;
   onSelectLesson: (lessonId: string) => void;
-  completedLessonIds: Set<string>;
+  passedLessonIds: Set<string>;
   onResetProgress: () => void;
 }
 
@@ -42,7 +42,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   lessons,
   activeLessonId,
   onSelectLesson,
-  completedLessonIds,
+  passedLessonIds,
   onResetProgress,
 }) => {
   const handleReset = () => {
@@ -69,10 +69,18 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
             <ul className="space-y-12 py-8 relative z-10">
                 <TooltipProvider>
                 {lessons.map((lesson, index) => {
-                    const isCompleted = completedLessonIds.has(lesson.id);
-                    const isUnlocked = index === 0 || completedLessonIds.has(lessons[index-1].id);
+                    const isPassed = passedLessonIds.has(lesson.id);
                     const isActive = lesson.id === activeLessonId;
                     const Icon = getIconForLesson(lesson.type);
+
+                    let isUnlocked;
+                    if (lesson.type === 'test') {
+                        // The test is unlocked if all previous lessons are passed
+                        isUnlocked = lessons.slice(0, index).every(l => passedLessonIds.has(l.id));
+                    } else {
+                        // A regular lesson is unlocked if it's the first one or the previous one is passed
+                        isUnlocked = index === 0 || passedLessonIds.has(lessons[index - 1].id);
+                    }
 
                     const nodeStateClasses = {
                         completed: "bg-green-500 border-green-400 text-white shadow-green-500/40",
@@ -82,7 +90,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                     };
 
                     let state: keyof typeof nodeStateClasses = 'locked';
-                    if (isCompleted) state = 'completed';
+                    if (isPassed) state = 'completed';
                     else if (isActive) state = 'active';
                     else if (isUnlocked) state = 'unlocked';
                     
@@ -100,12 +108,12 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                             !isUnlocked && "cursor-not-allowed"
                                         )}
                                     >
-                                        {isCompleted ? <Check size={32} /> : !isUnlocked ? <Lock size={28} /> : <Icon size={28} />}
+                                        {isPassed ? <Check size={32} /> : !isUnlocked ? <Lock size={28} /> : <Icon size={28} />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                                     <p className="font-semibold">{lesson.title}</p>
-                                    {!isUnlocked && <p className="text-xs text-muted-foreground">Complete previous lesson to unlock</p>}
+                                    {!isUnlocked && <p className="text-xs text-muted-foreground">{lesson.type === 'test' ? "Pass all lessons to unlock" : "Pass previous lesson to unlock"}</p>}
                                 </TooltipContent>
                             </Tooltip>
                         </li>

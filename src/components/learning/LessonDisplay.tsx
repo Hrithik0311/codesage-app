@@ -43,7 +43,7 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
-const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: () => void }) => {
+const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (score: number) => void }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -59,17 +59,26 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
         setQuizCompleted(false);
     }, [quiz]);
 
-    if (!quiz || quiz.length === 0) {
-        return null;
-    }
-    
-    // Safeguard against index out of bounds
+    const handleQuizFinish = () => {
+        const finalScore = quiz.length > 0 ? score / quiz.length : 1;
+        onComplete(finalScore);
+    };
+
     if (quizCompleted) {
+        const finalScore = quiz.length > 0 ? score / quiz.length : 1;
+        const isPassed = finalScore >= (2/3);
+
         return (
             <div className="text-center p-8 bg-muted/30 rounded-lg border border-border/50">
-                <Award className="mx-auto text-yellow-400 w-16 h-16 mb-4" />
+                <Award className={cn("mx-auto w-16 h-16 mb-4", isPassed ? "text-yellow-400" : "text-muted-foreground")} />
                 <h3 className="text-2xl font-bold font-headline">Quiz Complete!</h3>
-                <p className="text-lg mt-2">You scored {score} out of {quiz.length}!</p>
+                <p className="text-lg mt-2">You scored {score} out of {quiz.length}.</p>
+                {isPassed ? (
+                    <p className="text-green-400 font-semibold mt-1">You passed!</p>
+                ) : (
+                    <p className="text-red-400 font-semibold mt-1">You need to score at least 67% to pass. Please try again.</p>
+                )}
+
                 <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
                     <Button onClick={() => {
                         setQuizCompleted(false);
@@ -78,7 +87,7 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
                     }} variant="outline">
                         Try Again
                     </Button>
-                    <Button onClick={onComplete} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                    <Button onClick={handleQuizFinish} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
                         Continue
                     </Button>
                 </div>
@@ -177,10 +186,11 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
 
 interface LessonDisplayProps {
     lesson: Lesson;
-    onLessonComplete: () => void;
+    onLessonComplete: (lessonId: string, score: number) => void;
+    isPassed: boolean;
 }
 
-const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onLessonComplete }) => {
+const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onLessonComplete, isPassed }) => {
   const lessonContentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -199,9 +209,17 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onLessonComplete 
       
       {lesson.content.map(renderContentItem)}
 
-      {lesson.quiz && lesson.quiz.length > 0 && (
-        <InteractiveQuiz quiz={lesson.quiz} onComplete={onLessonComplete} />
-      )}
+      {lesson.quiz && lesson.quiz.length > 0 ? (
+        <InteractiveQuiz quiz={lesson.quiz} onComplete={(score) => onLessonComplete(lesson.id, score)} />
+      ) : !isPassed ? (
+         <div className="mt-12 text-center">
+            <Button onClick={() => onLessonComplete(lesson.id, 1.0)} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Mark as Complete
+            </Button>
+        </div>
+      ) : null}
+
       <style jsx>{`
         .animate-fadeInUpHeroCustom {
           animation: fadeInUpHeroCustom 0.8s ease-out forwards;

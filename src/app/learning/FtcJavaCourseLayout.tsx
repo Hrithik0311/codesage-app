@@ -22,7 +22,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const { user, loading, completeLesson, completedLessons, resetCompletedLessons } = useAuth();
+  const { user, loading, updateLessonProgress, passedLessonIds, resetCompletedLessons } = useAuth();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -50,28 +50,30 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   }, [lessons, handleSelectLesson]);
 
 
-  const handleLessonComplete = (lessonId: string) => {
-    if (completedLessons.has(lessonId)) {
-        const currentIndex = lessons.findIndex(l => l.id === lessonId);
-        if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
-            const nextLesson = lessons[currentIndex + 1];
-            handleSelectLesson(nextLesson.id);
-        }
-        return;
-    }
+  const handleLessonComplete = (lessonId: string, score: number) => {
+    updateLessonProgress(lessonId, score);
 
-    completeLesson(lessonId);
+    const PASS_THRESHOLD = 2 / 3;
+    const isPassed = score >= PASS_THRESHOLD;
 
-    const currentIndex = lessons.findIndex(l => l.id === lessonId);
-    if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
+    if (isPassed) {
+      const currentIndex = lessons.findIndex(l => l.id === lessonId);
+      if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
         const nextLesson = lessons[currentIndex + 1];
         handleSelectLesson(nextLesson.id);
-    } else {
+      } else if (currentIndex === lessons.length - 1) {
         toast({
             title: "Course Complete!",
             description: "Congratulations on finishing the course.",
         });
         router.push('/dashboard');
+      }
+    } else {
+       toast({
+          variant: "destructive",
+          title: "Quiz Failed",
+          description: `You need to score at least 67% to pass. Please try again.`,
+       });
     }
   };
 
@@ -116,12 +118,12 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
           lessons={lessons}
           activeLessonId={activeLessonId}
           onSelectLesson={handleSelectLesson}
-          completedLessonIds={completedLessons}
+          passedLessonIds={passedLessonIds}
           onResetProgress={resetCompletedLessons}
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (
-            <LessonDisplay lesson={activeLesson} onLessonComplete={() => handleLessonComplete(activeLesson.id)} />
+            <LessonDisplay lesson={activeLesson} onLessonComplete={handleLessonComplete} isPassed={passedLessonIds.has(activeLesson.id)} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Trophy size={64} className="text-primary mb-6 opacity-70" />

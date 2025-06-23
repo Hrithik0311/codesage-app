@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, database } from '@/lib/firebase';
-import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, get } from 'firebase/database';
+import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove } from 'firebase/database';
 
 
 export interface Notification {
@@ -23,18 +23,21 @@ interface AuthContextType {
   loading: boolean;
   notifications: Notification[];
   markNotificationsAsRead: () => void;
-  completedLessons: Set<string>;
-  completeLesson: (lessonId: string) => void;
+  lessonProgress: Map<string, number>; // lessonId -> score (0 to 1)
+  passedLessonIds: Set<string>;
+  updateLessonProgress: (lessonId: string, score: number) => void;
   resetCompletedLessons: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, completedLessons: new Set(), completeLesson: () => {}, resetCompletedLessons: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetCompletedLessons: () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [completedLessons, setCompletedLessons] = useState(new Set<string>());
+  const [lessonProgress, setLessonProgress] = useState(new Map<string, number>());
+  const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
+
 
   // Effect to handle basic auth state changes
   useEffect(() => {
@@ -104,12 +107,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             })).sort((a, b) => b.timestamp - a.timestamp);
             setNotifications(newNotifications);
         });
-
-        const lessonsRef = dbRef(database, `users/${user.uid}/completedLessons`);
+        
+        const PASS_THRESHOLD = 2 / 3;
+        const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
         const lessonsSub = onValue(lessonsRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            setCompletedLessons(new Set(Object.keys(data)));
+            const data: Record<string, number> = snapshot.val() || {};
+            const newLessonProgress = new Map(Object.entries(data));
+            setLessonProgress(newLessonProgress);
+
+            const newPassedLessonIds = new Set<string>();
+            newLessonProgress.forEach((score, lessonId) => {
+                if (score >= PASS_THRESHOLD) {
+                    newPassedLessonIds.add(lessonId);
+                }
+            });
+            setPassedLessonIds(newPassedLessonIds);
         });
+
 
         // This is the cleanup function for THIS effect.
         return () => {
@@ -129,7 +143,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       } else {
         setNotifications([]);
-        setCompletedLessons(new Set());
+        setLessonProgress(new Map());
+        setPassedLessonIds(new Set());
       }
   }, [user]);
 
@@ -142,27 +157,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const completeLesson = (lessonId: string) => {
-    if (user && database && !completedLessons.has(lessonId)) {
-        const newCompletedLessons = new Set(completedLessons);
-        newCompletedLessons.add(lessonId);
-        setCompletedLessons(newCompletedLessons);
-
-        const lessonRef = dbRef(database, `users/${user.uid}/completedLessons/${lessonId}`);
-        set(lessonRef, true);
+  const updateLessonProgress = (lessonId: string, score: number) => {
+    if (user && database) {
+        const lessonRef = dbRef(database, `users/${user.uid}/lessonProgress/${lessonId}`);
+        set(lessonRef, score);
     }
   };
 
   const resetCompletedLessons = () => {
     if (user && database) {
-      const lessonsRef = dbRef(database, `users/${user.uid}/completedLessons`);
+      const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
       remove(lessonsRef).then(() => {
-        setCompletedLessons(new Set());
+        setLessonProgress(new Map());
+        setPassedLessonIds(new Set());
       });
     }
   };
 
-  const value = { user, loading, notifications, markNotificationsAsRead, completedLessons, completeLesson, resetCompletedLessons };
+  const value = { user, loading, notifications, markNotificationsAsRead, lessonProgress, passedLessonIds, updateLessonProgress, resetCompletedLessons };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
