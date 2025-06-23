@@ -109,7 +109,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
     quiz: [
       {
         question: 'What is the purpose of the `@TeleOp` annotation?',
-        options: ['To start the robot moving.', 'To connect to the Wi-Fi.', 'To register the OpMode on the Driver Hub list.', 'To declare a new variable.'],
+        options: ['To start the robot moving.', 'To connect to the Wi-Fi.', 'To declare a new variable.', 'To register the OpMode on the Driver Hub list.'],
         correctAnswer: 'To register the OpMode on the Driver Hub list.',
         explanation: 'The `@TeleOp(...)` annotation tells the FTC app that this class is a runnable OpMode and defines the name and group that will appear on the selection screen.',
       },
@@ -121,7 +121,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
       },
       {
         question: 'What does the `while (opModeIsActive())` loop do?',
-        options: ['Creates a loop that repeats until STOP is pressed.', 'Handles all hardware initialization.', 'Runs the code inside it a single time.', 'Checks the OpMode for syntax errors.'],
+        options: ['Runs the code inside it a single time.', 'Checks the OpMode for syntax errors.', 'Handles all hardware initialization.', 'Creates a loop that repeats until STOP is pressed.'],
         correctAnswer: 'Creates a loop that repeats until STOP is pressed.',
         explanation: 'This is the main run loop. `opModeIsActive()` is `true` after PLAY is pressed and becomes `false` when STOP is pressed, ending the loop.',
       },
@@ -185,13 +185,13 @@ public void runOpMode() {
       },
       {
         question: 'What happens if the name in `hardwareMap.get(DcMotor.class, "motor_A")` is `"motor_a"` in the robot configuration?',
-        options: ['The code will crash when you press INIT.', 'Nothing, it is case-insensitive.', 'The app will ask you to rename it.', 'The motor runs at half speed.'],
+        options: ['The motor runs at half speed.', 'Nothing, it is case-insensitive.', 'The app will ask you to rename it.', 'The code will crash when you press INIT.'],
         correctAnswer: 'The code will crash when you press INIT.',
         explanation: 'The names are case-sensitive and must match exactly. `"motor_A"` is not the same as `"motor_a"`. This would cause a `HardwareDeviceNotFoundException`.',
       },
       {
         question: 'Where should you typically map your hardware?',
-        options: ['In the section after `waitForStart()`.', 'In the INIT phase, before `waitForStart()`.', 'In a separate, unused file.', 'Inside the main `while` loop.'],
+        options: ['In a separate, unused file.', 'In the INIT phase, before `waitForStart()`.', 'In the section after `waitForStart()`.', 'Inside the main `while` loop.'],
         correctAnswer: 'In the INIT phase, before `waitForStart()`.',
         explanation: 'Hardware mapping is a setup task that only needs to be done once at the beginning of the program, so it belongs in the INIT phase.',
       },
@@ -254,19 +254,19 @@ if (gamepad1.a) {
     quiz: [
       {
         question: 'What is the valid range for motor power values passed to `.setPower()`?',
-        options: ['0 to 100', '-1.0 to 1.0', '0.0 to 1.0', '-100 to 100'],
+        options: ['0.0 to 1.0', '0 to 100', '-100 to 100', '-1.0 to 1.0'],
         correctAnswer: '-1.0 to 1.0',
         explanation: 'Motor power is represented as a decimal from -1.0 (full reverse) to 1.0 (full forward), with 0 indicating the motor should stop.',
       },
       {
         question: 'If you want your robot to drive forward, and the motors on the right side are spinning the wrong way, what should you do?',
-        options: ['Set their power to a negative value in the loop.', 'Physically remount the motors.', 'Replace the motors.', 'Set their direction to `REVERSE` during initialization.'],
+        options: ['Replace the motors.', 'Physically remount the motors.', 'Set their power to a negative value in the loop.', 'Set their direction to `REVERSE` during initialization.'],
         correctAnswer: 'Set their direction to `REVERSE` during initialization.',
         explanation: '`motor.setDirection(DcMotor.Direction.REVERSE)` is the standard way to account for the mirrored mounting of motors on a drivetrain.',
       },
       {
         question: 'What is the main difference between a DC motor and a standard servo?',
-        options: ['Motors are generally more powerful.', 'Servos are more power-efficient.', 'Motors spin continuously; servos move to an angle.', 'Servos can spin much faster.'],
+        options: ['Servos are more power-efficient.', 'Servos can spin much faster.', 'Motors are generally more powerful.', 'Motors spin continuously; servos move to an angle.'],
         correctAnswer: 'Motors spin continuously; servos move to an angle.',
         explanation: 'You set a "power" for a motor to make it spin, but you set a "position" for a servo to make it move to and hold a specific angle.',
       },
@@ -346,13 +346,13 @@ if (clawIsOpen) {
     quiz: [
       {
         question: 'In the code `double y = -gamepad1.left_stick_y;`, why is the value often negated (multiplied by -1)?',
-        options: ['To make the motor spin in reverse.', 'To convert the value to an integer.', 'To invert the stick\'s negative-up value.', 'It is a required part of Java syntax.'],
+        options: ['To make the motor spin in reverse.', 'To convert the value to an integer.', 'It is a required part of Java syntax.', 'To invert the stick\'s negative-up value.'],
         correctAnswer: 'To invert the stick\'s negative-up value.',
         explanation: 'By convention for most controllers, pushing a joystick forward results in a negative Y value. We multiply by -1 so that pushing forward on the stick corresponds to positive motor power.',
       },
       {
         question: 'What data type does a button like `gamepad1.left_bumper` return?',
-        options: ['boolean', 'double', 'String', 'int'],
+        options: ['int', 'double', 'String', 'boolean'],
         correctAnswer: 'boolean',
         explanation: 'Buttons are digital inputs; they are either pressed (`true`) or not pressed (`false`).',
       },
@@ -438,7 +438,7 @@ telemetry.update();`
     quiz: [
       {
         question: 'What is a good use for a touch sensor on a linear slide?',
-        options: ['Acts as a limit switch for mechanism endpoints.', 'Detects the color of the slide.', 'Measures the speed of the slide.', 'Measures distance to a nearby wall.'],
+        options: ['Measures the speed of the slide.', 'Detects the color of the slide.', 'Measures distance to a nearby wall.', 'Acts as a limit switch for mechanism endpoints.'],
         correctAnswer: 'Acts as a limit switch for mechanism endpoints.',
         explanation: 'A touch sensor placed at the end of a mechanism\'s travel can provide a definitive signal to stop the motor, preventing damage.'
       },
@@ -450,7 +450,7 @@ telemetry.update();`
       },
       {
         question: 'If a color sensor is over a pure white surface on the FTC field, what would you expect from the RGB values?',
-        options: ['All values would be very low (near 0).', 'All values (Red, Green, Blue) would be very high.', 'The red value would be high, others low.', 'The blue value would be high, others low.'],
+        options: ['The red value would be high, others low.', 'The blue value would be high, others low.', 'All values would be very low (near 0).', 'All values (Red, Green, Blue) would be very high.'],
         correctAnswer: 'All values (Red, Green, Blue) would be very high.',
         explanation: 'A white surface reflects all colors of light, so the sensor\'s red, green, and blue detectors would all report high values.'
       }
@@ -519,13 +519,13 @@ rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     quiz: [
       {
         question: 'What is the main purpose of a motor encoder?',
-        options: ['To make the motor spin faster.', 'To provide feedback on how far the motor has rotated.', 'To measure the motor\'s temperature.', 'To change the motor\'s direction.'],
+        options: ['To change the motor\'s direction.', 'To measure the motor\'s temperature.', 'To make the motor spin faster.', 'To provide feedback on how far the motor has rotated.'],
         correctAnswer: 'To provide feedback on how far the motor has rotated.',
         explanation: 'Encoders are feedback devices that are essential for accurate and repeatable autonomous movements.'
       },
       {
         question: 'Which `RunMode` must you set the motor to before setting a new target with `setTargetPosition()`?',
-        options: ['RUN_USING_ENCODER', 'STOP_AND_RESET_ENCODER', 'RUN_TO_POSITION', 'RUN_WITHOUT_ENCODER'],
+        options: ['RUN_USING_ENCODER', 'STOP_AND_RESET_ENCODER', 'RUN_WITHOUT_ENCODER', 'RUN_TO_POSITION'],
         correctAnswer: 'RUN_TO_POSITION',
         explanation: 'The motor needs to be in `RUN_TO_POSITION` mode for the controller to actively use the encoder feedback to drive to the specified target. `STOP_AND_RESET_ENCODER` should be done before setting the target to ensure movement is relative.'
       },
@@ -632,13 +632,13 @@ public class MyTeleOp extends LinearOpMode {
     quiz: [
       {
         question: 'What is the main advantage of using a hardware class?',
-        options: ['It increases the robot\'s maximum speed.', 'It centralizes hardware mapping to reduce duplicate code.', 'It is a requirement from the official game manual.', 'It reduces the memory usage of the OpMode.'],
+        options: ['It increases the robot\'s maximum speed.', 'It reduces the memory usage of the OpMode.', 'It is a requirement from the official game manual.', 'It centralizes hardware mapping to reduce duplicate code.'],
         correctAnswer: 'It centralizes hardware mapping to reduce duplicate code.',
         explanation: 'By putting all hardware mapping in one class, you avoid duplicating code in every OpMode. If you change a motor name, you only have to update it in one place.'
       },
       {
         question: 'How does the OpMode get the `hardwareMap` to pass to the hardware class\'s `init` method?',
-        options: ['The OpMode creates a new `hardwareMap`.', 'It\'s an inherited variable from `LinearOpMode`.', 'It is read from a file on the controller.', 'The hardware class does not use a `hardwareMap`.'],
+        options: ['It\'s an inherited variable from `LinearOpMode`.', 'The OpMode creates a new `hardwareMap`.', 'It is read from a file on the controller.', 'The hardware class does not use a `hardwareMap`.'],
         correctAnswer: 'It\'s an inherited variable from `LinearOpMode`.',
         explanation: 'When your OpMode class `extends LinearOpMode`, it inherits the `hardwareMap` variable, which is populated by the FTC SDK when you press INIT.'
       },
@@ -726,19 +726,19 @@ switch (currentState) {
     quiz: [
       {
         question: 'Why is a state machine better than using a series of `sleep()` commands for autonomous?',
-        options: ['It uses significantly less memory.', 'It\'s more reliable as it waits for events, not just time.', 'It always executes the routine faster.', 'It makes the code look more complex.'],
+        options: ['It uses significantly less memory.', 'It makes the code look more complex.', 'It always executes the routine faster.', 'It\'s more reliable as it waits for events, not just time.'],
         correctAnswer: 'It\'s more reliable as it waits for events, not just time.',
         explanation: 'A state machine is event-driven (waiting for motors to finish, sensors to trigger, etc.), which makes it robust against variations in battery voltage or field conditions. Time-based routines are very brittle.'
       },
       {
         question: 'What is the purpose of an `enum` in a state machine?',
-        options: ['To perform complex math calculations.', 'Counts the total number of states.', 'Defines clear, named constants for each state.', 'Stores the values from robot sensors.'],
+        options: ['Stores the values from robot sensors.', 'Counts the total number of states.', 'Performs complex math calculations.', 'Defines clear, named constants for each state.'],
         correctAnswer: 'Defines clear, named constants for each state.',
         explanation: 'Using an `enum` like `State.DRIVE_TO_BACKDROP` makes the code much more readable and less error-prone than using magic numbers (e.g., `if (state == 2)`).'
       },
       {
         question: 'In a `switch` statement, what is the purpose of the `break;` keyword?',
-        options: ['Stops the robot\'s current movement.', 'Exits the `switch` block to prevent "fall-through".', 'Pauses the program for one second.', 'Ends the OpMode immediately.'],
+        options: ['Pauses the program for one second.', 'Ends the OpMode immediately.', 'Stops the robot\'s current movement.', 'Exits the `switch` block to prevent "fall-through".'],
         correctAnswer: 'Exits the `switch` block to prevent "fall-through".',
         explanation: 'Without `break;`, the code will "fall through" and execute the code in the next case as well. This is a common bug, so always remember to `break;` at the end of each case block.'
       }
@@ -805,19 +805,19 @@ backRightMotor.setPower(backRightPower);
     quiz: [
       {
         question: 'What is "holonomic motion" in the context of a mecanum drivetrain?',
-        options: ['The robot is faster than a tank drive.', 'The ability to move in any direction and rotate simultaneously.', 'The robot uses fewer motors.', 'The robot is easier to build.'],
+        options: ['The robot is faster than a tank drive.', 'The robot uses fewer motors.', 'The robot is easier to build.', 'The ability to move in any direction and rotate simultaneously.'],
         correctAnswer: 'The ability to move in any direction and rotate simultaneously.',
         explanation: 'Holonomic means the robot has 3 degrees of freedom (X, Y, and rotation) on a 2D plane, giving it superior agility.'
       },
       {
         question: 'In the provided code, what is the purpose of the `denominator` variable?',
-        options: ['Adds unnecessary complexity to the math.', 'Normalizes wheel powers to maintain movement ratios.', 'Slows down the robot\'s overall speed.', 'Calculates the robot\'s current speed.'],
+        options: ['Slows down the robot\'s overall speed.', 'Adds unnecessary complexity to the math.', 'Calculates the robot\'s current speed.', 'Normalizes wheel powers to maintain movement ratios.'],
         correctAnswer: 'Normalizes wheel powers to maintain movement ratios.',
         explanation: 'Without normalization, commanding a diagonal movement could result in calculated powers greater than 1.0, which would be clipped and distort the robot\'s movement. The denominator scales everything down proportionally.'
       },
       {
         question: 'If your robot is trying to strafe right but is instead moving forward and turning, what is the most likely problem?',
-        options: ['The robot\'s battery is low.', 'A motor has an incorrect direction or port assignment.', 'The driver\'s gamepad is broken.', 'The playing surface is too slippery.'],
+        options: ['The playing surface is too slippery.', 'The driver\'s gamepad is broken.', 'The robot\'s battery is low.', 'A motor has an incorrect direction or port assignment.'],
         correctAnswer: 'A motor has an incorrect direction or port assignment.',
         explanation: 'Mecanum drive is very sensitive to correct motor directions and port assignments. Incorrect behavior is almost always a result of a misconfiguration in either the physical wiring or the software directions.'
       }
@@ -881,19 +881,19 @@ telemetry.update();
     quiz: [
       {
         question: 'What is the "error" in a PID controller?',
-        options: ['The difference between the target position and the current position.', 'A mistake in the code.', 'The amount of power being used.', 'The time elapsed.'],
+        options: ['A mistake in the code.', 'The amount of power being used.', 'The time elapsed.', 'The difference between the target position and the current position.'],
         correctAnswer: 'The difference between the target position and the current position.',
         explanation: 'The entire PID algorithm is based on calculating the error and applying a corrective output to drive that error to zero.'
       },
       {
         question: 'In a P-controller for an arm, if you increase the `kP` value too much, what is likely to happen?',
-        options: ['The arm will move very slowly.', 'The battery will drain much faster.', 'The arm will oscillate around the target.', 'The arm will fail to move at all.'],
+        options: ['The arm will move very slowly.', 'The battery will drain much faster.', 'The arm will fail to move at all.', 'The arm will oscillate around the target.'],
         correctAnswer: 'The arm will oscillate around the target.',
         explanation: 'A high `kP` gain makes the controller very aggressive. It will overshoot the target, then overcorrect in the other direction, leading to oscillation.'
       },
       {
         question: 'What real-world problem does the Integral (I) term solve for a robot arm?',
-        options: ['It corrects for persistent errors like gravity sag.', 'It prevents the arm from overshooting.', 'It resets the arm motor\'s encoders.', 'It increases the arm\'s speed.'],
+        options: ['It resets the arm motor\'s encoders.', 'It prevents the arm from overshooting.', 'It increases the arm\'s speed.', 'It corrects for persistent errors like gravity sag.'],
         correctAnswer: 'It corrects for persistent errors like gravity sag.',
         explanation: 'Gravity creates a small, constant error. The Proportional term alone might not be enough to overcome it. The Integral term accumulates this small error over time until it builds up enough corrective power to eliminate the sag.'
       }
@@ -971,19 +971,19 @@ double frontLeftPower = (rotY + rotX + rx) / denominator;
     quiz: [
       {
         question: 'What is the primary purpose of the IMU in a TeleOp program?',
-        options: ['To measure distance to a wall', 'To provide the robot\'s current heading, enabling features like field-centric drive.', 'To detect what color the floor is', 'To control motor speed'],
+        options: ['To measure distance to a wall', 'To detect what color the floor is', 'To control motor speed', 'To provide the robot\'s current heading, enabling features like field-centric drive.'],
         correctAnswer: 'To provide the robot\'s current heading, enabling features like field-centric drive.',
         explanation: 'The IMU provides the angle data needed to mathematically adjust joystick inputs so that the robot\'s movement is relative to the field, not its own front.'
       },
       {
         question: 'If your robot is using field-centric drive and you push the left stick straight forward, what happens?',
-        options: ['The robot drives toward its own front.', 'The robot drives "forward" on the field.', 'The robot drives towards the audience.', 'The robot spins in place.'],
+        options: ['The robot drives toward its own front.', 'The robot drives towards the audience.', 'The robot spins in place.', 'The robot drives "forward" on the field.'],
         correctAnswer: 'The robot drives "forward" on the field.',
         explanation: 'Field-centric drive makes "forward" on the joystick always correspond to a single direction on the field, making it much more intuitive to drive.'
       },
       {
         question: 'What does the method `imu.resetYaw()` do?',
-        options: ['It defines the current heading as the new zero.', 'It reboots the IMU sensor.', 'It reads the current yaw angle.', 'It re-initializes the IMU.'],
+        options: ['It reads the current yaw angle.', 'It reboots the IMU sensor.', 'It re-initializes the IMU.', 'It defines the current heading as the new zero.'],
         correctAnswer: 'It defines the current heading as the new zero.',
         explanation: '`resetYaw()` sets the current yaw angle to be the new zero point. This is very useful to do at the beginning of an OpMode or even with a button press during the match to re-orient the field-centric controls if needed.'
       }
@@ -1050,19 +1050,19 @@ case TURN_LEFT:
     quiz: [
       {
         question: 'What is the main problem with a simple state machine that only checks `isBusy()`?',
-        options: ['It is too difficult to program.', 'It executes too slowly on the hub.', 'It can get stuck if a condition is never met.', 'It consumes too much battery power.'],
+        options: ['It is too difficult to program.', 'It can get stuck if a condition is never met.', 'It executes too slowly on the hub.', 'It consumes too much battery power.'],
         correctAnswer: 'It can get stuck if a condition is never met.',
         explanation: 'A simple state machine might never receive the signal to transition if a motor is blocked or a sensor fails. Timeouts add robustness by ensuring the program always moves on.'
       },
       {
         question: 'Which `ElapsedTime` method do you call to start the timer over from zero?',
-        options: ['`reset()`', '`getTime()`', '`start()`', '`seconds()`'],
+        options: ['`getTime()`', '`start()`', '`seconds()`', '`reset()`'],
         correctAnswer: '`reset()`',
         explanation: '`runtime.reset()` sets the timer\'s internal start time to the current time, effectively restarting its count from zero.'
       },
       {
         question: 'What does the logical OR (`||`) do in the condition `if (isFinished || isTimedOut)`?',
-        options: ['Transitions if the action finishes OR times out.', 'Requires both conditions to be true.', 'Checks if the robot path is an OR shape.', 'Causes a fatal program error.'],
+        options: ['Requires both conditions to be true.', 'Transitions if the action finishes OR times out.', 'Causes a fatal program error.', 'Checks if the robot path is an OR shape.'],
         correctAnswer: 'Transitions if the action finishes OR times out.',
         explanation: 'The logical OR operator is the key to the failsafe. The state will end if the robot successfully completes its task OR if it takes too long, whichever happens first.'
       }
@@ -1140,13 +1140,13 @@ telemetry.update();
       },
       {
         question: 'What hardware is required to detect AprilTags?',
-        options: ['A webcam or phone camera', 'An IMU', 'A touch sensor', 'A distance sensor'],
+        options: ['An IMU', 'A webcam or phone camera', 'A touch sensor', 'A distance sensor'],
         correctAnswer: 'A webcam or phone camera',
         explanation: 'AprilTag detection is a computer vision task, which requires a camera to see the tags.'
       },
       {
         question: 'If `detection.ftcPose.range` gives you a value, what does that value represent?',
-        options: ['The ID number of the tag', 'The color of the tag', 'The size of the tag', 'How far away the tag is from the camera\'s center'],
+        options: ['The ID number of the tag', 'The color of the tag', 'How far away the tag is from the camera\'s center', 'The size of the tag'],
         correctAnswer: 'How far away the tag is from the camera\'s center',
         explanation: 'The `ftcPose` object contains useful information about the tag\'s position relative to the camera, including range (distance), bearing (angle left/right), and yaw (rotational difference).'
       }
@@ -1222,19 +1222,19 @@ telemetry.update();
     quiz: [
       {
         question: 'What is TensorFlow Object Detection (TFOD) used for in FTC?',
-        options: ['Recognizes objects with a machine learning model.', 'Measures distance to an object.', 'Determines the robot\'s angle.', 'Controls motor speed and direction.'],
+        options: ['Measures distance to an object.', 'Recognizes objects with a machine learning model.', 'Determines the robot\'s angle.', 'Controls motor speed and direction.'],
         correctAnswer: 'Recognizes objects with a machine learning model.',
         explanation: 'TFOD allows teams to go beyond standard markers like AprilTags and train a model to identify unique game elements, which is often necessary for autonomous tasks.'
       },
       {
         question: 'Where must you place your custom `.tflite` model file for the SDK to find it?',
-        options: ['On a USB drive', 'In the root of the project', 'In a folder named `models`', 'In the `FIRST/assets` folder on the robot controller'],
+        options: ['In the root of the project', 'In a folder named `models`', 'On a USB drive', 'In the `FIRST/assets` folder on the robot controller'],
         correctAnswer: 'In the `FIRST/assets` folder on the robot controller',
         explanation: 'The FTC SDK is specifically configured to look for TFOD models and other assets in the `/FIRST/assets/` directory on the controller\'s internal storage.'
       },
       {
         question: 'What does `recognition.getConfidence()` tell you?',
-        options: ['The model\'s certainty of the identification.', 'The distance to the recognized object.', 'The size of the object in pixels.', 'The primary color of the object.'],
+        options: ['The model\'s certainty of the identification.', 'The size of the object in pixels.', 'The distance to the recognized object.', 'The primary color of the object.'],
         correctAnswer: 'The model\'s certainty of the identification.',
         explanation: 'Confidence is a key value in machine learning. It\'s a good practice to only trust detections that have a high confidence score (e.g., > 0.75).'
       }
@@ -1283,13 +1283,13 @@ telemetry.update();
       },
       {
         question: 'What is "odometry" and why is it important for Road Runner?',
-        options: ['A method to measure distance with a sensor.', 'Getting the robot\'s orientation from the IMU.', 'Using unpowered wheels for precise position tracking.', 'A specialized type of drivetrain.'],
+        options: ['A method to measure distance with a sensor.', 'Using unpowered wheels for precise position tracking.', 'Getting the robot\'s orientation from the IMU.', 'A specialized type of drivetrain.'],
         correctAnswer: 'Using unpowered wheels for precise position tracking.',
         explanation: 'Odometry wheels are not connected to motors and are free-spinning. Because they don\'t slip like powered wheels, their encoders provide a much more accurate position estimate, which is critical for Road Runner\'s path-following algorithms.'
       },
       {
         question: 'Is Road Runner a simple, drop-in replacement for a state machine?',
-        options: ['No, it requires significant setup and tuning.', 'Yes, it is a simple drop-in library.', 'No, it can only be used during TeleOp.', 'Yes, but it is an outdated technology.'],
+        options: ['Yes, it is a simple drop-in library.', 'No, it can only be used during TeleOp.', 'Yes, but it is an outdated technology.', 'No, it requires significant setup and tuning.'],
         correctAnswer: 'No, it requires significant setup and tuning.',
         explanation: 'While incredibly powerful, Road Runner is an advanced tool. Successfully implementing it requires a solid understanding of the underlying robotics concepts and a willingness to follow the detailed tuning process.'
       }
@@ -1316,9 +1316,9 @@ telemetry.update();
         question: "What is the primary purpose of the `waitForStart()` method in a `LinearOpMode`?",
         options: [
             "To wait for a specific amount of time before running.",
-            "To separate the initialization code from the main run loop code.",
             "To check if the robot's hardware is connected correctly.",
-            "To start the main run loop immediately."
+            "To start the main run loop immediately.",
+            "To separate the initialization code from the main run loop code."
         ],
         correctAnswer: "To separate the initialization code from the main run loop code.",
         explanation: "waitForStart() pauses the OpMode execution until the driver presses the PLAY button. Code before it runs on INIT; code after it runs on PLAY."

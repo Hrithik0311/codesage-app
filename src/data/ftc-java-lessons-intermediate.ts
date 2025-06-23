@@ -42,19 +42,19 @@ export const ftcJavaLessonsIntermediate: Lesson[] = [
     quiz: [
       {
         question: 'What is the primary advantage of Road Runner over a simple state machine?',
-        options: ['It allows for smooth path following instead of discrete movements.', 'It is easier to program.', 'It uses less battery.', 'It does not require encoders.'],
+        options: ['It is easier to program.', 'It uses less battery.', 'It does not require encoders.', 'It allows for smooth path following instead of discrete movements.'],
         correctAnswer: 'It allows for smooth path following instead of discrete movements.',
         explanation: 'Road Runner plans the entire motion profile, including acceleration and velocity, to create fast and smooth paths that are impossible with simple state-based commands.'
       },
       {
         question: 'What does a `Pose2d` object represent in Road Runner?',
-        options: ['The power settings for the motors.', 'A single point on the field with no orientation.', 'The robot\'s X position, Y position, and heading.', 'The time remaining in the match.'],
+        options: ['The power settings for the motors.', 'A single point on the field with no orientation.', 'The time remaining in the match.', 'The robot\'s X position, Y position, and heading.'],
         correctAnswer: 'The robot\'s X position, Y position, and heading.',
         explanation: 'A `Pose2d` is the complete representation of the robot\'s location and orientation on the 2D field.'
       },
       {
         question: 'What is "feedforward" control in the context of Road Runner?',
-        options: ['A proactive control method that anticipates required motor power.', 'A way to send telemetry data to the next state.', 'Another name for PID control.', 'A type of sensor.'],
+        options: ['A way to send telemetry data to the next state.', 'Another name for PID control.', 'A type of sensor.', 'A proactive control method that anticipates required motor power.'],
         correctAnswer: 'A proactive control method that anticipates required motor power.',
         explanation: 'Feedforward anticipates the power needed to execute a motion, making the controller much more responsive and accurate than a purely reactive PID controller.'
       }
@@ -107,13 +107,13 @@ public static double FORWARD_OFFSET = 4.0; // Perpendicular wheel's offset`
     quiz: [
       {
         question: 'Why is odometry tuning so critical for Road Runner?',
-        options: ['It is an optional step.', 'It helps you choose motor power.', 'Because inaccurate position tracking leads to inaccurate path following.', 'It makes the robot look cool.'],
+        options: ['It is an optional step.', 'Because inaccurate position tracking leads to inaccurate path following.', 'It helps you choose motor power.', 'It makes the robot look cool.'],
         correctAnswer: 'Because inaccurate position tracking leads to inaccurate path following.',
         explanation: 'Road Runner\'s path following is a closed-loop system. It constantly compares its real-time odometry position to the desired position on the path. If the odometry is inaccurate, the "correction" will be wrong.'
       },
       {
         question: 'Which tuning OpMode is used to find the PIDF values for your drivetrain motors?',
-        options: ['`LocalizationTest`', '`TurnTest`', '`DriveVelocityPIDTuner`', '`FollowerPIDTuner`'],
+        options: ['`LocalizationTest`', '`TurnTest`', '`FollowerPIDTuner`', '`DriveVelocityPIDTuner`'],
         correctAnswer: '`DriveVelocityPIDTuner`',
         explanation: 'The `DriveVelocityPIDTuner` is the crucial first step that ensures your motors can reliably achieve the velocities that Road Runner will command them to run at.'
       },
@@ -181,7 +181,7 @@ if (opModeIsActive()) {
       },
       {
         question: 'What is the difference between `lineTo()` and `splineTo()`?',
-        options: ['`lineTo` is for turning and `splineTo` is for driving forward.', '`splineTo` is less accurate.', 'There is no difference.', '`lineTo` creates a straight-line path, while `splineTo` creates a smooth, curved path.'],
+        options: ['`lineTo` is for turning and `splineTo` is for driving forward.', '`splineTo` is less accurate.', '`lineTo` creates a straight-line path, while `splineTo` creates a smooth, curved path.', 'There is no difference.'],
         correctAnswer: '`lineTo` creates a straight-line path, while `splineTo` creates a smooth, curved path.',
         explanation: 'Splines are the key to Road Runner\'s fluid motion, allowing the robot to drive and turn simultaneously to follow a curve, which is much more efficient than separate drive/turn commands.'
       },
@@ -248,7 +248,7 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
     quiz: [
       {
         question: 'What is the purpose of a marker in Road Runner?',
-        options: ['To trigger custom code at a specific point in a path.', 'To mark a spot on the field with a physical object.', 'To pause the trajectory for a few seconds.', 'To add comments to your code.'],
+        options: ['To mark a spot on the field with a physical object.', 'To pause the trajectory for a few seconds.', 'To trigger custom code at a specific point in a path.', 'To add comments to your code.'],
         correctAnswer: 'To trigger custom code at a specific point in a path.',
         explanation: 'Markers are the bridge between Road Runner\'s path following and your robot\'s other subsystems, allowing you to schedule actions.'
       },
@@ -260,7 +260,7 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
       },
       {
         question: 'Which type of marker would you use to trigger an action exactly 15 inches into a 30-inch forward drive?',
-        options: ['Displacement Marker', 'Temporal Marker', 'Spatial Marker', 'Coordinate Marker'],
+        options: ['Temporal Marker', 'Spatial Marker', 'Coordinate Marker', 'Displacement Marker'],
         correctAnswer: 'Displacement Marker',
         explanation: 'A displacement marker is triggered based on the distance traveled along the path, making it perfect for actions that need to happen partway through a movement.'
       }
@@ -339,19 +339,19 @@ exposureControl.setExposure(15, TimeUnit.MILLISECONDS); // Set to 15ms exposure
     quiz: [
       {
         question: 'Why might you want to disable a vision processor like TFOD after you are done with it?',
-        options: ['To make the camera turn off.', 'The rules require it.', 'To prevent it from detecting objects again.', 'To save CPU power and improve robot performance.'],
+        options: ['To save CPU power and improve robot performance.', 'To make the camera turn off.', 'The rules require it.', 'To prevent it from detecting objects again.'],
         correctAnswer: 'To save CPU power and improve robot performance.',
         explanation: 'Vision processing is computationally expensive. Disabling processors you aren\'t using frees up the CPU to focus on other tasks, like running motors and calculating Road Runner paths.'
       },
       {
         question: 'When would be a good time to manually lower a camera\'s exposure setting?',
-        options: ['When the room is very dark.', 'To prevent bright objects like AprilTags from being overexposed.', 'When you want a blurrier image.', 'It should always be set to auto.'],
+        options: ['When you want a blurrier image.', 'When the room is very dark.', 'It should always be set to auto.', 'To prevent bright objects like AprilTags from being overexposed.'],
         correctAnswer: 'To prevent bright objects like AprilTags from being overexposed.',
         explanation: 'A blown-out, pure white image contains no data. Lowering the exposure can preserve the details of the black and white squares on an AprilTag, making it easier for the processor to detect.'
       },
       {
         question: 'Can you have an AprilTagProcessor and a TfodProcessor active at the same time on one VisionPortal?',
-        options: ['Yes, the VisionPortal is designed to handle multiple processors in a pipeline.', 'No, only one processor is allowed per camera.', 'Yes, but it is not recommended.', 'Only if you have two cameras.'],
+        options: ['No, only one processor is allowed per camera.', 'Yes, but it is not recommended.', 'Only if you have two cameras.', 'Yes, the VisionPortal is designed to handle multiple processors in a pipeline.'],
         correctAnswer: 'Yes, the VisionPortal is designed to handle multiple processors in a pipeline.',
         explanation: 'The VisionPortal can manage multiple processors, and you can get detections from all enabled processors in your loop. However, you should consider the performance impact of running them simultaneously.'
       }
@@ -454,19 +454,19 @@ while (opModeIsActive()) {
     quiz: [
       {
         question: 'What is "blocking code" in the context of a TeleOp loop?',
-        options: ['Code that is difficult to read.', 'Code that uses too much memory.', 'Code like `sleep()` that pauses the program and blocks input.', 'Code that is not part of a state machine.'],
+        options: ['Code that uses too much memory.', 'Code that is not part of a state machine.', 'Code that is difficult to read.', 'Code like `sleep()` that pauses the program and blocks input.'],
         correctAnswer: 'Code like `sleep()` that pauses the program and blocks input.',
         explanation: 'A responsive TeleOp loop must run hundreds of times per second. Any blocking code will cause lag and make the robot feel uncontrollable.'
       },
       {
         question: 'In an asynchronous design, where does the logic for a subsystem like a lift reside?',
-        options: ['Entirely within the main OpMode.', 'In a text file.', 'On the motor controller itself.', 'In its own class with a state machine and `update()` method.'],
+        options: ['In a text file.', 'On the motor controller itself.', 'Entirely within the main OpMode.', 'In its own class with a state machine and `update()` method.'],
         correctAnswer: 'In its own class with a state machine and `update()` method.',
         explanation: 'Encapsulating subsystem logic into its own class is a core principle of good robot software design. It makes the code organized, reusable, and easy to debug.'
       },
       {
         question: 'How does the main OpMode interact with an asynchronous subsystem?',
-        options: ['It waits for the subsystem to finish each command.', 'It calls the subsystem\'s `update()` method on every iteration of the main loop.', 'It only calls it once at the beginning.', 'It reads variables directly from the subsystem class.'],
+        options: ['It waits for the subsystem to finish each command.', 'It only calls it once at the beginning.', 'It reads variables directly from the subsystem class.', 'It calls the subsystem\'s `update()` method on every iteration of the main loop.'],
         correctAnswer: 'It calls the subsystem\'s `update()` method on every iteration of the main loop.',
         explanation: 'The OpMode is the "conductor." It tells each subsystem what its goal is (e.g., `lift.goToPosition()`) and then repeatedly calls `update()` on all of them, allowing each one to run its own logic in parallel without blocking.'
       }
@@ -516,8 +516,8 @@ while (opModeIsActive()) {
         options: [
           "To save battery.",
           "The rules require it.",
-          "To free up CPU resources for better performance.",
-          "To prevent the camera from overheating."
+          "To prevent the camera from overheating.",
+          "To free up CPU resources for better performance."
         ],
         correctAnswer: "To free up CPU resources for better performance.",
         explanation: "Vision processing is one of the most CPU-intensive tasks. Turning it off when not needed allows the robot controller to dedicate more processing power to other critical tasks like motor control loops."
@@ -525,10 +525,10 @@ while (opModeIsActive()) {
       {
         question: "What is the primary problem with putting a `while(motor.isBusy())` loop inside your main TeleOp `while(opModeIsActive())` loop?",
         options: [
-          "It's blocking code that freezes the loop and makes the robot unresponsive.",
           "It makes the code harder to read.",
           "It can cause the motor to burn out.",
-          "It uses too much telemetry."
+          "It uses too much telemetry.",
+          "It's blocking code that freezes the loop and makes the robot unresponsive."
         ],
         correctAnswer: "It's blocking code that freezes the loop and makes the robot unresponsive.",
         explanation: "Any code that waits or sleeps inside the main TeleOp loop will stop the loop from repeating quickly, which is essential for responsive driver control. This logic should be handled asynchronously."
@@ -548,9 +548,9 @@ while (opModeIsActive()) {
         question: "What is the primary purpose of the `FollowerPIDTuner` in the Road Runner tuning process?",
         options: [
             "To find the motor's max RPM.",
-            "To tune the corrective PID controllers that keep the robot on the path.",
             "To set the robot's starting position.",
-            "To test the robot's strafing distance."
+            "To test the robot's strafing distance.",
+            "To tune the corrective PID controllers that keep the robot on the path."
         ],
         correctAnswer: "To tune the corrective PID controllers that keep the robot on the path.",
         explanation: "The follower PIDs (translational and heading) are what allow the robot to correct for small errors and precisely follow the generated trajectory."
@@ -570,9 +570,9 @@ while (opModeIsActive()) {
           question: "When using `addTemporalMarker()` in a `TrajectorySequence`, the code inside the marker must be...",
           options: [
               "Very long and complex.",
-              "Non-blocking, meaning it should execute instantly without waiting.",
               "Contained in a `while` loop.",
-              "A `sleep()` command."
+              "A `sleep()` command.",
+              "Non-blocking, meaning it should execute instantly without waiting."
           ],
           correctAnswer: "Non-blocking, meaning it should execute instantly without waiting.",
           explanation: "Any blocking code inside a marker will halt Road Runner's control loop, causing jerky movement and inaccurate path following. Markers should only set states or target positions."
@@ -580,10 +580,10 @@ while (opModeIsActive()) {
       {
           question: "Why might a programmer manually decrease a camera's exposure using `ExposureControl` when detecting AprilTags?",
           options: [
-              "To prevent the tag's white parts from being overexposed.",
               "To make the image brighter in a dark room.",
               "To save battery power.",
-              "To increase the camera's frame rate."
+              "To increase the camera's frame rate.",
+              "To prevent the tag's white parts from being overexposed."
           ],
           correctAnswer: "To prevent the tag's white parts from being overexposed.",
           explanation: "Overexposure causes a loss of detail. By lowering the exposure, the processor can more clearly distinguish the black and white areas of the tag, leading to more reliable detections."
@@ -591,8 +591,8 @@ while (opModeIsActive()) {
       {
           question: "What is the purpose of the `TrajectorySequenceBuilder` in Road Runner?",
           options: [
-              "To build a multi-step autonomous routine.",
               "To define a single, uninterrupted curve.",
+              "To build a multi-step autonomous routine.",
               "To tune the robot's PID controllers.",
               "To set the robot's final parking position."
           ],
