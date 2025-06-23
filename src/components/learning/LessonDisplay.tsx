@@ -84,6 +84,8 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
                         setQuizCompleted(false);
                         setCurrentQuestionIndex(0);
                         setScore(0);
+                        setSelectedAnswer(null);
+                        setIsAnswered(false);
                     }} variant="outline">
                         Try Again
                     </Button>
