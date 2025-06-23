@@ -66,9 +66,9 @@ public static double kStatic = 0;
         {
             question: 'Which feedforward term accounts for the minimum power needed to overcome friction and get a motor to start moving?',
             options: [
+                '`kS` (Static Gain)',
                 '`kV` (Velocity Gain)',
                 '`kA` (Acceleration Gain)',
-                '`kS` (Static Gain)',
                 '`kG` (Gravity Gain)'
             ],
             correctAnswer: '`kS` (Static Gain)',
@@ -78,9 +78,9 @@ public static double kStatic = 0;
             question: 'If a vertically-mounted arm sags under its own weight, which feedforward term is specifically designed to counteract this?',
             options: [
                 '`kP`',
+                '`kG` (Gravity Gain)',
                 '`kA`',
-                '`kV`',
-                '`kG` (Gravity Gain)'
+                '`kV`'
             ],
             correctAnswer: '`kG` (Gravity Gain)',
             explanation: '`kG` provides a constant power output to exactly balance the force of gravity, allowing the PID controller to work on a "gravity-neutral" system.'
@@ -129,8 +129,8 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
             question: 'What is the purpose of a TrajectoryVelocityConstraint?',
             options: [
                 'To make the robot heavier.',
-                'To limit the robot\'s maximum speed for a path segment.',
                 'To define the robot\'s starting position.',
+                'To limit the robot\'s maximum speed for a path segment.',
                 'To make the entire path faster.'
             ],
             correctAnswer: 'To limit the robot\'s maximum speed for a path segment.',
@@ -139,9 +139,9 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
         {
             question: 'In the example, after the first `splineTo` with custom constraints, what constraints will the second `splineTo` use?',
             options: [
-                'The same custom slow constraints.',
-                'The default constraints from `DriveConstants.java`.',
                 'No constraints, it will go as fast as possible.',
+                'The default constraints from `DriveConstants.java`.',
+                'The same custom slow constraints.',
                 'It will cause a compiler error.'
             ],
             correctAnswer: 'The default constraints from `DriveConstants.java`.',
@@ -150,8 +150,8 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
         {
             question: 'Why would you use an `AngularVelocityConstraint`?',
             options: [
-                'To make the robot drive straighter.',
                 'To control the turning speed during a curved `splineTo` movement.',
+                'To make the robot drive straighter.',
                 'To limit the speed of the wheels.',
                 'To increase the robot\'s acceleration.'
             ],
@@ -221,8 +221,8 @@ while (opModeIsActive() && drive.isBusy()) {
             question: 'What is the main difference between `followTrajectorySequence` and `followTrajectorySequenceAsync`?',
             options: [
                 '`Async` is less accurate.',
-                '`Async` is blocking; the regular one is not.',
                 '`Async` starts the path and immediately returns control to your code.',
+                '`Async` is blocking; the regular one is not.',
                 'There is no difference.'
             ],
             correctAnswer: '`Async` starts the path and immediately returns control to your code.',
@@ -232,8 +232,8 @@ while (opModeIsActive() && drive.isBusy()) {
             question: 'When using the asynchronous approach, what crucial method must you call inside your `while` loop?',
             options: [
                 '`drive.stop()`',
-                '`drive.update()`',
                 '`drive.getPoseEstimate()`',
+                '`drive.update()`',
                 '`drive.waitForIdle()`'
             ],
             correctAnswer: '`drive.update()`',
@@ -242,9 +242,9 @@ while (opModeIsActive() && drive.isBusy()) {
         {
             question: 'How do you know when an asynchronous trajectory has finished?',
             options: [
+                'The `drive.isBusy()` method returns `false`.',
                 'The OpMode stops automatically.',
                 'You have to guess.',
-                'The `drive.isBusy()` method returns `false`.',
                 'An exception is thrown.'
             ],
             correctAnswer: 'The `drive.isBusy()` method returns `false`.',
@@ -303,8 +303,8 @@ if (!detections.isEmpty()) {
             question: 'What is "odometry drift"?',
             options: [
                 'When the robot drives sideways.',
-                'A feature of Road Runner to make paths smoother.',
                 'The gradual accumulation of small errors in the robot\'s position estimate.',
+                'A feature of Road Runner to make paths smoother.',
                 'When the IMU gives an incorrect angle.'
             ],
             correctAnswer: 'The gradual accumulation of small errors in the robot\'s position estimate.',
@@ -314,8 +314,8 @@ if (!detections.isEmpty()) {
             question: 'How do AprilTags help solve the problem of odometry drift?',
             options: [
                 'They are heavier, which makes the robot more stable.',
-                'They provide an absolute position reference to correct the odometry.',
                 'They tell the robot how fast it is going.',
+                'They provide an absolute position reference to correct the odometry.',
                 'They can be used to push pixels.'
             ],
             correctAnswer: 'They provide an absolute position reference to correct the odometry.',
@@ -324,8 +324,8 @@ if (!detections.isEmpty()) {
         {
             question: 'Which Road Runner method is used to update the robot\'s internal position estimate with a new one from a vision system?',
             options: [
-                '`drive.update()`',
                 '`drive.setPoseEstimate(newPose)`',
+                '`drive.update()`',
                 '`drive.getPoseEstimate()`',
                 '`drive.followTrajectory()`'
             ],
@@ -405,8 +405,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
             question: 'In Command-Based programming, what is the primary responsibility of a `Subsystem`?',
             options: [
                 'To contain the complex sequence of actions for autonomous.',
-                'To represent a physical part of the robot and expose basic control methods.',
                 'To read inputs from the gamepad.',
+                'To represent a physical part of the robot and expose basic control methods.',
                 'To schedule which actions run and when.'
             ],
             correctAnswer: 'To represent a physical part of the robot and expose basic control methods.',
@@ -416,9 +416,9 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
             question: 'What is the role of the `Scheduler` in a command-based framework?',
             options: [
                 'To hold all the hardware device objects.',
+                'To replace the need for an OpMode.',
                 'To manage the lifecycle of commands, running them until they are finished.',
-                'To define the robot\'s physical constants.',
-                'To replace the need for an OpMode.'
+                'To define the robot\'s physical constants.'
             ],
             correctAnswer: 'To manage the lifecycle of commands, running them until they are finished.',
             explanation: 'The Scheduler is the central manager that runs in the main loop, calling the execute() method of all scheduled commands and handling their completion.'
@@ -427,9 +427,9 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
             question: 'What is a major advantage of Command-Based architecture over a large state machine in the OpMode?',
             options: [
                 'It uses less memory.',
-                'It runs faster on the Robot Controller.',
                 'It makes code more reusable, modular, and easier to test.',
-                'It is simpler for a beginner to write from scratch.'
+                'It is simpler for a beginner to write from scratch.',
+                'It runs faster on the Robot Controller.'
             ],
             correctAnswer: 'It makes code more reusable, modular, and easier to test.',
             explanation: 'By separating subsystems from commands, you can easily reuse a command in both autonomous and TeleOp. This decoupling makes the code much cleaner and easier to manage as complexity grows.'
@@ -468,8 +468,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
         question: "You need your robot to drive very slowly while passing under a bridge, but quickly across the rest of the field. What is the best way to achieve this?",
         options: [
           "Lower the max speed for the entire OpMode.",
-          "Use `sleep()` commands to slow it down.",
           "Apply custom `TrajectoryVelocityConstraint` and `TrajectoryAccelerationConstraint` to that specific path segment.",
+          "Use `sleep()` commands to slow it down.",
           "Manually control the motor power."
         ],
         correctAnswer: "Apply custom `TrajectoryVelocityConstraint` and `TrajectoryAccelerationConstraint` to that specific path segment.",
@@ -489,9 +489,9 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
       {
         question: "Your robot's odometry shows it is at X=50, but after detecting an AprilTag, you calculate its true position is X=55. What is this discrepancy called and how do you fix it in Road Runner?",
         options: [
+          "It's called odometry drift; you fix it with `drive.setPoseEstimate()`.",
           "It's called a bug; you must restart the OpMode.",
           "It's called lag; you fix it by calling `drive.update()` more often.",
-          "It's called odometry drift; you fix it with `drive.setPoseEstimate()`.",
           "It's called a constraint violation; you fix it by increasing `MAX_VEL`."
         ],
         correctAnswer: "It's called odometry drift; you fix it with `drive.setPoseEstimate()`.",
@@ -500,8 +500,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
       {
         question: "In the Command-Based programming paradigm, what is the primary role of a `Command`?",
         options: [
-          "To hold the `DcMotor` and `Servo` objects.",
           "To define a specific, self-contained action with a clear end condition.",
+          "To hold the `DcMotor` and `Servo` objects.",
           "To manage the main OpMode loop.",
           "To store hardware configuration names."
         ],
@@ -512,9 +512,9 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
         question: "Which feedforward term specifically counteracts the force of gravity on a vertical lift?",
         options: [
             "`kS` (Static Gain)",
+            "`kG` (Gravity Gain)",
             "`kV` (Velocity Gain)",
-            "`kA` (Acceleration Gain)",
-            "`kG` (Gravity Gain)"
+            "`kA` (Acceleration Gain)"
         ],
         correctAnswer: "`kG` (Gravity Gain)",
         explanation: "`kG` provides a constant power output to perfectly balance the force of gravity, making the mechanism behave as if it were on a horizontal plane."
@@ -523,8 +523,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
           question: "When following a trajectory asynchronously, your main autonomous loop should continue as long as `opModeIsActive()` is true AND what other condition is true?",
           options: [
               "`drive.isFinished()`",
-              "`drive.hasError()`",
               "`drive.isBusy()`",
+              "`drive.hasError()`",
               "`drive.trajectoryCompleted()`"
           ],
           correctAnswer: "`drive.isBusy()`",
@@ -533,8 +533,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
       {
           question: "In Command-Based architecture, what is the advantage of decoupling `Subsystems` from `Commands`?",
           options: [
-              "It makes the code run faster.",
               "It improves reusability; the same Command can be triggered by a button in TeleOp or run in an autonomous sequence.",
+              "It makes the code run faster.",
               "It's the only way to use the IMU.",
               "It uses less battery power."
           ],
@@ -545,8 +545,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
           question: "Why can't you just rely on odometry for a full 30-second autonomous without any correction?",
           options: [
               "The odometry wheels will break.",
-              "The rules forbid it.",
               "Small, incremental errors from wheel slip will accumulate into a large position error.",
+              "The rules forbid it.",
               "The IMU will overheat."
           ],
           correctAnswer: "Small, incremental errors from wheel slip will accumulate into a large position error.",
@@ -556,8 +556,8 @@ public class MyCommandBasedTeleOp extends CommandOpMode {
           question: "If you want to run your intake motor while your robot is driving a 5-second trajectory, what is the best approach?",
           options: [
               "Drive the trajectory, then run the intake for 5 seconds.",
-              "Use `followTrajectorySequenceAsync()` and control the intake from within the main `while(drive.isBusy())` loop.",
               "Create a single trajectory that has the intake command embedded in it.",
+              "Use `followTrajectorySequenceAsync()` and control the intake from within the main `while(drive.isBusy())` loop.",
               "It is not possible to do both at once."
           ],
           correctAnswer: "Use `followTrajectorySequenceAsync()` and control the intake from within the main `while(drive.isBusy())` loop.",
