@@ -89,8 +89,11 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                         // The final test is unlocked if all previous lessons are passed
                         isUnlocked = lessons.slice(0, index).every(l => passedLessonIds.has(l.id));
                     } else if (isIntermediateCourse) {
-                        // Intermediate lessons are unlocked if the final beginner test is passed
-                        isUnlocked = passedLessonIds.has('final-course-test');
+                        // An intermediate lesson is unlocked if the final beginner test is passed
+                        // AND the previous intermediate lesson is passed (or it's the first one).
+                        const hasAccessToCourse = passedLessonIds.has('final-course-test');
+                        const previousLessonPassed = index === 0 || passedLessonIds.has(lessons[index - 1].id);
+                        isUnlocked = hasAccessToCourse && previousLessonPassed;
                     }
                     else {
                         // A regular lesson is unlocked if it's the first one or the previous one is passed

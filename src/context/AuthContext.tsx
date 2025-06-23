@@ -183,8 +183,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lessonIdsToRemove.forEach(id => {
             updates[`/users/${user.uid}/lessonProgress/${id}`] = null;
         });
-        // Also remove the final test progress if resetting intermediate
-        updates[`/users/${user.uid}/lessonProgress/final-course-test`] = null;
         update(dbRef(database), updates);
     }
   };
