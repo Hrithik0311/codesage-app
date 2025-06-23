@@ -48,28 +48,51 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   }, [pathname, router, courseTitle]);
 
   useEffect(() => {
-    // Priority 1: Check for a lesson ID in the URL hash.
+    // This effect determines which lesson to display on initial load or when dependencies change.
+    // It's client-side only due to localStorage and window.location access.
+
+    // Priority 1: A lesson ID is specified directly in the URL hash.
     const lessonIdFromHash = window.location.hash.substring(1);
     if (lessonIdFromHash && lessons.find(l => l.id === lessonIdFromHash)) {
       handleSelectLesson(lessonIdFromHash);
       return;
     }
 
-    // Priority 2: Check for a saved lesson ID in localStorage.
-    let lastLessonId: string | null = null;
+    // Priority 2: A lesson was previously saved in localStorage.
+    let lastViewedLessonId: string | null = null;
     try {
-        lastLessonId = localStorage.getItem(`lastActiveLesson-${courseTitle}`);
+        lastViewedLessonId = localStorage.getItem(`lastActiveLesson-${courseTitle}`);
     } catch (error) {
         console.warn("Could not read from localStorage:", error);
     }
-    
-    if (lastLessonId && lessons.find(l => l.id === lastLessonId)) {
-        handleSelectLesson(lastLessonId);
-    } else if (lessons.length > 0) {
-        // Priority 3: Default to the first lesson.
-        handleSelectLesson(lessons[0].id);
+
+    if (lastViewedLessonId) {
+        const lastViewedIndex = lessons.findIndex(l => l.id === lastViewedLessonId);
+        if (lastViewedIndex !== -1) {
+            // Check if the last viewed lesson has been passed.
+            if (passedLessonIds.has(lastViewedLessonId) && lastViewedIndex < lessons.length - 1) {
+                // If it was passed and isn't the last lesson, automatically advance to the next one.
+                const nextLesson = lessons[lastViewedIndex + 1];
+                handleSelectLesson(nextLesson.id);
+            } else {
+                // Otherwise, just load the last lesson they were looking at.
+                handleSelectLesson(lastViewedLessonId);
+            }
+            return;
+        }
     }
-  }, [lessons, handleSelectLesson, courseTitle]);
+    
+    // Priority 3: Default behavior. Find the first un-passed lesson and open it.
+    const firstUnpassedIndex = lessons.findIndex(l => !passedLessonIds.has(l.id));
+    if (firstUnpassedIndex !== -1 && lessons[firstUnpassedIndex]) {
+        // Find the first lesson that isn't passed yet.
+        handleSelectLesson(lessons[firstUnpassedIndex].id);
+    } else if (lessons.length > 0) {
+        // If all lessons are passed, just go to the last lesson of the course.
+        handleSelectLesson(lessons[lessons.length - 1].id);
+    }
+
+  }, [lessons, courseTitle, passedLessonIds, handleSelectLesson]);
 
 
   const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
