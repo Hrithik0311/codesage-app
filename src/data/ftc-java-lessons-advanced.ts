@@ -45,11 +45,11 @@ TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
             question: 'What is the purpose of a TrajectoryVelocityConstraint?',
             options: [
                 'To make the robot heavier.',
-                'To limit the maximum speed of the robot for a specific segment of a trajectory.',
+                'To limit the robot\'s maximum speed for a path segment.',
                 'To define the robot\'s starting position.',
                 'To make the entire path faster.'
             ],
-            correctAnswer: 'To limit the maximum speed of the robot for a specific segment of a trajectory.',
+            correctAnswer: 'To limit the robot\'s maximum speed for a path segment.',
             explanation: 'Constraints allow you to override the default maximum velocity and acceleration, giving you fine-grained control over the robot\'s speed at different points in its path.'
         }
     ]
