@@ -1294,50 +1294,76 @@ telemetry.update();
     ]
   },
   {
-    id: 'lesson16',
+    id: 'final-course-test',
     type: 'test',
-    title: 'Unit 3 Test',
-     content: [
+    title: 'Final Course Test',
+    content: [
       {
         type: LessonContentType.Heading,
-        text: 'Test your knowledge on advanced FTC concepts.',
+        text: 'Test Your Knowledge',
       },
-       {
+      {
         type: LessonContentType.Paragraph,
-        text: 'This test covers material from the advanced lessons, including AprilTags, TFOD, and the concepts behind Road Runner.'
+        text: 'This final test covers concepts from all the previous lessons. Good luck!'
       }
     ],
     quiz: [
-        {
-            question: 'What kind of information does an AprilTag provide to a robot?',
-            options: ['The current game score', 'The robot\'s position and orientation relative to the tag', 'The temperature of the field', 'The time remaining in the match'],
-            correctAnswer: 'The robot\'s position and orientation relative to the tag',
-            explanation: 'AprilTags are fiducial markers that allow for 6-DOF pose estimation, meaning the robot can determine its X, Y, Z position and its yaw, pitch, roll orientation relative to the tag.'
-        },
-        {
-            question: 'When using TensorFlow Object Detection (TFOD), what does the `.tflite` file contain?',
-            options: ['A list of all the AprilTags on the field', 'The Java code for your OpMode', 'A trained machine learning model for recognizing objects', 'The robot\'s hardware configuration'],
-            correctAnswer: 'A trained machine learning model for recognizing objects',
-            explanation: 'The `.tflite` file is the result of training a TensorFlow model and converting it to a lightweight format suitable for running on devices like the Robot Controller.'
-        },
-        {
-            question: 'What is the primary advantage of field-centric drive over robot-centric drive?',
-            options: ['It uses less battery.', 'It makes the robot move faster.', 'It is easier to program.', 'The robot\'s movement corresponds to the field directions, making it more intuitive for the driver.'],
-            correctAnswer: 'The robot\'s movement corresponds to the field directions, making it more intuitive for the driver.',
-            explanation: 'In field-centric drive, pushing forward on the joystick always moves the robot away from the driver, regardless of which way the robot is facing, which simplifies driving.'
-        },
-        {
-            question: 'Which component of a PID controller is primarily responsible for preventing the system from overshooting its target?',
-            options: ['Proportional (P)', 'Integral (I)', 'Derivative (D)', 'Feedforward (F)'],
-            correctAnswer: 'Derivative (D)',
-            explanation: 'The Derivative term looks at the rate of change of the error. If the error is decreasing quickly (i.e., the system is moving fast towards the target), it applies a counteracting force to act as a "brake" and dampen the response.'
-        },
-        {
-            question: 'Why does the advanced motion planning library Road Runner often use dedicated, unpowered odometry wheels?',
-            options: ['Because they are cheaper than motors.', 'Because they are required by the game rules.', 'Because they are not subject to slip like powered wheels, providing a much more accurate position measurement.', 'Because they add weight to the robot to prevent it from tipping.'],
-            correctAnswer: 'Because they are not subject to slip like powered wheels, providing a much more accurate position measurement.',
-            explanation: 'Powered wheels can slip during fast acceleration or turning, making their encoder readings unreliable for position tracking. Free-spinning odometry wheels maintain constant contact with the ground, giving a true measure of distance traveled.'
-        }
+      {
+        question: 'In which part of a LinearOpMode should you initialize your hardware class that contains all your motors and servos?',
+        options: ['Inside the `while(opModeIsActive())` loop.', 'After the `waitForStart()` call.', 'Before the `waitForStart()` call.', 'In a separate thread.'],
+        correctAnswer: 'Before the `waitForStart()` call.',
+        explanation: 'Hardware mapping and initialization should happen once when the INIT button is pressed, which corresponds to the code section before `waitForStart()`.'
+      },
+      {
+        question: 'To make a mecanum robot strafe to the left, which combination of wheel directions is correct?',
+        options: [
+            'All wheels spin forward.', 
+            'Front-left and back-right spin backward; Front-right and back-left spin forward.', 
+            'Left wheels forward, right wheels backward.', 
+            'All wheels spin backward.'
+        ],
+        correctAnswer: 'Front-left and back-right spin backward; Front-right and back-left spin forward.',
+        explanation: 'Strafing is achieved by making the diagonal pairs of wheels spin in opposite directions, causing the net force to be purely sideways.'
+      },
+      {
+        question: 'If you want an arm to hold its position against gravity using a PID controller, which term is most crucial for counteracting the constant sag?',
+        options: ['Proportional (P)', 'Integral (I)', 'Derivative (D)', 'The `gamepad` input'],
+        correctAnswer: 'Integral (I)',
+        explanation: 'The Integral term accumulates error over time. Gravity causes a small, constant error (sag), which the Integral term will gradually overcome by adding corrective power.'
+      },
+      {
+        question: 'What is the key difference between what an AprilTag provides and what TensorFlow Object Detection (TFOD) provides?',
+        options: [
+            'AprilTags are for TeleOp, TFOD is for Autonomous.', 
+            'AprilTags provide precise robot location/orientation, while TFOD identifies custom game objects.', 
+            'AprilTags work with any camera, TFOD requires a special camera.', 
+            'AprilTags are black and white, TFOD detects colors.'
+        ],
+        correctAnswer: 'AprilTags provide precise robot location/orientation, while TFOD identifies custom game objects.',
+        explanation: 'AprilTags are used for localization (knowing where you are). TFOD is used for classification and detection (knowing what you are looking at).'
+      },
+      {
+        question: 'When using `RUN_TO_POSITION` for an encoder-based drive, what does the `motor.isBusy()` method indicate?',
+        options: [
+            'That the motor is drawing a lot of current.', 
+            'That the OpMode is active.', 
+            'That the motor controller is still actively trying to reach the target position.',
+            'That the gamepad buttons are being held down.'
+        ],
+        correctAnswer: 'That the motor controller is still actively trying to reach the target position.',
+        explanation: '`isBusy()` is the signal from the motor controller that the PID loop for `RUN_TO_POSITION` is still running. It becomes `false` when the target is reached.'
+      },
+       {
+        question: 'What is the purpose of using `imu.resetYaw()` at the start of an autonomous OpMode?',
+        options: [
+            'To turn the IMU off and on again.', 
+            'To set the robot\'s current heading as the zero-degree reference for all subsequent turns.', 
+            'To check if the IMU is connected properly.', 
+            'To make the robot drive straight.'
+        ],
+        correctAnswer: 'To set the robot\'s current heading as the zero-degree reference for all subsequent turns.',
+        explanation: '`resetYaw()` establishes a "zero" heading, so that any future turns or field-centric calculations are relative to the robot\'s starting orientation.'
+      }
     ]
   }
 ];
