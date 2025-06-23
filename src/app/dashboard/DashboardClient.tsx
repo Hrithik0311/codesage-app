@@ -62,7 +62,7 @@ const recentActivities = [
 
 
 export default function DashboardClient() {
-  const { user, loading, completedLessons } = useAuth();
+  const { user, loading, passedLessonIds } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function DashboardClient() {
     );
   }
 
-  const lessonsCompletedCount = completedLessons.size;
+  const lessonsCompletedCount = passedLessonIds.size;
   const totalLessons = ftcJavaLessons.length;
 
   return (
