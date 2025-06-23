@@ -3,18 +3,23 @@ import type { Lesson } from './ftc-java-lessons';
 import { LessonContentType } from './ftc-java-lessons';
 
 export const ftcJavaLessonsIntermediate: Lesson[] = [
+  // LESSON 1: REVISED
   {
     id: 'intermediate-lesson1',
     type: 'lesson',
-    title: 'Intro to Road Runner',
+    title: '1. What is Road Runner?',
     content: [
       {
         type: LessonContentType.Heading,
-        text: 'What is Road Runner?',
+        text: 'Beyond State Machines',
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'Road Runner is the most powerful and popular motion planning library available for FTC. Instead of writing separate commands for "drive" and "turn", Road Runner allows you to define complex, continuous paths (trajectories) that the robot follows with high precision. This enables faster, smoother, and more reliable autonomous routines.',
+        text: 'You\'ve mastered state machines, which are great for sequential tasks. But what if you want to drive in a smooth curve while also raising a slide? This is where a motion planning library like **Road Runner** becomes essential. It is the most popular and powerful motion library available for FTC.',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Instead of writing separate commands for "drive" and "turn", Road Runner allows you to define complex, continuous paths (trajectories) that the robot follows with high precision. This enables faster, smoother, and more reliable autonomous routines.',
       },
       {
         type: LessonContentType.Heading,
@@ -23,7 +28,8 @@ export const ftcJavaLessonsIntermediate: Lesson[] = [
       {
         type: LessonContentType.List,
         items: [
-          '<b>Three-Wheel Odometry:</b> For hyper-accurate position tracking, Road Runner uses unpowered wheels with encoders to measure the robot\'s true X, Y, and heading position, independent of wheel slip from the main drivetrain.',
+          '<b>Pose2d:</b> A fundamental object in Road Runner representing the robot\'s position. It holds an X coordinate, a Y coordinate, and a Heading (angle). `new Pose2d(x, y, heading)`',
+          '<b>Three-Wheel Odometry:</b> For hyper-accurate position tracking, Road Runner uses unpowered "dead wheels" with encoders to measure the robot\'s true `Pose2d`, independent of wheel slip from the main drivetrain.',
           '<b>Feedforward Control:</b> It goes beyond simple PID by using a "feedforward" model. It calculates the theoretical motor voltages needed to follow the path and then uses PID to correct for small errors.',
           '<b>Trajectory Generation:</b> You define paths using a simple API, and Road Runner generates smooth velocity and acceleration profiles to follow them optimally.',
         ]
@@ -41,6 +47,12 @@ export const ftcJavaLessonsIntermediate: Lesson[] = [
         explanation: 'Road Runner plans the entire motion profile, including acceleration and velocity, to create fast and smooth paths that are impossible with simple state-based commands.'
       },
       {
+        question: 'What does a `Pose2d` object represent in Road Runner?',
+        options: ['The power settings for the motors.', 'The robot\'s X position, Y position, and heading.', 'The time remaining in the match.', 'A single point on the field with no orientation.'],
+        correctAnswer: 'The robot\'s X position, Y position, and heading.',
+        explanation: 'A `Pose2d` is the complete representation of the robot\'s location and orientation on the 2D field.'
+      },
+      {
         question: 'What is "feedforward" control in the context of Road Runner?',
         options: ['A type of sensor.', 'A control method that proactively calculates the required motor power based on a model of the robot, rather than just reacting to error.', 'A way to send telemetry data forward to the next state.', 'Another name for PID control.'],
         correctAnswer: 'A control method that proactively calculates the required motor power based on a model of the robot, rather than just reacting to error.',
@@ -48,33 +60,48 @@ export const ftcJavaLessonsIntermediate: Lesson[] = [
       }
     ]
   },
+  // LESSON 2: REVISED
   {
     id: 'intermediate-lesson2',
     type: 'lesson',
-    title: 'Tuning Odometry',
+    title: '2. Road Runner Tuning: The Foundation',
     content: [
       {
         type: LessonContentType.Heading,
-        text: 'The Foundation of Accuracy',
+        text: 'The Non-Negotiable Step',
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'Accurate odometry is non-negotiable for Road Runner to work well. This involves a precise tuning process to find three key constants for your robot build.',
+        text: 'Accurate position tracking is the absolute foundation of Road Runner. This is achieved through a precise tuning process to characterize your robot\'s physical and dynamic properties. The official LearnRoadRunner guide provides a sequence of special OpModes to find these values.',
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Key Tuning OpModes',
+      },
+      {
+        type: LessonContentType.List,
+        items: [
+          '<b>`DriveVelocityPIDTuner`</b>: This tunes the PIDF coefficients for your drivetrain motors to ensure they can accurately follow a velocity command.',
+          '<b>`StrafeTest` & `TurnTest`</b>: These are manual tuning OpModes. You command the robot to strafe or turn a set amount, and then measure the actual distance/angle it moved. You adjust tracking wheel constants (`LATERAL_DISTANCE`, `FORWARD_OFFSET`) until the robot\'s reported position matches reality.',
+          '<b>`LocalizationTest`</b>: This OpMode lets you drive the robot around and see its tracked position on the FTC Dashboard field visualizer to confirm everything is working correctly.',
+          '<b>`FollowerPIDTuner`</b>: This tunes the final PIDs that correct the robot\'s path, ensuring it stays on the trajectory.',
+        ]
       },
       {
         type: LessonContentType.Code,
         code: `// These constants are found via the LearnRoadRunner.com tuning process
+// In DriveConstants.java
 public static double TICKS_PER_REV = 8192; // From your encoder specs
 public static double WHEEL_RADIUS = 0.688975; // In inches
 public static double GEAR_RATIO = 1.0; // Your drivetrain gear ratio
 
-// These are the values you TUNE
-public static double LATERAL_DISTANCE = 15.5; // Distance between the two parallel odometry wheels
-public static double FORWARD_OFFSET = 4.0; // Distance of perpendicular wheel from the center of the parallel wheels`
+// In StandardTrackingWheelLocalizer.java
+public static double LATERAL_DISTANCE = 15.5; // Distance between parallel wheels
+public static double FORWARD_OFFSET = 4.0; // Perpendicular wheel's offset`
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'The tuning process involves running special OpModes that have you drive the robot a set distance or turn it a set angle. You then compare the robot\'s real-world movement to what the odometry *thinks* it did, and adjust the constants until they match perfectly. This process requires patience and precision.'
+        text: 'This process requires patience and precision. Skipping or rushing a step will lead to poor performance. A well-tuned robot can be incredibly accurate, often to within a fraction of an inch over a full autonomous path.'
       }
     ],
     quiz: [
@@ -83,13 +110,26 @@ public static double FORWARD_OFFSET = 4.0; // Distance of perpendicular wheel fr
         options: ['It makes the robot look cool.', 'Because if the robot\'s position tracking is wrong, its ability to follow a path will also be wrong.', 'It is an optional step.', 'It helps you choose motor power.'],
         correctAnswer: 'Because if the robot\'s position tracking is wrong, its ability to follow a path will also be wrong.',
         explanation: 'Road Runner\'s path following is a closed-loop system. It constantly compares its real-time odometry position to the desired position on the path. If the odometry is inaccurate, the "correction" will be wrong.'
+      },
+      {
+        question: 'Which tuning OpMode is used to find the PIDF values for your drivetrain motors?',
+        options: ['`LocalizationTest`', '`TurnTest`', '`FollowerPIDTuner`', '`DriveVelocityPIDTuner`'],
+        correctAnswer: '`DriveVelocityPIDTuner`',
+        explanation: 'The `DriveVelocityPIDTuner` is the crucial first step that ensures your motors can reliably achieve the velocities that Road Runner will command them to run at.'
+      },
+      {
+        question: 'What is `LocalizationTest` used for?',
+        options: ['To find the `LATERAL_DISTANCE` constant.', 'To test the robot\'s maximum speed.', 'To visually confirm on the FTC Dashboard that the robot\'s position tracking is correct as you drive it around.', 'To tune the follower PIDs.'],
+        correctAnswer: 'To visually confirm on the FTC Dashboard that the robot\'s position tracking is correct as you drive it around.',
+        explanation: '`LocalizationTest` is a final sanity check to ensure your odometry is working as expected before you move on to trajectory following.'
       }
     ]
   },
+  // LESSON 3: REVISED
   {
     id: 'intermediate-lesson3',
     type: 'lesson',
-    title: 'Building Trajectories',
+    title: '3. Building Trajectories',
     content: [
       {
         type: LessonContentType.Heading,
@@ -97,31 +137,338 @@ public static double FORWARD_OFFSET = 4.0; // Distance of perpendicular wheel fr
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'Once your robot is tuned, you can start building autonomous paths using the `TrajectoryBuilder`. You start at a given pose (X, Y, Heading) and then chain commands together to define the path.'
+        text: 'Once your robot is tuned, you can build autonomous paths. A single, continuous path is called a **Trajectory**. A sequence of multiple trajectories and other actions (like turns) is called a **Trajectory Sequence**. Most autonomous routines will be a single `TrajectorySequence`.'
       },
       {
         type: LessonContentType.Code,
-        code: `// Create a TrajectoryBuilder starting at pose (0, 0) with a heading of 0 degrees
-Trajectory myFirstTrajectory = drive.trajectoryBuilder(new Pose2d())
-    .splineTo(new Vector2d(30, 30), Math.toRadians(90)) // Smoothly curve to (30,30) ending at 90 deg
-    .strafeRight(10) // Strafe right 10 inches
+        code: `// In your autonomous OpMode...
+// Create a TrajectorySequenceBuilder starting at pose (0, 0)
+TrajectorySequence mySequence = drive.trajectorySequenceBuilder(new Pose2d(0, 0, 0))
+    .forward(30)
+    .turn(Math.toRadians(90))
+    .splineTo(new Vector2d(40, -20), Math.toRadians(0))
+    .strafeRight(10)
     .build();
 
-// In your autonomous OpMode, you simply run it:
-drive.followTrajectory(myFirstTrajectory);
-`
+// In your runOpMode, you simply run the whole sequence:
+waitForStart();
+if (opModeIsActive()) {
+    drive.followTrajectorySequence(mySequence);
+}`
       },
       {
-        type: LessonContentType.Paragraph,
-        text: 'Road Runner provides a rich set of commands like `forward()`, `back()`, `strafeLeft()`, `splineTo()` (for curves), and `lineTo()` (for straight lines) that let you build up almost any path imaginable. You can also add "markers" to these trajectories to trigger actions like opening a claw or raising a slide at specific points along the path.'
+        type: LessonContentType.Heading,
+        text: 'Common Trajectory Commands',
+      },
+      {
+        type: LessonContentType.List,
+        items: [
+          '<b>`.forward(distance)`</b>: Drives straight forward.',
+          '<b>`.back(distance)`</b>: Drives straight backward.',
+          '<b>`.strafeLeft(distance)` / `.strafeRight(distance)`</b>: Strafes sideways.',
+          '<b>`.turn(angle)`</b>: Performs an in-place turn.',
+          '<b>`.lineTo(Vector2d)`</b>: Moves in a straight line to a new X,Y coordinate.',
+          '<b>`.splineTo(Vector2d, endTangent)`</b>: Moves in a smooth curve to a new X,Y coordinate, approaching it from the `endTangent` angle.',
+        ]
       }
     ],
     quiz: [
       {
-        question: 'What is the difference between `lineTo()` and `splineTo()` in Road Runner?',
+        question: 'What is the difference between a `Trajectory` and a `TrajectorySequence`?',
+        options: ['They are the same thing.', 'A `Trajectory` is for turning, a `TrajectorySequence` is for driving.', 'A `Trajectory` is a single, continuous path, while a `TrajectorySequence` is a series of trajectories and turns combined.', 'A `TrajectorySequence` is less accurate.'],
+        correctAnswer: 'A `Trajectory` is a single, continuous path, while a `TrajectorySequence` is a series of trajectories and turns combined.',
+        explanation: 'For a full autonomous path, you\'ll typically use a `trajectorySequenceBuilder` to chain multiple movements and actions together.'
+      },
+      {
+        question: 'What is the difference between `lineTo()` and `splineTo()`?',
         options: ['`lineTo` is for turning and `splineTo` is for driving forward.', 'There is no difference.', '`lineTo` creates a straight-line path, while `splineTo` creates a smooth, curved path.', '`splineTo` is less accurate.'],
         correctAnswer: '`lineTo` creates a straight-line path, while `splineTo` creates a smooth, curved path.',
         explanation: 'Splines are the key to Road Runner\'s fluid motion, allowing the robot to drive and turn simultaneously to follow a curve, which is much more efficient than separate drive/turn commands.'
+      },
+      {
+        question: 'If you build a sequence with `.forward(24).turn(Math.toRadians(90))`, what will the robot do?',
+        options: ['Drive forward while turning.', 'Turn first, then drive forward.', 'Drive forward 24 inches, stop, then turn 90 degrees in place.', 'It will throw an error.'],
+        correctAnswer: 'Drive forward 24 inches, stop, then turn 90 degrees in place.',
+        explanation: 'The `trajectorySequenceBuilder` executes each command sequentially. The robot completes the `.forward()` action before beginning the `.turn()` action.'
+      }
+    ]
+  },
+  // LESSON 4: NEW
+  {
+    id: 'intermediate-lesson4',
+    type: 'lesson',
+    title: '4. Advanced Trajectories & Markers',
+    content: [
+      {
+        type: LessonContentType.Heading,
+        text: 'Actions During a Path',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Driving is only half the battle. You need to run intakes, lift slides, and drop pixels *during* your autonomous path. Road Runner handles this with **Markers**. A marker lets you trigger your own code at a specific point in the trajectory.'
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Types of Markers',
+      },
+      {
+        type: LessonContentType.List,
+        items: [
+          '<b>Temporal Markers:</b> Triggered after a certain amount of time has passed. Example: `.addTemporalMarker(2.5, () -> { /* code here */ })` fires 2.5 seconds into the trajectory.',
+          '<b>Displacement Markers:</b> Triggered after the robot has traveled a certain distance along the path. Example: `.addDisplacementMarker(12, () -> { /* code here */ })` fires after 12 inches of movement.',
+          '<b>Spatial Markers:</b> Triggered when the robot\'s wheels cross a specific X or Y coordinate. Example: `.splineTo(..., TrajectoryBuilder.strafeLeft(10).addSpatialMarker(new Vector2d(20, -10), () -> { ... }))`',
+        ]
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// Example of using a marker to drop a pixel
+TrajectorySequence mySequence = drive.trajectorySequenceBuilder(startPose)
+    .forward(20)
+    // After driving 20 inches, start raising the slide.
+    // This action runs in parallel with the next driving segment.
+    .addDisplacementMarker(() -> {
+        robot.lift.setTargetPosition(LIFT_HIGH);
+    })
+    .splineTo(new Vector2d(48, -36), 0)
+    // When the spline is finished, drop the pixel.
+    .addTemporalMarker(() -> {
+        robot.claw.open();
+    })
+    // Add a 0.5 second delay to ensure the pixel has dropped
+    .waitSeconds(0.5)
+    .back(10)
+    .build();
+`
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Note the use of `() -> { ... }`. This is a Java Lambda expression. It\'s a concise way to pass a small block of code as an argument to a method. Your marker code **must be non-blocking**. This means it should only set a target or change a state, not contain a `while` loop or a `sleep()`!'
+      }
+    ],
+    quiz: [
+      {
+        question: 'What is the purpose of a marker in Road Runner?',
+        options: ['To mark a spot on the field with a physical object.', 'To pause the trajectory for a few seconds.', 'To trigger a piece of custom code (like opening a claw) at a specific point in a trajectory.', 'To add comments to your code.'],
+        correctAnswer: 'To trigger a piece of custom code (like opening a claw) at a specific point in a trajectory.',
+        explanation: 'Markers are the bridge between Road Runner\'s path following and your robot\'s other subsystems, allowing you to schedule actions.'
+      },
+      {
+        question: 'Your marker code, like `() -> { robot.lift.setTargetPosition(1000); }`, must be:',
+        options: ['Very long and complex.', 'Non-blocking (it should not wait for the action to finish).', 'Contained within a `while` loop.', 'Able to pause the robot for several seconds.'],
+        correctAnswer: 'Non-blocking (it should not wait for the action to finish).',
+        explanation: 'Road Runner updates its drive commands very frequently. Any blocking code (like a `sleep()` or a loop) inside a marker will disrupt the path following and cause jerky, inaccurate movement.'
+      },
+      {
+        question: 'Which type of marker would you use to trigger an action exactly 15 inches into a 30-inch forward drive?',
+        options: ['Temporal Marker', 'Spatial Marker', 'Displacement Marker', 'Coordinate Marker'],
+        correctAnswer: 'Displacement Marker',
+        explanation: 'A displacement marker is triggered based on the distance traveled along the path, making it perfect for actions that need to happen partway through a movement.'
+      }
+    ]
+  },
+  // LESSON 5: NEW
+  {
+    id: 'intermediate-lesson5',
+    type: 'lesson',
+    title: '5. Vision Pipelines & Control',
+    content: [
+      {
+        type: LessonContentType.Heading,
+        text: 'Beyond Default Vision',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'The FTC VisionPortal is powerful because it\'s a flexible pipeline. You can have multiple processors (like AprilTag and TensorFlow) attached to the same camera, and you can control them dynamically to optimize performance.'
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Managing Processors',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Running vision processing, especially TFOD, uses a lot of CPU power. If you only need to detect a Team Prop at the beginning of autonomous, it\'s wasteful to keep the TFOD processor running for the whole match. You can disable and enable processors on the fly.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// During initialization, both are added but we can set the state.
+visionPortal = new VisionPortal.Builder()
+    .setCamera(webcam)
+    .addProcessors(tfod, aprilTag)
+    .build();
+
+// To find the prop at the start of auto, TFOD is enabled
+visionPortal.setProcessorEnabled(tfod, true);
+visionPortal.setProcessorEnabled(aprilTag, false);
+
+// ... loop to find the prop using TFOD ...
+// Once we've found it and are done with TFOD:
+visionPortal.setProcessorEnabled(tfod, false);
+
+// Now, enable the AprilTag processor for localization during the rest of auto
+visionPortal.setProcessorEnabled(aprilTag, true);
+
+// ... rest of autonomous using AprilTag data ...
+`
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Camera Controls',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'You can also access and change camera settings like exposure and gain. This can be crucial for reliable vision in different lighting conditions. For example, if you are looking for a bright AprilTag, you can lower the exposure to prevent the white parts from getting "blown out" and unreadable.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// This requires waiting for the camera to be streaming
+while (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+    // wait for camera to start
+}
+
+// Get the gain control
+GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+gainControl.setGain(gainControl.getMaxGain()); // Set to max gain for low light
+
+// Get the exposure control
+ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+exposureControl.setMode(ExposureControl.Mode.Manual);
+exposureControl.setExposure(15, TimeUnit.MILLISECONDS); // Set to 15ms exposure
+`
+      }
+    ],
+    quiz: [
+      {
+        question: 'Why might you want to disable a vision processor like TFOD after you are done with it?',
+        options: ['To make the camera turn off.', 'To save a significant amount of CPU power, improving loop times and robot performance.', 'The rules require it.', 'To prevent it from detecting objects again.'],
+        correctAnswer: 'To save a significant amount of CPU power, improving loop times and robot performance.',
+        explanation: 'Vision processing is computationally expensive. Disabling processors you aren\'t using frees up the CPU to focus on other tasks, like running motors and calculating Road Runner paths.'
+      },
+      {
+        question: 'When would be a good time to manually lower a camera\'s exposure setting?',
+        options: ['When the room is very dark.', 'When trying to detect a very bright object, like an AprilTag, to prevent it from being overexposed.', 'It should always be set to auto.', 'When you want a blurrier image.'],
+        correctAnswer: 'When trying to detect a very bright object, like an AprilTag, to prevent it from being overexposed.',
+        explanation: 'A blown-out, pure white image contains no data. Lowering the exposure can preserve the details of the black and white squares on an AprilTag, making it easier for the processor to detect.'
+      },
+      {
+        question: 'Can you have an AprilTagProcessor and a TfodProcessor active at the same time on one VisionPortal?',
+        options: ['No, only one processor is allowed per camera.', 'Yes, but it is not recommended.', 'Yes, the VisionPortal is designed to handle multiple processors in a pipeline.', 'Only if you have two cameras.'],
+        correctAnswer: 'Yes, the VisionPortal is designed to handle multiple processors in a pipeline.',
+        explanation: 'The VisionPortal can manage multiple processors, and you can get detections from all enabled processors in your loop. However, you should consider the performance impact of running them simultaneously.'
+      }
+    ]
+  },
+  // LESSON 6: NEW
+  {
+    id: 'intermediate-lesson6',
+    type: 'lesson',
+    title: '6. Asynchronous Control',
+    content: [
+      {
+        type: LessonContentType.Heading,
+        text: 'The Problem with `sleep()`',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'A common beginner mistake is using `sleep()` or `while(motor.isBusy())` inside the main TeleOp loop. This is **blocking code**. It freezes your entire program, including reading gamepad inputs, while it waits. This leads to unresponsive, clunky controls. The solution is **asynchronous control** using state machines for your subsystems.'
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Subsystem State Machines',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Instead of putting all the logic in your OpMode, you can create a class for your subsystem (e.g., `Lift.java`). This class will contain its own state (`enum LiftState { GOING_UP, GOING_DOWN, HOLDING }`), its motors, and an `update()` method. The main OpMode loop will then simply call `lift.update()` on every single iteration.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// Example: Lift.java
+public class Lift {
+    private DcMotor liftMotor;
+    public enum LiftState { IDLE, GOING_UP, HOLDING }
+    private LiftState currentState = LiftState.IDLE;
+    private int targetPosition;
+
+    // ... constructor to map hardware ...
+
+    public void goToPosition(int pos) {
+        targetPosition = pos;
+        // We just set the state. We do NOT wait here.
+        currentState = LiftState.GOING_UP; 
+    }
+
+    // This method is called repeatedly from the main OpMode loop
+    public void update() {
+        switch (currentState) {
+            case GOING_UP:
+                liftMotor.setTargetPosition(targetPosition);
+                liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                liftMotor.setPower(1.0);
+                // Once it arrives, change state to HOLDING
+                if (!liftMotor.isBusy()) {
+                    currentState = LiftState.HOLDING;
+                }
+                break;
+            case HOLDING:
+                // Motor power will stay on from RUN_TO_POSITION
+                // to hold against gravity. No action needed.
+                break;
+            case IDLE:
+                liftMotor.setPower(0);
+                break;
+        }
+    }
+}`
+      },
+      {
+        type: LessonContentType.Heading,
+        text: 'Integrating into TeleOp',
+      },
+      {
+        type: LessonContentType.Paragraph,
+        text: 'Your main TeleOp loop now becomes very clean. It just reads gamepad inputs and calls the `update()` methods for each subsystem. This is the core of professional robot code architecture.'
+      },
+      {
+        type: LessonContentType.Code,
+        code: `// In your TeleOp
+Lift lift = new Lift(hardwareMap);
+Drivetrain drivetrain = new Drivetrain(hardwareMap);
+
+waitForStart();
+while (opModeIsActive()) {
+    // Read gamepads and tell subsystems what to do
+    drivetrain.drive(gamepad1.left_stick_y, gamepad1.right_stick_x);
+    
+    if (gamepad1.y) {
+        lift.goToPosition(LIFT_HIGH);
+    } else if (gamepad1.a) {
+        lift.goToPosition(LIFT_LOW);
+    }
+
+    // Update all subsystems. This runs the state machines.
+    lift.update();
+    drivetrain.update(); // Drivetrain might have its own update for things like telemetry
+    telemetry.update();
+}`
+      },
+    ],
+    quiz: [
+      {
+        question: 'What is "blocking code" in the context of a TeleOp loop?',
+        options: ['Code that is difficult to read.', 'Code that uses too much memory.', 'Code that pauses the entire program, like `sleep()` or a `while` loop, preventing gamepad inputs from being read.', 'Code that is not part of a state machine.'],
+        correctAnswer: 'Code that pauses the entire program, like `sleep()` or a `while` loop, preventing gamepad inputs from being read.',
+        explanation: 'A responsive TeleOp loop must run hundreds of times per second. Any blocking code will cause lag and make the robot feel uncontrollable.'
+      },
+      {
+        question: 'In an asynchronous design, where does the logic for a subsystem like a lift reside?',
+        options: ['Entirely within the main OpMode.', 'In its own class (e.g., `Lift.java`) with its own state machine and an `update()` method.', 'In a text file.', 'On the motor controller itself.'],
+        correctAnswer: 'In its own class (e.g., `Lift.java`) with its own state machine and an `update()` method.',
+        explanation: 'Encapsulating subsystem logic into its own class is a core principle of good robot software design. It makes the code organized, reusable, and easy to debug.'
+      },
+      {
+        question: 'How does the main OpMode interact with an asynchronous subsystem?',
+        options: ['It waits for the subsystem to finish each command.', 'It calls the subsystem\'s `update()` method on every iteration of the main loop.', 'It only calls it once at the beginning.', 'It reads variables directly from the subsystem class.'],
+        correctAnswer: 'It calls the subsystem\'s `update()` method on every iteration of the main loop.',
+        explanation: 'The OpMode is the "conductor." It tells each subsystem what its goal is (e.g., `lift.goToPosition()`) and then repeatedly calls `update()` on all of them, allowing each one to run its own logic in parallel without blocking.'
       }
     ]
   }
