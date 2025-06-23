@@ -13,6 +13,8 @@ import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useToast } from '@/hooks/use-toast';
+import { database } from '@/lib/firebase';
+import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
@@ -27,10 +29,19 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   const [isInitialLessonSet, setIsInitialLessonSet] = useState(false);
   const { user, loading, updateLessonProgress, passedLessonIds } = useAuth();
   const { toast } = useToast();
+  const [teamCode, setTeamCode] = useState<string | null>(null);
   
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
+    }
+    if (user && database) {
+        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+        get(teamCodeRef).then((snapshot) => {
+            if(snapshot.exists()) {
+                setTeamCode(snapshot.val());
+            }
+        });
     }
   }, [user, loading, router]);
 
@@ -101,6 +112,9 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
     if (!lesson) return;
 
     const scoreToStore = lesson.type === 'test' ? rawScore : (totalQuestions > 0 ? rawScore / totalQuestions : 1);
+    
+    const wasAlreadyPassed = passedLessonIds.has(lessonId);
+    
     updateLessonProgress(lessonId, scoreToStore);
     
     const PASS_THRESHOLD = 2 / 3;
@@ -112,6 +126,19 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
     }
 
     if (isPassed) {
+       if (!wasAlreadyPassed && teamCode && user && database) {
+            const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+            push(activitiesRef, {
+                type: 'lesson_completion',
+                userId: user.uid,
+                userName: user.displayName || user.email,
+                details: {
+                    lessonTitle: lesson.title,
+                },
+                timestamp: serverTimestamp(),
+            });
+       }
+
        if (lesson.isFinalTestForCourse && nextCoursePath) {
             toast({
                 title: "Course Complete!",

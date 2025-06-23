@@ -16,6 +16,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
+import { database } from '@/lib/firebase';
+import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -98,10 +100,19 @@ export default function CodeIntelligenceClient() {
     const { toast } = useToast();
     const { user, loading } = useAuth();
     const router = useRouter();
+    const [teamCode, setTeamCode] = useState<string | null>(null);
 
     useEffect(() => {
         if (!loading && !user) {
             router.push('/auth');
+        }
+        if (user && database) {
+            const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+            get(teamCodeRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    setTeamCode(snapshot.val());
+                }
+            });
         }
     }, [user, loading, router]);
 
@@ -130,6 +141,19 @@ export default function CodeIntelligenceClient() {
                 codeSnippet: code,
                 programmingLanguage: language,
             });
+            
+            if (teamCode && user && database) {
+                const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+                push(activitiesRef, {
+                    type: 'analysis',
+                    userId: user.uid,
+                    userName: user.displayName || user.email,
+                    details: {
+                        fileName: `a ${language} snippet`,
+                    },
+                    timestamp: serverTimestamp(),
+                });
+            }
 
             const { refactoredCode, ...analysis } = results;
 

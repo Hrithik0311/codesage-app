@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,13 @@ import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, Arro
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 import { NotificationBell } from '@/components/NotificationBell';
-
-// Import all lesson data
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
-
+import { database } from '@/lib/firebase';
+import { ref as dbRef, get, query, limitToLast, onValue, orderByChild } from 'firebase/database';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
@@ -57,24 +58,94 @@ const ProgressItem = ({ icon: Icon, label, value, total, unit, indicatorClassNam
     </div>
 );
 
+const ActivityItem = ({ activity }) => {
+    const { type, userName, details, timestamp, userId } = activity;
+    const { user } = useAuth();
+    const isYou = user?.uid === userId;
 
-const recentActivities = [
-  { icon: GitCommit, text: "You committed 'Fix: Drivetrain alignment'", time: "2h ago" },
-  { icon: BookOpen, text: "You completed 'Lesson 5: Gamepad Controls'", time: "8h ago" },
-  { icon: Search, text: "You ran an analysis on 'Autonomous.java'", time: "1d ago" },
-  { icon: Users, text: "Maria Garcia pushed a commit to 'main'", time: "2d ago" },
-];
+    let icon = GitCommit;
+    let text;
+
+    switch (type) {
+        case 'commit':
+            icon = GitCommit;
+            text = <p className="font-medium">
+                <span className="font-bold">{isYou ? 'You' : userName}</span> committed '{details.message}'
+            </p>;
+            break;
+        case 'lesson_completion':
+            icon = BookOpen;
+            text = <p className="font-medium">
+                <span className="font-bold">{isYou ? 'You' : userName}</span> completed '{details.lessonTitle}'
+            </p>;
+            break;
+        case 'analysis':
+            icon = Search;
+            text = <p className="font-medium">
+                <span className="font-bold">{isYou ? 'You' : userName}</span> ran an analysis on {details.fileName}
+            </p>;
+            break;
+        default:
+            icon = GitCommit;
+            text = <p className="font-medium">An unknown activity occurred.</p>
+    }
+
+    const IconComponent = icon;
+
+    return (
+        <li className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+            <div className="flex items-center gap-4 overflow-hidden">
+                <IconComponent className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="truncate">{text}</div>
+            </div>
+            <span className="text-sm text-muted-foreground flex-shrink-0">
+                {timestamp ? formatDistanceToNowStrict(new Date(timestamp), { addSuffix: true }) : 'just now'}
+            </span>
+        </li>
+    );
+};
 
 
 export default function DashboardClient() {
   const { user, loading, passedLessonIds } = useAuth();
   const router = useRouter();
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [isActivitiesLoading, setIsActivitiesLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth');
     }
   }, [user, loading, router]);
+  
+  useEffect(() => {
+      if (user && database) {
+          setIsActivitiesLoading(true);
+          const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+          get(teamCodeRef).then((snapshot) => {
+              if (snapshot.exists()) {
+                  const teamCode = snapshot.val();
+                  const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+                  const activitiesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(5));
+                  
+                  const unsubscribe = onValue(activitiesQuery, (activitiesSnapshot) => {
+                      const activitiesData: any[] = [];
+                      activitiesSnapshot.forEach((child) => {
+                          activitiesData.push({ id: child.key, ...child.val() });
+                      });
+                      setRecentActivities(activitiesData.reverse()); // newest first
+                      setIsActivitiesLoading(false);
+                  });
+                  return unsubscribe;
+              } else {
+                  setIsActivitiesLoading(false); // No team, no activities
+                  setRecentActivities([]);
+              }
+          }).catch(() => setIsActivitiesLoading(false));
+      } else if (!loading) {
+          setIsActivitiesLoading(false); // Not logged in
+      }
+  }, [user, loading]);
 
   if (loading || !user) {
     return (
@@ -154,19 +225,24 @@ export default function DashboardClient() {
                 {/* Left Column */}
                 <div className="lg:col-span-2 space-y-8">
                     <section>
-                        <h2 className="font-headline text-2xl font-bold mb-6">Recent Activity</h2>
+                        <h2 className="font-headline text-2xl font-bold mb-6">Recent Team Activity</h2>
                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                             <CardContent className="p-0">
                                 <ul className="divide-y divide-border/50">
-                                    {recentActivities.map((activity, index) => (
-                                        <li key={index} className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
-                                            <div className="flex items-center gap-4">
-                                                <activity.icon className="w-5 h-5 text-muted-foreground" />
-                                                <p className="font-medium">{activity.text}</p>
-                                            </div>
-                                            <span className="text-sm text-muted-foreground flex-shrink-0">{activity.time}</span>
-                                        </li>
-                                    ))}
+                                    {isActivitiesLoading ? (
+                                        [...Array(4)].map((_, i) => (
+                                            <li key={i} className="flex items-center gap-4 px-6 py-4">
+                                                <Skeleton className="w-5 h-5 rounded-full" />
+                                                <Skeleton className="h-4 w-3/4" />
+                                            </li>
+                                        ))
+                                    ) : recentActivities.length > 0 ? (
+                                        recentActivities.map((activity) => (
+                                            <ActivityItem key={activity.id} activity={activity} />
+                                        ))
+                                    ) : (
+                                        <li className="px-6 py-8 text-center text-muted-foreground">No recent team activity.</li>
+                                    )}
                                 </ul>
                             </CardContent>
                         </Card>

@@ -23,7 +23,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, set, get, update, onValue, push } from 'firebase/database';
+import { ref as dbRef, set, get, update, onValue, push, serverTimestamp } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -380,15 +380,29 @@ export default function CollaborationClient() {
 
     const handleOpenCommitModal = () => setIsCommitModalOpen(true);
 
-    const handleCommit = () => {
+    const handleCommit = async () => {
         if (!commitMessage.trim()) {
             toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
             return;
         }
+
+        if (team && user && database) {
+            const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
+            await push(activitiesRef, {
+                type: 'commit',
+                userId: user.uid,
+                userName: user.displayName || user.email,
+                details: {
+                    message: commitMessage,
+                },
+                timestamp: serverTimestamp(),
+            });
+        }
+
         const newCommit = {
             hash: Math.random().toString(36).substring(2, 9),
             message: commitMessage,
-            author: 'You',
+            author: user?.displayName || 'You',
             time: 'Just now',
         };
         setCommits([newCommit, ...commits]);
