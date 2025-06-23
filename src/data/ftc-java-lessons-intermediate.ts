@@ -477,7 +477,7 @@ while (opModeIsActive()) {
     type: 'test',
     title: 'Intermediate Final Test',
     isFinalTestForCourse: true,
-    passingScore: 4,
+    passingScore: 7,
     content: [
       {
         type: LessonContentType.Heading,
@@ -485,7 +485,7 @@ while (opModeIsActive()) {
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'This test covers the intermediate lessons. You must score at least 4 out of 5 to pass and unlock the advanced course. Good luck!',
+        text: 'This test covers the intermediate lessons. You must score at least 7 out of 10 to pass and unlock the advanced course. Good luck!',
       }
     ],
     quiz: [
@@ -543,7 +543,64 @@ while (opModeIsActive()) {
         ],
         correctAnswer: "`.lineTo()` moves in a straight line, while `.splineTo()` allows for smooth, curved paths by changing heading and position simultaneously.",
         explanation: "Splines are what give Road Runner its characteristic fluid motion, enabling the robot to follow complex curves efficiently."
+      },
+      {
+        question: "What is the primary purpose of the `FollowerPIDTuner` in the Road Runner tuning process?",
+        options: [
+            "To find the motor's max RPM.",
+            "To tune the corrective PID controllers that keep the robot on the path.",
+            "To set the robot's starting position.",
+            "To test the robot's strafing distance."
+        ],
+        correctAnswer: "To tune the corrective PID controllers that keep the robot on the path.",
+        explanation: "The follower PIDs (translational and heading) are what allow the robot to correct for small errors and precisely follow the generated trajectory."
+      },
+      {
+          question: "In an asynchronous subsystem class (e.g., `Lift.java`), what is the role of the `update()` method?",
+          options: [
+              "To initialize the hardware.",
+              "To contain the subsystem's state machine logic, which is called repeatedly by the main OpMode loop.",
+              "To stop all motors on the robot.",
+              "To run only once when the subsystem is created."
+          ],
+          correctAnswer: "To contain the subsystem's state machine logic, which is called repeatedly by the main OpMode loop.",
+          explanation: "The OpMode tells the subsystem *what* to do (e.g., `lift.goToPosition()`), and the `update()` method, called every loop, handles *how* to do it without blocking."
+      },
+      {
+          question: "When using `addTemporalMarker()` in a `TrajectorySequence`, the code inside the marker must be...",
+          options: [
+              "Very long and complex.",
+              "Contained in a `while` loop.",
+              "Non-blocking, meaning it should execute instantly without waiting.",
+              "A `sleep()` command."
+          ],
+          correctAnswer: "Non-blocking, meaning it should execute instantly without waiting.",
+          explanation: "Any blocking code inside a marker will halt Road Runner's control loop, causing jerky movement and inaccurate path following. Markers should only set states or target positions."
+      },
+      {
+          question: "Why might a programmer manually decrease a camera's exposure using `ExposureControl` when detecting AprilTags?",
+          options: [
+              "To make the image brighter in a dark room.",
+              "To save battery power.",
+              "To prevent the bright white parts of the tag from being overexposed and 'blown out', which makes them unreadable.",
+              "To increase the camera's frame rate."
+          ],
+          correctAnswer: "To prevent the bright white parts of the tag from being overexposed and 'blown out', which makes them unreadable.",
+          explanation: "Overexposure causes a loss of detail. By lowering the exposure, the processor can more clearly distinguish the black and white areas of the tag, leading to more reliable detections."
+      },
+      {
+          question: "What is the purpose of the `TrajectorySequenceBuilder` in Road Runner?",
+          options: [
+              "To define a single, uninterrupted curve.",
+              "To build a sequence of multiple movements (like `forward`, `splineTo`, `turn`) and markers into a complete autonomous routine.",
+              "To tune the robot's PID controllers.",
+              "To set the robot's final parking position."
+          ],
+          correctAnswer: "To build a sequence of multiple movements (like `forward`, `splineTo`, `turn`) and markers into a complete autonomous routine.",
+          explanation: "The builder pattern allows you to chain commands together in a readable way to create a full, multi-step autonomous path."
       }
     ]
   }
 ];
+
+    
