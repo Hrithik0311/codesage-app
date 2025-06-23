@@ -23,7 +23,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
-  const { user, loading, updateLessonProgress, passedLessonIds, resetCompletedLessons } = useAuth();
+  const { user, loading, updateLessonProgress, passedLessonIds } = useAuth();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -72,12 +72,12 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
 
 
   const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
-    const scoreRatio = totalQuestions > 0 ? rawScore / totalQuestions : 1;
-    updateLessonProgress(lessonId, scoreRatio);
-    
     const isFinalTest = lessonId === 'final-course-test';
+    const scoreToStore = isFinalTest ? rawScore : (totalQuestions > 0 ? rawScore / totalQuestions : 1);
+    updateLessonProgress(lessonId, scoreToStore);
+    
     const PASS_THRESHOLD = 2 / 3;
-    const isPassed = isFinalTest ? rawScore >= 17 : scoreRatio >= PASS_THRESHOLD;
+    const isPassed = isFinalTest ? rawScore >= 17 : scoreToStore >= PASS_THRESHOLD;
 
     if (isPassed) {
        if (isFinalTest) {
@@ -151,7 +151,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
           activeLessonId={activeLessonId}
           onSelectLesson={handleSelectLesson}
           passedLessonIds={passedLessonIds}
-          onResetProgress={resetCompletedLessons}
+          courseTitle={courseTitle}
         />
         <main id="lesson-main-content" className="flex-1 bg-card/80 backdrop-blur-md p-6 md:p-10 rounded-2xl shadow-2xl border border-border/50 overflow-y-auto max-h-[calc(100vh-12rem)] md:max-h-[calc(100vh-10rem)] scroll-smooth">
           {activeLesson ? (

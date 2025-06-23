@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { Lesson } from '@/data/ftc-java-lessons';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { BookOpen, Check, ClipboardList, Lock, Rocket, RotateCcw, Star } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useAuth } from '@/context/AuthContext';
 
 
 interface LessonNavigationProps {
@@ -26,7 +27,7 @@ interface LessonNavigationProps {
   activeLessonId: string | null;
   onSelectLesson: (lessonId: string) => void;
   passedLessonIds: Set<string>;
-  onResetProgress: () => void;
+  courseTitle: string;
 }
 
 const getIconForLesson = (lessonType: Lesson['type']) => {
@@ -43,13 +44,23 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   activeLessonId,
   onSelectLesson,
   passedLessonIds,
-  onResetProgress,
+  courseTitle,
 }) => {
-  const handleReset = () => {
-    onResetProgress();
+  const { resetAllProgress, resetCourseProgress } = useAuth();
+  const isIntermediateCourse = courseTitle.includes('Intermediate');
+
+  const handleResetIntermediate = () => {
+    const intermediateLessonIds = lessons.map(l => l.id);
+    resetCourseProgress(intermediateLessonIds);
     if (lessons.length > 0) {
       onSelectLesson(lessons[0].id);
     }
+  };
+
+  const handleResetAll = () => {
+    resetAllProgress();
+    // No explicit navigation needed here. The LearningPageClient component
+    // will detect the change in progress and redirect to the beginner course.
   };
 
   return (
@@ -74,10 +85,14 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                     const Icon = getIconForLesson(lesson.type);
 
                     let isUnlocked;
-                    if (lesson.type === 'test') {
-                        // The test is unlocked if all previous lessons are passed
+                    if (lesson.id === 'final-course-test') {
+                        // The final test is unlocked if all previous lessons are passed
                         isUnlocked = lessons.slice(0, index).every(l => passedLessonIds.has(l.id));
-                    } else {
+                    } else if (isIntermediateCourse) {
+                        // Intermediate lessons are unlocked if the final beginner test is passed
+                        isUnlocked = passedLessonIds.has('final-course-test');
+                    }
+                    else {
                         // A regular lesson is unlocked if it's the first one or the previous one is passed
                         isUnlocked = index === 0 || passedLessonIds.has(lessons[index - 1].id);
                     }
@@ -113,7 +128,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                                 </TooltipTrigger>
                                 <TooltipContent side="right">
                                     <p className="font-semibold">{lesson.title}</p>
-                                    {!isUnlocked && <p className="text-xs text-muted-foreground">{lesson.type === 'test' ? "Pass all lessons to unlock" : "Pass previous lesson to unlock"}</p>}
+                                    {!isUnlocked && <p className="text-xs text-muted-foreground">{lesson.id === 'final-course-test' ? "Pass all lessons to unlock" : "Pass previous lesson to unlock"}</p>}
                                 </TooltipContent>
                             </Tooltip>
                         </li>
@@ -124,28 +139,59 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         </div>
       </ScrollArea>
       <div className="mt-auto pt-4 border-t border-border/30">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset Progress
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently reset your lesson progress.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Yes, reset my progress
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {isIntermediateCourse ? (
+           <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Progress
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Course Progress</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You can reset progress for this intermediate course, or you can reset all of your progress. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
+                <AlertDialogAction onClick={handleResetIntermediate}>
+                  Reset Intermediate Progress Only
+                </AlertDialogAction>
+                <AlertDialogAction
+                  className={cn(buttonVariants({ variant: 'destructive' }), "mt-0")}
+                  onClick={handleResetAll}
+                >
+                  Reset All My Progress
+                </AlertDialogAction>
+                 <AlertDialogCancel className="mt-2">Cancel</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Progress
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently reset all your lesson progress.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetAll} className={buttonVariants({ variant: "destructive" })}>
+                  Yes, reset my progress
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </nav>
   );

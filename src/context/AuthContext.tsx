@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, database } from '@/lib/firebase';
-import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove } from 'firebase/database';
+import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update } from 'firebase/database';
 
 
 export interface Notification {
@@ -26,10 +26,11 @@ interface AuthContextType {
   lessonProgress: Map<string, number>; // lessonId -> score (0 to 1)
   passedLessonIds: Set<string>;
   updateLessonProgress: (lessonId: string, score: number) => void;
-  resetCompletedLessons: () => void;
+  resetAllProgress: () => void;
+  resetCourseProgress: (lessonIds: string[]) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetCompletedLessons: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, notifications: [], markNotificationsAsRead: () => {}, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {} });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -117,7 +118,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             const newPassedLessonIds = new Set<string>();
             newLessonProgress.forEach((score, lessonId) => {
-                if (score >= PASS_THRESHOLD) {
+                if (lessonId === 'final-course-test') {
+                    if (score >= 17) newPassedLessonIds.add(lessonId);
+                } else if (score >= PASS_THRESHOLD) {
                     newPassedLessonIds.add(lessonId);
                 }
             });
@@ -164,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const resetCompletedLessons = () => {
+  const resetAllProgress = () => {
     if (user && database) {
       const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
       remove(lessonsRef).then(() => {
@@ -174,7 +177,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const value = { user, loading, notifications, markNotificationsAsRead, lessonProgress, passedLessonIds, updateLessonProgress, resetCompletedLessons };
+  const resetCourseProgress = (lessonIdsToRemove: string[]) => {
+    if (user && database) {
+        const updates: { [key: string]: null } = {};
+        lessonIdsToRemove.forEach(id => {
+            updates[`/users/${user.uid}/lessonProgress/${id}`] = null;
+        });
+        // Also remove the final test progress if resetting intermediate
+        updates[`/users/${user.uid}/lessonProgress/final-course-test`] = null;
+        update(dbRef(database), updates);
+    }
+  };
+
+  const value = { user, loading, notifications, markNotificationsAsRead, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
