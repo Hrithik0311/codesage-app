@@ -39,16 +39,36 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
     if (mainContent) {
         mainContent.scrollTop = 0;
     }
-  }, [pathname, router]);
+    try {
+        localStorage.setItem(`lastActiveLesson-${courseTitle}`, lessonId);
+    } catch (error) {
+        console.warn("Could not save lesson progress to localStorage:", error);
+    }
+  }, [pathname, router, courseTitle]);
 
   useEffect(() => {
+    // Priority 1: Check for a lesson ID in the URL hash.
     const lessonIdFromHash = window.location.hash.substring(1);
     if (lessonIdFromHash && lessons.find(l => l.id === lessonIdFromHash)) {
       handleSelectLesson(lessonIdFromHash);
-    } else if (lessons.length > 0) {
-      handleSelectLesson(lessons[0].id);
+      return;
     }
-  }, [lessons, handleSelectLesson]);
+
+    // Priority 2: Check for a saved lesson ID in localStorage.
+    let lastLessonId: string | null = null;
+    try {
+        lastLessonId = localStorage.getItem(`lastActiveLesson-${courseTitle}`);
+    } catch (error) {
+        console.warn("Could not read from localStorage:", error);
+    }
+    
+    if (lastLessonId && lessons.find(l => l.id === lastLessonId)) {
+        handleSelectLesson(lastLessonId);
+    } else if (lessons.length > 0) {
+        // Priority 3: Default to the first lesson.
+        handleSelectLesson(lessons[0].id);
+    }
+  }, [lessons, handleSelectLesson, courseTitle]);
 
 
   const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
