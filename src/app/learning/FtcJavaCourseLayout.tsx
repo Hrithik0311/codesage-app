@@ -16,9 +16,10 @@ import { useToast } from '@/hooks/use-toast';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
+  courseTitle?: string;
 }
 
-const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) => {
+const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, courseTitle = "FTC Java Course" }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -50,13 +51,24 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
   }, [lessons, handleSelectLesson]);
 
 
-  const handleLessonComplete = (lessonId: string, score: number) => {
-    updateLessonProgress(lessonId, score);
-
+  const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
+    const scoreRatio = totalQuestions > 0 ? rawScore / totalQuestions : 1;
+    updateLessonProgress(lessonId, scoreRatio);
+    
+    const isFinalTest = lessonId === 'final-course-test';
     const PASS_THRESHOLD = 2 / 3;
-    const isPassed = score >= PASS_THRESHOLD;
+    const isPassed = isFinalTest ? rawScore >= 17 : scoreRatio >= PASS_THRESHOLD;
 
     if (isPassed) {
+       if (isFinalTest) {
+            toast({
+                title: "Course Complete!",
+                description: "Congratulations! You've unlocked the intermediate lessons.",
+            });
+            router.push('/learning/intermediate');
+            return;
+        }
+
       const currentIndex = lessons.findIndex(l => l.id === lessonId);
       if (currentIndex !== -1 && currentIndex < lessons.length - 1) {
         const nextLesson = lessons[currentIndex + 1];
@@ -72,7 +84,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
        toast({
           variant: "destructive",
           title: "Quiz Failed",
-          description: `You need to score at least 67% to pass. Please try again.`,
+          description: isFinalTest ? `You need to score at least 17 points to pass. Please try again.` : `You need to score at least 67% to pass. Please try again.`,
        });
     }
   };
@@ -101,7 +113,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons }) =>
           <div className="hidden md:flex items-center gap-2">
             <BookOpen className="text-accent" size={24} />
             <h1 className="text-xl font-bold font-headline text-foreground">
-              FTC Java Course
+              {courseTitle}
             </h1>
           </div>
 

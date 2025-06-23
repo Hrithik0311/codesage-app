@@ -43,7 +43,7 @@ const renderContentItem = (item: LessonContentItem, index: number) => {
   }
 };
 
-const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (score: number) => void }) => {
+const InteractiveQuiz = ({ lesson, quiz, onComplete }: { lesson: Lesson; quiz: QuizItem[], onComplete: (rawScore: number, totalQuestions: number) => void }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -60,36 +60,39 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
     }, [quiz]);
 
     const handleQuizFinish = () => {
-        const finalScore = quiz.length > 0 ? score / quiz.length : 1;
-        onComplete(finalScore);
+        onComplete(score, quiz.length);
+    };
+
+    const handleTryAgain = () => {
+        setQuizCompleted(false);
+        setCurrentQuestionIndex(0);
+        setScore(0);
+        setSelectedAnswer(null);
+        setIsAnswered(false);
     };
 
     if (quizCompleted) {
-        const finalScore = quiz.length > 0 ? score / quiz.length : 1;
-        const isPassed = finalScore >= (2/3);
+        const finalScore = score;
+        const totalQuestions = quiz.length;
+        const isFinalTest = lesson.id === 'final-course-test';
+        const isPassed = isFinalTest ? finalScore >= 17 : (totalQuestions > 0 ? (finalScore / totalQuestions) >= (2/3) : true);
 
         return (
             <div className="text-center p-8 bg-muted/30 rounded-lg border border-border/50">
                 <Award className={cn("mx-auto w-16 h-16 mb-4", isPassed ? "text-yellow-400" : "text-muted-foreground")} />
                 <h3 className="text-2xl font-bold font-headline">Quiz Complete!</h3>
-                <p className="text-lg mt-2">You scored {score} out of {quiz.length}.</p>
+                <p className="text-lg mt-2">You scored {finalScore} out of {totalQuestions}.</p>
                 {isPassed ? (
                     <p className="text-green-400 font-semibold mt-1">You passed!</p>
                 ) : (
-                    <p className="text-red-400 font-semibold mt-1">You need to score at least 67% to pass. Please try again.</p>
+                    <p className="text-red-400 font-semibold mt-1">{isFinalTest ? "You need to score at least 17 to continue." : "You need to score at least 67% to pass. Please try again."}</p>
                 )}
 
                 <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
-                    <Button onClick={() => {
-                        setQuizCompleted(false);
-                        setCurrentQuestionIndex(0);
-                        setScore(0);
-                        setSelectedAnswer(null);
-                        setIsAnswered(false);
-                    }} variant="outline">
+                    <Button onClick={handleTryAgain} variant="outline">
                         Try Again
                     </Button>
-                    <Button onClick={handleQuizFinish} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                    <Button onClick={handleQuizFinish} disabled={isFinalTest && !isPassed} className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
                         Continue
                     </Button>
                 </div>
@@ -99,7 +102,7 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
     
     const currentQuestion = quiz[currentQuestionIndex];
     if (!currentQuestion) {
-        setQuizCompleted(true);
+        if (!quizCompleted) setQuizCompleted(true);
         return null;
     }
 
@@ -188,7 +191,7 @@ const InteractiveQuiz = ({ quiz, onComplete }: { quiz: QuizItem[], onComplete: (
 
 interface LessonDisplayProps {
     lesson: Lesson;
-    onLessonComplete: (lessonId: string, score: number) => void;
+    onLessonComplete: (lessonId: string, rawScore: number, totalQuestions: number) => void;
     isPassed: boolean;
 }
 
@@ -212,10 +215,10 @@ const LessonDisplay: React.FC<LessonDisplayProps> = ({ lesson, onLessonComplete,
       {lesson.content.map(renderContentItem)}
 
       {lesson.quiz && lesson.quiz.length > 0 ? (
-        <InteractiveQuiz quiz={lesson.quiz} onComplete={(score) => onLessonComplete(lesson.id, score)} />
+        <InteractiveQuiz lesson={lesson} quiz={lesson.quiz} onComplete={(rawScore, total) => onLessonComplete(lesson.id, rawScore, total)} />
       ) : !isPassed ? (
          <div className="mt-12 text-center">
-            <Button onClick={() => onLessonComplete(lesson.id, 1.0)} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+            <Button onClick={() => onLessonComplete(lesson.id, 1, 1)} size="lg" className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
                 <CheckCircle className="mr-2 h-5 w-5" />
                 Mark as Complete
             </Button>

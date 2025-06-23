@@ -15,7 +15,7 @@ export default function LearningPage() {
     <>
       <AnimatedBackground /> 
       <div className="relative z-10 min-h-screen">
-        <FtcJavaCourseLayout lessons={ftcJavaLessons} />
+        <FtcJavaCourseLayout lessons={ftcJavaLessons} courseTitle="FTC Java Course" />
       </div>
     </>
   );
