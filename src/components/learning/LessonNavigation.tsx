@@ -1,8 +1,10 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Lesson } from '@/data/ftc-java-lessons';
+import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
+import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -20,6 +22,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/context/AuthContext';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 
 interface LessonNavigationProps {
@@ -47,14 +51,42 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   courseTitle,
 }) => {
   const { resetAllProgress, resetCourseProgress } = useAuth();
+  const [resetOptions, setResetOptions] = useState({
+    intermediate: false,
+    advanced: false,
+  });
+
   const isIntermediateCourse = courseTitle.includes('Intermediate');
+  const isAdvancedCourse = courseTitle.includes('Advanced');
+
+  const handleResetSelected = () => {
+    let idsToReset: string[] = [];
+    if (resetOptions.intermediate) {
+        idsToReset.push(...ftcJavaLessonsIntermediate.map(l => l.id));
+    }
+    if (resetOptions.advanced) {
+        idsToReset.push(...ftcJavaLessonsAdvanced.map(l => l.id));
+    }
+
+    if (idsToReset.length > 0) {
+        resetCourseProgress(idsToReset);
+    }
+    
+    // If they reset the current (advanced) course, navigate to its first lesson.
+    if (resetOptions.advanced && lessons.length > 0) {
+        onSelectLesson(lessons[0].id);
+    }
+
+    // Reset checkbox state after action
+    setResetOptions({ intermediate: false, advanced: false });
+  };
 
   const handleResetIntermediate = () => {
-    const intermediateLessonIds = lessons.map(l => l.id);
+    const intermediateLessonIds = ftcJavaLessonsIntermediate.map(l => l.id);
     // Also remove the advanced course progress if any exists
-    const advancedCourseIds = ['advanced-lesson1']; // This should be dynamic if more are added
+    const advancedCourseIds = ftcJavaLessonsAdvanced.map(l => l.id);
     resetCourseProgress([...intermediateLessonIds, ...advancedCourseIds]);
-    if (lessons.length > 0) {
+    if (isIntermediateCourse && lessons.length > 0) {
       onSelectLesson(lessons[0].id);
     }
   };
@@ -139,7 +171,50 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         </div>
       </ScrollArea>
       <div className="mt-auto pt-4 border-t border-border/30">
-        {isIntermediateCourse ? (
+        {isAdvancedCourse ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset Progress
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Progress</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Select which courses you want to reset. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4 space-y-4">
+                  <div className="flex items-center space-x-3 rounded-md border p-3">
+                    <Checkbox id="reset-intermediate" checked={resetOptions.intermediate} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, intermediate: !!checked}))} />
+                    <Label htmlFor="reset-intermediate" className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Intermediate Course
+                    </Label>
+                  </div>
+                   <div className="flex items-center space-x-3 rounded-md border p-3">
+                    <Checkbox id="reset-advanced" checked={resetOptions.advanced} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, advanced: !!checked}))} />
+                    <Label htmlFor="reset-advanced" className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Advanced Course
+                    </Label>
+                  </div>
+                </div>
+                <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:justify-end">
+                    <AlertDialogAction onClick={handleResetSelected} disabled={!resetOptions.intermediate && !resetOptions.advanced}>
+                      Reset Selected
+                    </AlertDialogAction>
+                    <AlertDialogAction
+                        className={cn(buttonVariants({ variant: 'destructive' }), "mt-0")}
+                        onClick={handleResetAll}
+                    >
+                        Reset All My Progress
+                    </AlertDialogAction>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        ) : isIntermediateCourse ? (
            <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
