@@ -1304,65 +1304,229 @@ telemetry.update();
       },
       {
         type: LessonContentType.Paragraph,
-        text: 'This final test covers concepts from all the previous lessons. Good luck!'
+        text: 'This final test covers concepts from all the previous lessons. You must score at least 67% to pass the course. Good luck!'
       }
     ],
     quiz: [
       {
-        question: 'In which part of a LinearOpMode should you initialize your hardware class that contains all your motors and servos?',
-        options: ['Inside the `while(opModeIsActive())` loop.', 'After the `waitForStart()` call.', 'Before the `waitForStart()` call.', 'In a separate thread.'],
-        correctAnswer: 'Before the `waitForStart()` call.',
-        explanation: 'Hardware mapping and initialization should happen once when the INIT button is pressed, which corresponds to the code section before `waitForStart()`.'
+        question: "What is the primary purpose of the `waitForStart()` method in a `LinearOpMode`?",
+        options: [
+            "To wait for a specific amount of time before running.",
+            "To separate the initialization code from the main run loop code.",
+            "To check if the robot's hardware is connected correctly.",
+            "To start the main run loop immediately."
+        ],
+        correctAnswer: "To separate the initialization code from the main run loop code.",
+        explanation: "waitForStart() pauses the OpMode execution until the driver presses the PLAY button. Code before it runs on INIT; code after it runs on PLAY."
       },
       {
-        question: 'To make a mecanum robot strafe to the left, which combination of wheel directions is correct?',
+        question: "What is the most common cause of a `HardwareDeviceNotFoundException`?",
         options: [
-            'All wheels spin forward.', 
-            'Front-left and back-right spin backward; Front-right and back-left spin forward.', 
-            'Left wheels forward, right wheels backward.', 
-            'All wheels spin backward.'
+            "The battery is too low.",
+            "A motor is unplugged.",
+            "The name in the code does not exactly match the name in the robot's configuration file.",
+            "The Wi-Fi connection is weak."
         ],
-        correctAnswer: 'Front-left and back-right spin backward; Front-right and back-left spin forward.',
-        explanation: 'Strafing is achieved by making the diagonal pairs of wheels spin in opposite directions, causing the net force to be purely sideways.'
+        correctAnswer: "The name in the code does not exactly match the name in the robot's configuration file.",
+        explanation: "This error means the hardwareMap couldn't find a device with the specified name. It's often due to a typo or case-mismatch."
       },
       {
-        question: 'If you want an arm to hold its position against gravity using a PID controller, which term is most crucial for counteracting the constant sag?',
-        options: ['Proportional (P)', 'Integral (I)', 'Derivative (D)', 'The `gamepad` input'],
-        correctAnswer: 'Integral (I)',
-        explanation: 'The Integral term accumulates error over time. Gravity causes a small, constant error (sag), which the Integral term will gradually overcome by adding corrective power.'
+        question: "What is the valid range of values for a standard servo's position, set by `.setPosition()`?",
+        options: [
+            "-1.0 to 1.0",
+            "0 to 100",
+            "0.0 to 1.0",
+            "Any number"
+        ],
+        correctAnswer: "0.0 to 1.0",
+        explanation: "A servo's position is set with a value from 0.0 to 1.0, which corresponds to its full range of motion (e.g., 0 to 180 degrees)."
       },
       {
-        question: 'What is the key difference between what an AprilTag provides and what TensorFlow Object Detection (TFOD) provides?',
+        question: "What data type does `gamepad1.right_trigger` return?",
         options: [
-            'AprilTags are for TeleOp, TFOD is for Autonomous.', 
-            'AprilTags provide precise robot location/orientation, while TFOD identifies custom game objects.', 
-            'AprilTags work with any camera, TFOD requires a special camera.', 
-            'AprilTags are black and white, TFOD detects colors.'
+            "boolean",
+            "int",
+            "String",
+            "double"
         ],
-        correctAnswer: 'AprilTags provide precise robot location/orientation, while TFOD identifies custom game objects.',
-        explanation: 'AprilTags are used for localization (knowing where you are). TFOD is used for classification and detection (knowing what you are looking at).'
+        correctAnswer: "double",
+        explanation: "Triggers are analog inputs, returning a `double` from 0.0 (unpressed) to 1.0 (fully pressed)."
       },
       {
-        question: 'When using `RUN_TO_POSITION` for an encoder-based drive, what does the `motor.isBusy()` method indicate?',
+        question: "How do you check if a `TouchSensor` named `limitSwitch` is currently being pressed?",
         options: [
-            'That the motor is drawing a lot of current.', 
-            'That the OpMode is active.', 
-            'That the motor controller is still actively trying to reach the target position.',
-            'That the gamepad buttons are being held down.'
+            "`limitSwitch.getValue() == 1`",
+            "`limitSwitch.isPressed()`",
+            "`limitSwitch.isTouched()`",
+            "`limitSwitch.getStatus() == 'PRESSED'`"
         ],
-        correctAnswer: 'That the motor controller is still actively trying to reach the target position.',
-        explanation: '`isBusy()` is the signal from the motor controller that the PID loop for `RUN_TO_POSITION` is still running. It becomes `false` when the target is reached.'
+        correctAnswer: "`limitSwitch.isPressed()`",
+        explanation: "The `.isPressed()` method returns a boolean (`true` or `false`) indicating the sensor's state."
       },
-       {
-        question: 'What is the purpose of using `imu.resetYaw()` at the start of an autonomous OpMode?',
+      {
+        question: "What is the difference between the `RUN_USING_ENCODER` and `RUN_TO_POSITION` motor run modes?",
         options: [
-            'To turn the IMU off and on again.', 
-            'To set the robot\'s current heading as the zero-degree reference for all subsequent turns.', 
-            'To check if the IMU is connected properly.', 
-            'To make the robot drive straight.'
+            "They are the same.",
+            "`RUN_USING_ENCODER` allows for manual power control while still tracking position; `RUN_TO_POSITION` makes the motor autonomously drive to a target tick count.",
+            "`RUN_TO_POSITION` is for TeleOp, and `RUN_USING_ENCODER` is for Autonomous.",
+            "`RUN_USING_ENCODER` is less accurate."
         ],
-        correctAnswer: 'To set the robot\'s current heading as the zero-degree reference for all subsequent turns.',
-        explanation: '`resetYaw()` establishes a "zero" heading, so that any future turns or field-centric calculations are relative to the robot\'s starting orientation.'
+        correctAnswer: "`RUN_USING_ENCODER` allows for manual power control while still tracking position; `RUN_TO_POSITION` makes the motor autonomously drive to a target tick count.",
+        explanation: "`RUN_USING_ENCODER` is for driver control or manual PID loops, while `RUN_TO_POSITION` is a self-contained mode for autonomous movements."
+      },
+      {
+        question: "What is the primary benefit of creating a dedicated Hardware Class?",
+        options: [
+            "It makes the robot run faster.",
+            "It is required by the game rules.",
+            "It centralizes all hardware mapping and initialization into one place, making code cleaner and easier to maintain.",
+            "It improves battery life."
+        ],
+        correctAnswer: "It centralizes all hardware mapping and initialization into one place, making code cleaner and easier to maintain.",
+        explanation: "A hardware class reduces code duplication and makes it easy to update hardware configurations across all your OpModes."
+      },
+      {
+        question: "In a state machine for an autonomous routine, what is an `enum` typically used for?",
+        options: [
+            "To count the number of seconds.",
+            "To store motor power values.",
+            "To define a set of clear, readable names for each state (e.g., DRIVE, TURN, STOP).",
+            "To calculate distances."
+        ],
+        correctAnswer: "To define a set of clear, readable names for each state (e.g., DRIVE, TURN, STOP).",
+        explanation: "Enums make state machine code self-documenting and prevent errors from using 'magic numbers' to represent states."
+      },
+      {
+        question: "To make a mecanum robot drive directly forward, how should the wheels be powered?",
+        options: [
+            "Front wheels forward, back wheels backward.",
+            "Left wheels forward, right wheels backward.",
+            "All four wheels spin forward.",
+            "Only the front wheels spin."
+        ],
+        correctAnswer: "All four wheels spin forward.",
+        explanation: "To drive forward, the side-to-side forces from the mecanum rollers must cancel out, which happens when all wheels spin in the same direction."
+      },
+      {
+        question: "In a PID controller, what is the primary role of the 'P' (Proportional) term?",
+        options: [
+            "To prevent overshooting the target.",
+            "To correct for small, constant errors like gravity.",
+            "To provide the main driving force, which is proportional to the current error.",
+            "To remember past errors."
+        ],
+        correctAnswer: "To provide the main driving force, which is proportional to the current error.",
+        explanation: "The Proportional term is the core of the controller; it applies power based on how far the system is from its target."
+      },
+      {
+        question: "What does 'field-centric' drive mean for a mecanum robot?",
+        options: [
+            "The robot can only drive in the center of the field.",
+            "The driver's joystick inputs are relative to the robot's orientation.",
+            "Pushing the joystick 'forward' always moves the robot towards a fixed direction on the field, regardless of the robot's orientation.",
+            "The robot uses GPS to know its position."
+        ],
+        correctAnswer: "Pushing the joystick 'forward' always moves the robot towards a fixed direction on the field, regardless of the robot's orientation.",
+        explanation: "Field-centric drive uses the IMU to make driving more intuitive, as joystick directions correspond to the field, not the robot."
+      },
+      {
+        question: "What SDK class is used to create a simple stopwatch to add timeouts to a state machine?",
+        options: [
+            "`Timer`",
+            "`Stopwatch`",
+            "`ElapsedTime`",
+            "`Clock`"
+        ],
+        correctAnswer: "`ElapsedTime`",
+        explanation: "The `ElapsedTime` class is the standard, easy-to-use timer provided by the FTC SDK for measuring time intervals."
+      },
+      {
+        question: "When using the AprilTag processor, what information does `detection.ftcPose.range` provide?",
+        options: [
+            "The range of possible tag IDs.",
+            "The distance from the camera to the tag.",
+            "The angle of the tag relative to the camera.",
+            "The tag's family."
+        ],
+        correctAnswer: "The distance from the camera to the tag.",
+        explanation: "`ftcPose.range` is a direct measurement of the distance (in the units of your tag size definition) to the detected tag."
+      },
+      {
+        question: "What is the purpose of a `.tflite` file when using the TensorFlow Object Detection (TFOD) processor?",
+        options: [
+            "It's a configuration file for the webcam.",
+            "It's a text file containing the names of objects.",
+            "It is the trained machine learning model that contains the data needed to recognize custom objects.",
+            "It's a log file of all detections."
+        ],
+        correctAnswer: "It is the trained machine learning model that contains the data needed to recognize custom objects.",
+        explanation: "The `.tflite` file is the final, compressed output of a TensorFlow training process, which the FTC SDK uses to perform object detection."
+      },
+      {
+        question: "What is the main advantage of the Road Runner motion planning library over a simple state machine?",
+        options: [
+            "It is easier to set up.",
+            "It uses less battery power.",
+            "It generates smooth, continuous paths (trajectories) for fast and highly repeatable autonomous movements.",
+            "It only works for tank drive robots."
+        ],
+        correctAnswer: "It generates smooth, continuous paths (trajectories) for fast and highly repeatable autonomous movements.",
+        explanation: "Road Runner excels at creating optimized, curved paths, which are often faster and more reliable than a sequence of discrete drive-and-turn actions."
+      },
+      {
+        question: "To command a motor to spin at 50% power backwards, what value would you pass to `.setPower()`?",
+        options: [
+            "50",
+            "0.5",
+            "-50",
+            "-0.5"
+        ],
+        correctAnswer: "-0.5",
+        explanation: "Motor power ranges from -1.0 (full reverse) to 1.0 (full forward). 50% reverse is -0.5."
+      },
+      {
+        question: "What is the purpose of `telemetry.update()`?",
+        options: [
+            "To update the software on the robot controller.",
+            "To send all the data added via `telemetry.addData()` to the Driver Hub screen.",
+            "To check for errors in the telemetry.",
+            "To clear the telemetry log."
+        ],
+        correctAnswer: "To send all the data added via `telemetry.addData()` to the Driver Hub screen.",
+        explanation: "`telemetry.addData()` stages data, but `telemetry.update()` is the command that actually transmits it to be displayed."
+      },
+      {
+        question: "To create a toggle for a claw mechanism using a button, you need to detect the:",
+        options: [
+            "Button's color.",
+            "Button's press duration.",
+            "Button's 'rising edge' (the moment it becomes pressed).",
+            "Button's 'falling edge' (the moment it is released)."
+        ],
+        correctAnswer: "Button's 'rising edge' (the moment it becomes pressed).",
+        explanation: "To prevent the toggle from happening continuously while the button is held, you must check for the transition from not pressed to pressed."
+      },
+      {
+        question: "In a PID controller for a robot's turn, what would be the 'Target' value?",
+        options: [
+            "The desired angle in degrees (e.g., 90.0).",
+            "The current motor power.",
+            "The desired motor speed.",
+            "The battery voltage."
+        ],
+        correctAnswer: "The desired angle in degrees (e.g., 90.0).",
+        explanation: "The 'Target' is the goal you want to reach. For a turn, this is the desired final angle of the robot."
+      },
+      {
+        question: "What is the main function of the `VisionPortal.Builder()`?",
+        options: [
+            "To build a new robot.",
+            "To configure and create a vision processing pipeline, attaching processors like AprilTag or TFOD to a camera source.",
+            "To design a new AprilTag.",
+            "To change the camera's lens."
+        ],
+        correctAnswer: "To configure and create a vision processing pipeline, attaching processors like AprilTag or TFOD to a camera source.",
+        explanation: "The VisionPortal is the main entry point for using the FTC vision system, allowing you to link one or more processors to a camera."
       }
     ]
   }
