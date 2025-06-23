@@ -43,7 +43,7 @@ export const ftcJavaLessonsIntermediate: Lesson[] = [
       {
         question: 'What is "feedforward" control in the context of Road Runner?',
         options: ['A type of sensor.', 'A control method that proactively calculates the required motor power based on a model of the robot, rather than just reacting to error.', 'A way to send telemetry data forward to the next state.', 'Another name for PID control.'],
-        correctAnswer: 'A control method that proactively calculates the required motor power based on a model of therobot, rather than just reacting to error.',
+        correctAnswer: 'A control method that proactively calculates the required motor power based on a model of the robot, rather than just reacting to error.',
         explanation: 'Feedforward anticipates the power needed to execute a motion, making the controller much more responsive and accurate than a purely reactive PID controller.'
       }
     ]
