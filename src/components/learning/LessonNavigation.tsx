@@ -62,9 +62,10 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   const handleResetSelected = () => {
     let idsToReset: string[] = [];
     if (resetOptions.intermediate) {
+        // Resetting intermediate must also reset advanced
         idsToReset.push(...ftcJavaLessonsIntermediate.map(l => l.id));
-    }
-    if (resetOptions.advanced) {
+        idsToReset.push(...ftcJavaLessonsAdvanced.map(l => l.id));
+    } else if (resetOptions.advanced) {
         idsToReset.push(...ftcJavaLessonsAdvanced.map(l => l.id));
     }
 
@@ -72,8 +73,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         resetCourseProgress(idsToReset);
     }
     
-    // If they reset the current (advanced) course, navigate to its first lesson.
-    if (resetOptions.advanced && lessons.length > 0) {
+    // If only the advanced course was reset, navigate to its first lesson.
+    // The redirect logic in AdvancedLearningPageClient will handle the case where intermediate was reset.
+    if (resetOptions.advanced && !resetOptions.intermediate && lessons.length > 0) {
         onSelectLesson(lessons[0].id);
     }
 
@@ -183,18 +185,18 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reset Progress</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Select which courses you want to reset. This action cannot be undone.
+                    Select which courses you want to reset. Resetting a course will also reset all subsequent courses. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4 space-y-4">
                   <div className="flex items-center space-x-3 rounded-md border p-3">
-                    <Checkbox id="reset-intermediate" checked={resetOptions.intermediate} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, intermediate: !!checked}))} />
+                    <Checkbox id="reset-intermediate" checked={resetOptions.intermediate} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, intermediate: !!checked, advanced: checked ? true : prev.advanced}))} />
                     <Label htmlFor="reset-intermediate" className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Intermediate Course
                     </Label>
                   </div>
                    <div className="flex items-center space-x-3 rounded-md border p-3">
-                    <Checkbox id="reset-advanced" checked={resetOptions.advanced} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, advanced: !!checked}))} />
+                    <Checkbox id="reset-advanced" checked={resetOptions.advanced} onCheckedChange={(checked) => setResetOptions(prev => ({...prev, advanced: !!checked}))} disabled={resetOptions.intermediate} />
                     <Label htmlFor="reset-advanced" className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Advanced Course
                     </Label>
@@ -226,7 +228,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset Course Progress</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You can reset progress for this intermediate course, or you can reset all of your progress. This action cannot be undone.
+                  You can reset progress for this intermediate course (which also resets advanced), or you can reset all of your progress. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">

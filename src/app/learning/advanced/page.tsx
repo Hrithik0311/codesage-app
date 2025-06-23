@@ -1,8 +1,7 @@
 
 import type { Metadata } from 'next';
-import FtcJavaCourseLayout from '@/app/learning/FtcJavaCourseLayout';
-import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 import AnimatedBackground from '@/components/landing/AnimatedBackground';
+import AdvancedLearningPageClient from './AdvancedLearningPageClient';
 
 
 export const metadata: Metadata = {
@@ -15,7 +14,7 @@ export default function AdvancedLearningPage() {
     <>
       <AnimatedBackground /> 
       <div className="relative z-10 min-h-screen">
-        <FtcJavaCourseLayout lessons={ftcJavaLessonsAdvanced} courseTitle="Advanced FTC Concepts" />
+        <AdvancedLearningPageClient />
       </div>
     </>
   );
