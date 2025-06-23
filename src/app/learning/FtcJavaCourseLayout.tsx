@@ -24,6 +24,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   const router = useRouter();
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [isInitialLessonSet, setIsInitialLessonSet] = useState(false);
   const { user, loading, updateLessonProgress, passedLessonIds } = useAuth();
   const { toast } = useToast();
   
@@ -35,7 +36,10 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
 
   const handleSelectLesson = useCallback((lessonId: string) => {
     setActiveLessonId(lessonId);
-    router.replace(`${pathname}#${lessonId}`, { scroll: false });
+    // Setting the hash is a good way to keep the URL in sync and allow for deep linking.
+    if (window.location.hash !== `#${lessonId}`) {
+      router.replace(`${pathname}#${lessonId}`, { scroll: false });
+    }
     const mainContent = document.getElementById('lesson-main-content');
     if (mainContent) {
         mainContent.scrollTop = 0;
@@ -48,51 +52,48 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   }, [pathname, router, courseTitle]);
 
   useEffect(() => {
-    // This effect determines which lesson to display on initial load or when dependencies change.
-    // It's client-side only due to localStorage and window.location access.
-
-    // Priority 1: A lesson ID is specified directly in the URL hash.
-    const lessonIdFromHash = window.location.hash.substring(1);
-    if (lessonIdFromHash && lessons.find(l => l.id === lessonIdFromHash)) {
-      handleSelectLesson(lessonIdFromHash);
+    // This effect's only job is to determine the initial lesson to show when the course loads.
+    // It is guarded by `isInitialLessonSet` to ensure it only runs once.
+    if (isInitialLessonSet || loading || !user) {
       return;
     }
 
-    // Priority 2: A lesson was previously saved in localStorage.
+    // Priority 1: Check localStorage for the last viewed lesson.
     let lastViewedLessonId: string | null = null;
     try {
-        lastViewedLessonId = localStorage.getItem(`lastActiveLesson-${courseTitle}`);
+      lastViewedLessonId = localStorage.getItem(`lastActiveLesson-${courseTitle}`);
     } catch (error) {
-        console.warn("Could not read from localStorage:", error);
+      console.warn("Could not read from localStorage:", error);
     }
 
     if (lastViewedLessonId) {
-        const lastViewedIndex = lessons.findIndex(l => l.id === lastViewedLessonId);
-        if (lastViewedIndex !== -1) {
-            // Check if the last viewed lesson has been passed.
-            if (passedLessonIds.has(lastViewedLessonId) && lastViewedIndex < lessons.length - 1) {
-                // If it was passed and isn't the last lesson, automatically advance to the next one.
-                const nextLesson = lessons[lastViewedIndex + 1];
-                handleSelectLesson(nextLesson.id);
-            } else {
-                // Otherwise, just load the last lesson they were looking at.
-                handleSelectLesson(lastViewedLessonId);
-            }
-            return;
+      const lastViewedIndex = lessons.findIndex(l => l.id === lastViewedLessonId);
+      if (lastViewedIndex !== -1) {
+        // If the user passed the last lesson they were on, automatically advance them.
+        if (passedLessonIds.has(lastViewedLessonId) && lastViewedIndex < lessons.length - 1) {
+          const nextLesson = lessons[lastViewedIndex + 1];
+          handleSelectLesson(nextLesson.id);
+        } else {
+          // Otherwise, take them back to the lesson they were viewing.
+          handleSelectLesson(lastViewedLessonId);
         }
+        setIsInitialLessonSet(true);
+        return;
+      }
     }
     
-    // Priority 3: Default behavior. Find the first un-passed lesson and open it.
+    // Priority 2: If no localStorage, find the first unpassed lesson.
     const firstUnpassedIndex = lessons.findIndex(l => !passedLessonIds.has(l.id));
     if (firstUnpassedIndex !== -1 && lessons[firstUnpassedIndex]) {
-        // Find the first lesson that isn't passed yet.
-        handleSelectLesson(lessons[firstUnpassedIndex].id);
+      handleSelectLesson(lessons[firstUnpassedIndex].id);
     } else if (lessons.length > 0) {
-        // If all lessons are passed, just go to the last lesson of the course.
-        handleSelectLesson(lessons[lessons.length - 1].id);
+      // If all lessons are passed, just go to the last lesson of the course.
+      handleSelectLesson(lessons[lessons.length - 1].id);
     }
+    
+    setIsInitialLessonSet(true);
 
-  }, [lessons, courseTitle, passedLessonIds, handleSelectLesson]);
+  }, [lessons, courseTitle, passedLessonIds, handleSelectLesson, isInitialLessonSet, loading, user]);
 
 
   const handleLessonComplete = (lessonId: string, rawScore: number, totalQuestions: number) => {
