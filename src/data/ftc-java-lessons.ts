@@ -1527,6 +1527,17 @@ telemetry.update();
         ],
         correctAnswer: "To configure and create a vision processing pipeline, attaching processors like AprilTag or TFOD to a camera source.",
         explanation: "The VisionPortal is the main entry point for using the FTC vision system, allowing you to link one or more processors to a camera."
+      },
+      {
+        question: "When implementing a custom PID loop to hold a robot arm at a specific position, which motor `RunMode` is most appropriate, and why?",
+        options: [
+          "`RUN_TO_POSITION`, because it has a built-in PID controller.",
+          "`RUN_WITHOUT_ENCODER`, because it lets your code set the power while the encoder can still be read for calculating error.",
+          "`STOP_AND_RESET_ENCODER`, because it zeros the position before the loop starts.",
+          "`RUN_USING_ENCODER`, because it provides built-in velocity control for smoother movement."
+        ],
+        correctAnswer: "`RUN_WITHOUT_ENCODER`, because it lets your code set the power while the encoder can still be read for calculating error.",
+        explanation: "`RUN_TO_POSITION` takes over control, preventing your custom loop from working. `RUN_USING_ENCODER` attempts to maintain a constant velocity, which interferes with a position-based PID. `RUN_WITHOUT_ENCODER` gives your code full control over the motor's power, which is what your PID calculation needs, while still allowing you to read `getCurrentPosition()` to calculate error."
       }
     ]
   }
