@@ -1,8 +1,6 @@
 
 'use client';
 
-import { z } from 'zod';
-import type { UseFormReturn } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,154 +12,56 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 const signInSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(1, { message: 'Password is required.' }),
+  email: z.string().email({ message: 'Enter a valid email.' }),
+  password: z.string().min(1, { message: 'Password required.' }),
 });
-type SignInSchema = z.infer<typeof signInSchema>;
 
 const signUpSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Enter a valid email.' }),
+  password: z.string().min(6, { message: 'Minimum 6 characters.' }),
 });
-type SignUpSchema = z.infer<typeof signUpSchema>;
-
-interface SignInFormProps {
-  form: UseFormReturn<SignInSchema>;
-  onSubmit: (values: SignInSchema) => void;
-  isLoading: boolean;
-}
-
-const SignInForm: React.FC<SignInFormProps> = ({ form, onSubmit, isLoading }) => {
-  const { formState } = form;
-  const isDisabled = isLoading || formState.isSubmitting;
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" disabled={isDisabled}>
-          {isDisabled ? 'Processing...' : 'Sign In'}
-        </Button>
-      </form>
-    </Form>
-  );
-};
-
-interface SignUpFormProps {
-  form: UseFormReturn<SignUpSchema>;
-  onSubmit: (values: SignUpSchema) => void;
-  isLoading: boolean;
-}
-
-const SignUpForm: React.FC<SignUpFormProps> = ({ form, onSubmit, isLoading }) => {
-  const { formState } = form;
-  const isDisabled = isLoading || formState.isSubmitting;
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="displayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Display Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your Name" {...field} disabled={isDisabled} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full" disabled={isDisabled}>
-          {isDisabled ? 'Processing...' : 'Create Account'}
-        </Button>
-      </form>
-    </Form>
-  );
-};
 
 export default function AuthClient() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
-  const signInForm = useForm<SignInSchema>({
+  const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   });
 
-  const signUpForm = useForm<SignUpSchema>({
+  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      displayName: '',
-      email: '',
-      password: '',
-    },
+    defaultValues: { displayName: '', email: '', password: '' },
   });
 
   useEffect(() => {
@@ -171,67 +71,143 @@ export default function AuthClient() {
   }, [user, authLoading, router]);
 
   const handleAuthError = (error: any) => {
-    console.error('Authentication Error:', error);
-    let description = 'An unexpected error occurred. Please try again.';
-    if (error.code === 'auth/email-already-in-use') {
-      description = 'This email is already in use. Please try signing in.';
-    } else if (
-      error.code === 'auth/wrong-password' ||
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/invalid-credential'
-    ) {
-      description = 'Invalid email or password. Please try again.';
-    } else if (error.code === 'auth/unauthorized-domain') {
-      description =
-        "This app's domain is not authorized for OAuth operations. Please check your Firebase console settings.";
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      description = 'The sign-in window was closed. Please try again.';
+    console.error('Auth Error:', error);
+    let msg = 'Unexpected error. Try again.';
+    switch (error.code) {
+      case 'auth/email-already-in-use':
+        msg = 'Email already in use.';
+        break;
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+      case 'auth/invalid-credential':
+        msg = 'Invalid email or password.';
+        break;
+      case 'auth/popup-closed-by-user':
+        msg = 'Google sign-in popup was closed.';
+        break;
+      case 'auth/unauthorized-domain':
+        msg = 'This domain is not authorized in Firebase.';
+        break;
     }
-    console.error('Authentication Failed', description);
+    alert(msg);
   };
 
-  const handleSignIn = async (values: SignInSchema) => {
+  const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
     if (!auth) return;
-    setIsProcessingAuth(true);
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setIsProcessingAuth(false);
+    } catch (err) {
+      handleAuthError(err);
     }
   };
 
-  const handleSignUp = async (values: SignUpSchema) => {
+  const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
     if (!auth) return;
-    setIsProcessingAuth(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      await updateProfile(userCredential.user, { displayName: values.displayName });
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setIsProcessingAuth(false);
+      const userCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await updateProfile(userCred.user, { displayName: values.displayName });
+    } catch (err) {
+      handleAuthError(err);
     }
   };
 
   const handleGoogleSignIn = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
-    setIsProcessingAuth(true);
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log(`Welcome, ${result.user.displayName || result.user.email}`);
-    } catch (error: any) {
-      handleAuthError(error);
-    } finally {
-      setIsProcessingAuth(false);
+      console.log('Google sign-in successful:', result.user);
+    } catch (err: any) {
+      handleAuthError(err);
     }
   };
 
-  const globalIsLoading = authLoading || isProcessingAuth;
+  const SignInForm = () => (
+    <Form {...signInForm}>
+      <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
+        <FormField
+          control={signInForm.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="email@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={signInForm.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full">
+          Sign In
+        </Button>
+      </form>
+    </Form>
+  );
 
-  if (authLoading && !isProcessingAuth) {
+  const SignUpForm = () => (
+    <Form {...signUpForm}>
+      <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+        <FormField
+          control={signUpForm.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Your Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={signUpForm.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="email@example.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={signUpForm.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full">
+          Create Account
+        </Button>
+      </form>
+    </Form>
+  );
+  
+  if (authLoading) {
     return (
       <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
         <CardHeader className="text-center">
@@ -240,6 +216,33 @@ export default function AuthClient() {
         </CardHeader>
         <CardContent className="flex justify-center items-center p-8">
           <div className="loading-spinner"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!auth) {
+    return (
+      <Card className="w-full max-w-md bg-destructive/10 border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive-foreground text-center">Firebase Not Configured</CardTitle>
+          <CardDescription className="text-destructive-foreground/80 text-center">
+            The connection to Firebase could not be established.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-destructive-foreground/90 text-sm">
+          <p>Please ensure your environment variables are set correctly in a <strong>.env.local</strong> file.</p>
+          <p className="mt-2">You need to add the following variables:</p>
+          <pre className="mt-2 p-2 bg-black/30 rounded-md text-xs overflow-x-auto">
+            <code>
+              NEXT_PUBLIC_FIREBASE_API_KEY=...<br/>
+              NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...<br/>
+              NEXT_PUBLIC_FIREBASE_PROJECT_ID=...<br/>
+              NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...<br/>
+              NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...<br/>
+              NEXT_PUBLIC_FIREBASE_APP_ID=...<br/>
+            </code>
+          </pre>
         </CardContent>
       </Card>
     );
@@ -260,10 +263,10 @@ export default function AuthClient() {
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
           <TabsContent value="login" className="pt-4">
-            <SignInForm form={signInForm} onSubmit={handleSignIn} isLoading={globalIsLoading} />
+            <SignInForm />
           </TabsContent>
           <TabsContent value="register" className="pt-4">
-            <SignUpForm form={signUpForm} onSubmit={handleSignUp} isLoading={globalIsLoading} />
+            <SignUpForm />
           </TabsContent>
         </Tabs>
 
@@ -276,7 +279,7 @@ export default function AuthClient() {
           </div>
         </div>
 
-        <Button onClick={handleGoogleSignIn} variant="outline" className="w-full" disabled={globalIsLoading}>
+        <Button onClick={handleGoogleSignIn} variant="outline" className="w-full">
           <svg className="mr-2 h-4 w-4" viewBox="0 0 488 512">
             <path
               fill="currentColor"

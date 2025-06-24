@@ -28,12 +28,6 @@ if (typeof window !== "undefined") {
         }
         auth = getAuth(app);
         database = getDatabase(app);
-    } else {
-        console.error(
-            "FIREBASE CONFIG ERROR: Firebase API key is missing. " +
-            "Please check your environment configuration and ensure that NEXT_PUBLIC_FIREBASE_API_KEY is set correctly. " +
-            "Firebase will not work without it."
-        );
     }
 }
 
