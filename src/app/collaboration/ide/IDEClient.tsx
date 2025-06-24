@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +28,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { fileTreeData, fileContentData, type FileNode } from '@/data/ftc-file-tree';
+import { useAuth } from '@/context/AuthContext';
+import { database } from '@/lib/firebase';
+import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 
 const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => void; activeFilePath: string | null; level: number }> = ({ node, onSelectFile, activeFilePath, level }) => {
@@ -79,13 +84,60 @@ export default function IDEClient() {
   const [fileContents] = useState<Map<string, string>>(fileContentData);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
   const { toast } = useToast();
+  const { user, loading } = useAuth();
+  const [teamCode, setTeamCode] = useState<string | null>(null);
+  const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
+  const [commitMessage, setCommitMessage] = useState('');
+
+
+  useEffect(() => {
+    if (user && database) {
+        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+        get(teamCodeRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                setTeamCode(snapshot.val());
+            }
+        });
+    }
+  }, [user]);
 
   const handleFileSelect = useCallback((path: string) => {
     const content = fileContents.get(path);
     setActiveFile({ path, content: content || `// Content for ${path}` });
   }, [fileContents]);
-
   
+  const handleCommit = async () => {
+    if (!commitMessage.trim()) {
+        toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
+        return;
+    }
+
+    if (teamCode && user && database) {
+        const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+        await push(activitiesRef, {
+            type: 'commit',
+            userId: user.uid,
+            userName: user.displayName || user.email,
+            details: {
+                message: commitMessage,
+            },
+            timestamp: serverTimestamp(),
+        });
+    }
+
+    setCommitMessage('');
+    setIsCommitModalOpen(false);
+    toast({ title: 'Commit Successful!', description: 'Your changes have been saved to version control.' });
+  };
+  
+  if (loading) {
+    return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background">
+            <div className="loading-spinner"></div>
+        </div>
+    );
+  }
+
   const MainContent = () => {
     return (
         <ResizablePanelGroup direction="horizontal">
@@ -197,16 +249,20 @@ export default function IDEClient() {
           <div className="flex items-center gap-2">
              <TooltipProvider>
                 <Tooltip>
-                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><Play /></Button></TooltipTrigger>
+                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast({title: "Build & Run not available in demo."})}><Play /></Button></TooltipTrigger>
                     <TooltipContent><p>Build and Run (Not available)</p></TooltipContent>
                 </Tooltip>
                  <Tooltip>
-                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><Bug /></Button></TooltipTrigger>
+                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast({title: "Debug not available in demo."})}><Bug /></Button></TooltipTrigger>
                     <TooltipContent><p>Debug (Not available)</p></TooltipContent>
                 </Tooltip>
                  <Tooltip>
-                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><GitCommit /></Button></TooltipTrigger>
-                    <TooltipContent><p>Commit Changes (Not available)</p></TooltipContent>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsCommitModalOpen(true)} disabled={!user || !teamCode}>
+                            <GitCommit />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Commit Changes</p></TooltipContent>
                 </Tooltip>
              </TooltipProvider>
           </div>
@@ -215,6 +271,27 @@ export default function IDEClient() {
       <div className="flex-grow min-h-0">
         <MainContent />
       </div>
+       <Dialog open={isCommitModalOpen} onOpenChange={setIsCommitModalOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Commit Changes</DialogTitle>
+                  <DialogDescription>
+                      Enter a message to describe the changes you made.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                  <Input 
+                      value={commitMessage}
+                      onChange={(e) => setCommitMessage(e.target.value)}
+                      placeholder="e.g., Implement new feature"
+                  />
+              </div>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCommitModalOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCommit}>Commit</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
