@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 
 const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
@@ -50,9 +51,15 @@ const joinTeamSchema = z.object({
 
 const settingsSchema = z.object({
     teamName: z.string().min(3, "Team name must be at least 3 characters."),
-    pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be a 4-6 digit number."),
+    pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digit number."),
     members: z.array(memberSchema),
 });
+
+const shareSchema = z.object({
+    name: z.string().min(1, "File or folder name is required."),
+    message: z.string().optional(),
+});
+
 
 const initialDeploymentSteps = [
   { id: 'build', icon: Terminal, title: 'Build', status: 'Pending', description: 'Compile the project code.' },
@@ -93,6 +100,7 @@ export default function CollaborationClient() {
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
     const [memberStatuses, setMemberStatuses] = useState<Record<string, { state: string }>>({});
 
 
@@ -129,6 +137,11 @@ export default function CollaborationClient() {
     const settingsForm = useForm<z.infer<typeof settingsSchema>>({
         resolver: zodResolver(settingsSchema),
         defaultValues: { teamName: "", pin: "", members: [] },
+    });
+    
+    const shareForm = useForm<z.infer<typeof shareSchema>>({
+        resolver: zodResolver(shareSchema),
+        defaultValues: { name: "", message: "" },
     });
 
     const { fields: settingsMemberFields, append: appendSettingsMember, remove: removeSettingsMember, replace: replaceSettingsMembers } = useFieldArray({
@@ -224,6 +237,8 @@ export default function CollaborationClient() {
             const formattedShares = sharesData
                 .map(share => ({
                     id: share.id,
+                    type: share.type || 'snippet', // Default to snippet for old data
+                    fileName: share.fileName,
                     message: share.message,
                     author: share.userName,
                     time: share.timestamp ? formatDistanceToNowStrict(new Date(share.timestamp), { addSuffix: true }) : 'just now'
@@ -375,6 +390,24 @@ export default function CollaborationClient() {
             console.error("Error updating team settings:", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
         }
+    };
+    
+    const handleNewShare = async (values: z.infer<typeof shareSchema>) => {
+        if (!user || !database || !team) return;
+
+        const sharesRef = dbRef(database, `teams/${team.id}/shares`);
+        await push(sharesRef, {
+            type: 'file', // Distinguish this from code snippets
+            fileName: values.name,
+            message: values.message,
+            userId: user.uid,
+            userName: user.displayName || user.email,
+            timestamp: serverTimestamp(),
+        });
+
+        toast({ title: 'Shared!', description: 'Your file/folder has been shared with the team.' });
+        setIsShareDialogOpen(false);
+        shareForm.reset();
     };
 
     const handleDeploy = () => {
@@ -652,6 +685,26 @@ export default function CollaborationClient() {
                                         <CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle>
                                         <CardDescription>Recent code shares from your team.</CardDescription>
                                     </div>
+                                     <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button><FolderPlus className="mr-2 h-4 w-4" /> New Share</Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Share a File or Folder</DialogTitle>
+                                                <DialogDescription>Share a resource with your team. This will appear in the history feed.</DialogDescription>
+                                            </DialogHeader>
+                                            <Form {...shareForm}>
+                                                <form onSubmit={shareForm.handleSubmit(handleNewShare)} className="space-y-4 py-4">
+                                                    <FormField control={shareForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>File/Folder Name</FormLabel><FormControl><Input placeholder="e.g., new-autonomous.java" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                    <FormField control={shareForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the share..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                    <DialogFooter>
+                                                        <Button type="submit" disabled={shareForm.formState.isSubmitting}>{shareForm.formState.isSubmitting ? 'Sharing...' : 'Share'}</Button>
+                                                    </DialogFooter>
+                                                </form>
+                                            </Form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>
@@ -677,24 +730,32 @@ export default function CollaborationClient() {
                                                 shares.map((share) => (
                                                     <TableRow key={share.id}>
                                                         <TableCell>
-                                                            <div className="font-medium text-foreground">{share.message}</div>
+                                                            <div className="font-medium text-foreground flex items-center gap-2">
+                                                                {share.type === 'file' ? <File className="h-4 w-4 text-accent" /> : <Code2 className="h-4 w-4 text-accent" />}
+                                                                <span>{share.type === 'file' ? share.fileName : share.message}</span>
+                                                            </div>
+                                                            {share.type === 'file' && share.message && (
+                                                                <p className="text-sm text-muted-foreground pl-6">{share.message}</p>
+                                                            )}
                                                         </TableCell>
                                                         <TableCell>{share.author}</TableCell>
                                                         <TableCell>{share.time}</TableCell>
                                                         <TableCell className="text-right">
-                                                            <Button asChild variant="outline" size="sm">
-                                                                <Link href={`/collaboration/ide?shareId=${share.id}`}>
-                                                                    <Eye className="mr-2 h-4 w-4" />
-                                                                    Open
-                                                                </Link>
-                                                            </Button>
+                                                            {share.type === 'snippet' && (
+                                                                <Button asChild variant="outline" size="sm">
+                                                                    <Link href={`/collaboration/ide?shareId=${share.id}`}>
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        Open
+                                                                    </Link>
+                                                                </Button>
+                                                            )}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : (
                                                 <TableRow>
                                                     <TableCell colSpan={4} className="h-24 text-center">
-                                                        No shares yet. Open the code share to make your first one!
+                                                        No shares yet. Make your first one!
                                                     </TableCell>
                                                 </TableRow>
                                             )}
@@ -770,3 +831,5 @@ export default function CollaborationClient() {
         </>
     );
 }
+
+    
