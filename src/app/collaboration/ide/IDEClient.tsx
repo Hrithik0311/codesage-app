@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,274 +11,66 @@ import {
   MenubarItem,
   MenubarMenu,
   MenubarSeparator,
-  MenubarShortcut,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Code2, Folder, File, Play, Bug, GitCommit, Settings,
-  Save, FolderOpen, History, ShieldCheck, FilePlus, FolderPlus, Terminal, Copy, Scissors, Search, UploadCloud, ChevronDown, X
-} from 'lucide-react';
+import { ShieldCheck, Copy, Save, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { fileTreeData, fileContentData, type FileNode } from '@/data/ftc-file-tree';
-import { useAuth } from '@/context/AuthContext';
-import { database } from '@/lib/firebase';
-import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
+const sampleCode = `package org.firstinspires.ftc.teamcode;
 
-const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => void; activeFilePath: string | null; level: number }> = ({ node, onSelectFile, activeFilePath, level }) => {
-  const [isOpen, setIsOpen] = useState(level === 0);
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
-  const handleToggle = () => {
-    if (node.type === 'folder') {
-      setIsOpen(!isOpen);
-    } else {
-      onSelectFile(node.path);
+@TeleOp(name="Shared Code Snippet", group="Examples")
+public class SharedCode extends LinearOpMode {
+
+    private DcMotor leftDrive = null;
+    private DcMotor rightDrive = null;
+
+    @Override
+    public void runOpMode() {
+        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
+        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
+
+        leftDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightDrive.setDirection(DcMotor.Direction.REVERSE);
+
+        waitForStart();
+
+        while (opModeIsActive()) {
+            double drivePower = -gamepad1.left_stick_y;
+            leftDrive.setPower(drivePower);
+            rightDrive.setPower(drivePower);
+        }
     }
-  };
-
-  const isFolder = node.type === 'folder';
-  const isActive = node.path === activeFilePath;
-
-  return (
-    <li>
-      <a
-        href="#"
-        onClick={(e) => { e.preventDefault(); handleToggle(); }}
-        className={cn(
-          "flex items-center gap-2 p-1.5 rounded-md text-sm hover:bg-muted/50",
-          isActive && "bg-muted font-semibold"
-        )}
-        style={{ paddingLeft: `${level * 1.25}rem` }}
-      >
-        {isFolder ? (
-            <ChevronDown className={cn("h-4 w-4 text-foreground/70 transition-transform", !isOpen && "-rotate-90")} />
-        ) : (
-          <File className="h-4 w-4 text-foreground/70" />
-        )}
-        {node.name}
-      </a>
-      {isFolder && isOpen && node.children && (
-        <ul className="space-y-1 mt-1">
-          {node.children.map(child => (
-            <FileTreeItem key={child.path} node={child} onSelectFile={onSelectFile} activeFilePath={activeFilePath} level={level + 1} />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-};
-
+}`;
 
 export default function IDEClient() {
-  const [fileTree] = useState<FileNode[]>(fileTreeData);
-  const [fileContents] = useState<Map<string, string>>(fileContentData);
-  const [openFiles, setOpenFiles] = useState<{ path: string; content: string }[]>([]);
-  const [activeFilePath, setActiveFilePath] = useState<string | null>(null);
-
+  const [code, setCode] = useState(sampleCode);
   const { toast } = useToast();
-  const { user, loading } = useAuth();
-  const [teamCode, setTeamCode] = useState<string | null>(null);
-  const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
-  const [commitMessage, setCommitMessage] = useState('');
 
-
-  useEffect(() => {
-    if (user && database) {
-        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
-        get(teamCodeRef).then((snapshot) => {
-            if (snapshot.exists()) {
-                setTeamCode(snapshot.val());
-            }
-        });
-    }
-  }, [user]);
-
-  const handleFileSelect = useCallback((path: string) => {
-    setOpenFiles(prevOpenFiles => {
-        if (prevOpenFiles.some(f => f.path === path)) {
-            return prevOpenFiles;
-        }
-        const content = fileContents.get(path);
-        return [...prevOpenFiles, { path, content: content || `// Content for ${path}` }];
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      toast({ title: "Copied!", description: "Code copied to clipboard." });
+    }).catch(err => {
+      toast({ title: "Error", description: "Could not copy code.", variant: "destructive" });
     });
-    setActiveFilePath(path);
-  }, [fileContents]);
+  };
   
-  const handleCloseTab = useCallback((path: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    setOpenFiles(prevOpenFiles => {
-        const fileIndex = prevOpenFiles.findIndex(f => f.path === path);
-        if (fileIndex === -1) return prevOpenFiles;
-
-        const newOpenFiles = prevOpenFiles.filter(f => f.path !== path);
-
-        if (path === activeFilePath) {
-            if (newOpenFiles.length === 0) {
-                setActiveFilePath(null);
-            } else {
-                const newActiveIndex = Math.max(0, fileIndex - 1);
-                setActiveFilePath(newOpenFiles[newActiveIndex].path);
-            }
-        }
-        return newOpenFiles;
+  const handleSave = () => {
+    toast({ title: "Saved!", description: "Your changes have been saved to the shared session." });
+  };
+  
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        toast({ title: "Link Copied!", description: "A shareable link has been copied to your clipboard." });
     });
-  }, [activeFilePath]);
-
-  const handleContentChange = (newContent: string) => {
-    if (!activeFilePath) return;
-    setOpenFiles(prevOpenFiles =>
-      prevOpenFiles.map(file =>
-        file.path === activeFilePath ? { ...file, content: newContent } : file
-      )
-    );
   };
 
-  const handleCommit = async () => {
-    if (!commitMessage.trim()) {
-        toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
-        return;
-    }
-
-    if (teamCode && user && database) {
-        const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
-        await push(activitiesRef, {
-            type: 'commit',
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            details: {
-                message: commitMessage,
-            },
-            timestamp: serverTimestamp(),
-        });
-    }
-
-    setCommitMessage('');
-    setIsCommitModalOpen(false);
-    toast({ title: 'Commit Successful!', description: 'Your changes have been saved to version control.' });
-  };
-  
-  if (loading) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-background">
-            <div className="loading-spinner"></div>
-        </div>
-    );
-  }
-  
-  const activeFile = openFiles.find(f => f.path === activeFilePath);
-
-  const MainContent = () => {
-    return (
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel defaultSize={20} minSize={15}>
-            <div className="h-full flex flex-col">
-              <div className="p-2 border-b border-border/50 flex-shrink-0">
-                  <h3 className="font-bold text-sm flex items-center gap-2 p-2"><FolderOpen className="h-4 w-4"/> Testing_Ftc_robot_controller</h3>
-              </div>
-              <ScrollArea className="flex-grow p-2">
-                 <ul className="space-y-1">
-                  {fileTree.map(node => (
-                    <FileTreeItem key={node.path} node={node} onSelectFile={handleFileSelect} activeFilePath={activeFilePath} level={0} />
-                  ))}
-                </ul>
-              </ScrollArea>
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={80}>
-            <ResizablePanelGroup direction="vertical">
-              <ResizablePanel defaultSize={75} minSize={30}>
-                {openFiles.length > 0 ? (
-                    <div className="h-full flex flex-col bg-background">
-                        {/* Tab Bar */}
-                        <div className="flex-shrink-0 bg-muted/30 border-b border-border/50">
-                            <ScrollArea orientation="horizontal" className="h-full">
-                                <div className="flex items-center">
-                                    {openFiles.map(file => (
-                                        <div
-                                            key={file.path}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setActiveFilePath(file.path)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    setActiveFilePath(file.path);
-                                                }
-                                            }}
-                                            className={cn(
-                                                "flex items-center gap-2 px-3 py-2.5 text-sm border-r border-border/50 transition-colors cursor-pointer",
-                                                activeFilePath === file.path ? "bg-background text-foreground" : "text-muted-foreground hover:bg-muted"
-                                            )}
-                                        >
-                                            <File className="h-4 w-4" />
-                                            <span>{file.path.split('/').pop()}</span>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-5 w-5 rounded-full ml-2 hover:bg-destructive/20 hover:text-destructive"
-                                                onClick={(e) => handleCloseTab(file.path, e)}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
-                        </div>
-                        {/* Editor for active file */}
-                        {activeFile ? (
-                            <div className="flex-grow relative">
-                                <Textarea
-                                    value={activeFile.content}
-                                    onChange={(e) => handleContentChange(e.target.value)}
-                                    className="absolute inset-0 w-full h-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
-                                    spellCheck="false"
-                                />
-                            </div>
-                        ) : null}
-                    </div>
-                ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center text-center gap-4 text-muted-foreground">
-                       <Code2 className="h-16 w-16 text-muted-foreground/50" />
-                       <h3 className="text-xl font-semibold">Select a file to begin editing.</h3>
-                       <p className="max-w-sm">Choose a file from the explorer on the left to view its contents and start working.</p>
-                    </div>
-                )}
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={25} minSize={15}>
-                <div className="h-full flex flex-col">
-                    <div className="p-2 border-b border-border/50 flex-shrink-0">
-                        <h3 className="font-bold text-sm flex items-center gap-2"><Terminal className="h-4 w-4"/> Terminal</h3>
-                    </div>
-                    <ScrollArea className="flex-grow p-4 text-xs bg-black text-white/80">
-                      <p className="text-green-400">&gt; build successful</p>
-                      <p>&gt; ready</p>
-                      <br />
-                      <p>$</p>
-                    </ScrollArea>
-                </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-    );
-  };
-  
   return (
-    <div className="h-screen w-screen flex flex-col bg-card text-foreground font-mono">
-      <header className="flex-shrink-0 border-b border-border/50 px-2">
+    <div className="h-screen w-screen flex flex-col bg-background text-foreground">
+      <header className="flex-shrink-0 border-b border-border/50 px-4 py-2 flex items-center justify-between">
         <Menubar className="border-none rounded-none bg-transparent">
             <Link href="/collaboration" className="flex items-center gap-2 mr-4 px-2 hover:bg-muted rounded-md">
                 <ShieldCheck className="h-5 w-5 text-primary" />
@@ -287,81 +79,27 @@ export default function IDEClient() {
           <MenubarMenu>
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>New File</MenubarItem>
-              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>New Folder</MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>Save <MenubarShortcut>⌘S</MenubarShortcut></MenubarItem>
+              <MenubarItem onClick={handleSave}>Save Session <span className="ml-auto text-xs">⌘S</span></MenubarItem>
               <MenubarSeparator />
               <MenubarItem asChild><Link href="/collaboration">Close Workspace</Link></MenubarItem>
             </MenubarContent>
           </MenubarMenu>
-           <MenubarMenu>
-            <MenubarTrigger>Edit</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem>Undo</MenubarItem>
-              <MenubarItem>Redo</MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem>Cut <MenubarShortcut><Scissors /></MenubarShortcut></MenubarItem>
-              <MenubarItem>Copy <MenubarShortcut><Copy /></MenubarShortcut></MenubarItem>
-              <MenubarItem>Paste</MenubarItem>
-              <MenubarSeparator />
-               <MenubarItem>Find <MenubarShortcut><Search /></MenubarShortcut></MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-           <MenubarMenu>
-            <MenubarTrigger>Run</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem onClick={() => toast({title: "Action not available"})}>Run Build <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
-              <MenubarItem onClick={() => toast({title: "Action not available"})}>Debug <MenubarShortcut>⌘D</MenubarShortcut></MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-          <div className="flex-grow" />
-          <div className="flex items-center gap-2">
-             <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast({title: "Build & Run not available in demo."})}><Play /></Button></TooltipTrigger>
-                    <TooltipContent><p>Build and Run (Not available)</p></TooltipContent>
-                </Tooltip>
-                 <Tooltip>
-                    <TooltipTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast({title: "Debug not available in demo."})}><Bug /></Button></TooltipTrigger>
-                    <TooltipContent><p>Debug (Not available)</p></TooltipContent>
-                </Tooltip>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsCommitModalOpen(true)} disabled={!user || !teamCode}>
-                            <GitCommit />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Commit Changes</p></TooltipContent>
-                </Tooltip>
-             </TooltipProvider>
-          </div>
         </Menubar>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
+            <Button onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> Share</Button>
+        </div>
       </header>
-      <div className="flex-grow min-h-0">
-        <MainContent />
-      </div>
-       <Dialog open={isCommitModalOpen} onOpenChange={setIsCommitModalOpen}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Commit Changes</DialogTitle>
-                  <DialogDescription>
-                      Enter a message to describe the changes you made.
-                  </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                  <Input 
-                      value={commitMessage}
-                      onChange={(e) => setCommitMessage(e.target.value)}
-                      placeholder="e.g., Implement new feature"
-                  />
-              </div>
-              <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCommitModalOpen(false)}>Cancel</Button>
-                  <Button onClick={handleCommit}>Commit</Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
+      <main className="flex-grow flex flex-col p-4">
+        <h1 className="text-2xl font-headline font-bold mb-4">Real-time Code Share</h1>
+        <Textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Paste your code here to share with your team..."
+            className="flex-grow w-full font-mono text-sm bg-muted/30 border-border/60 resize-none"
+        />
+        <p className="text-xs text-muted-foreground mt-2">Any changes you make here are visible to everyone currently in this session.</p>
+      </main>
     </div>
   );
 }

@@ -4,8 +4,8 @@ import IDEClient from './IDEClient';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Live IDE - CodeSage',
-  description: 'A full-featured, real-time collaborative IDE for your team.',
+  title: 'Real-time Code Share - CodeSage',
+  description: 'A shared workspace to view, edit, and discuss code with your team.',
 };
 
 export default function IDEPage() {

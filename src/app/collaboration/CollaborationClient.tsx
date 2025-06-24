@@ -592,7 +592,7 @@ export default function CollaborationClient() {
                     <section className="text-center mb-12 animate-fade-in-up-hero">
                         <h2 className="font-headline text-4xl md:text-5xl font-bold gradient-text hero-title-gradient">Build Together, Win Together</h2>
                         <p className="text-foreground/80 mt-4 max-w-3xl mx-auto text-lg">
-                        Real-time IDE, version control, and deployment pipelines, all in one place.
+                        Real-time code sharing, version control, and deployment pipelines, all in one place.
                         </p>
                     </section>
 
@@ -654,22 +654,22 @@ export default function CollaborationClient() {
                     )}
                     
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Main Content: IDE and Version Control */}
+                        {/* Main Content: Code Share and Version Control */}
                         <div className="lg:col-span-2 flex flex-col gap-8">
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-3"><Terminal /> Live IDE</CardTitle>
-                                    <CardDescription>A real-time, cloud-based development environment.</CardDescription>
+                                    <CardTitle className="flex items-center gap-3"><Code2 /> Real-time Code Share</CardTitle>
+                                    <CardDescription>Share and edit code snippets with your team in a live workspace.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col items-center justify-center text-center">
                                     <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-primary-foreground mb-6">
                                         <Code2 size={50} />
                                     </div>
-                                    <p className="text-foreground/80 mb-6">Launch the full, collaborative IDE in a new workspace to code together in real-time.</p>
+                                    <p className="text-foreground/80 mb-6">Open a shared workspace to view, edit, and discuss code together in real-time.</p>
                                 </CardContent>
                                 <CardFooter>
                                     <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                                        <Link href="/collaboration/ide"><Rocket className="mr-2 h-4 w-4" /> Launch Full IDE</Link>
+                                        <Link href="/collaboration/ide"><Rocket className="mr-2 h-4 w-4" /> Open Code Share</Link>
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -818,5 +818,3 @@ export default function CollaborationClient() {
         </>
     );
 }
-
-    
