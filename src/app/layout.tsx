@@ -3,7 +3,6 @@ import { Inter as FontInter, Space_Grotesk as FontSpaceGrotesk } from 'next/font
 import './globals.css';
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
-import { Toaster } from '@/components/ui/toaster';
 
 const fontInter = FontInter({
   subsets: ['latin'],
@@ -43,7 +42,6 @@ export default function RootLayout({
         >
           <AuthProvider>
             {children}
-            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>
