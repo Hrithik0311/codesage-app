@@ -157,7 +157,8 @@ function IDEContent() {
                 </Menubar>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
-                    <Button onClick={handleShareLink}><Share2 className="mr-2 h-4 w-4" /> Share Link</Button>
+                    <Button variant="outline" onClick={handleShareLink}><Share2 className="mr-2 h-4 w-4" /> Share Link</Button>
+                    <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
                 </div>
             </header>
             <main className="flex-grow flex flex-col p-4">
