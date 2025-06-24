@@ -115,6 +115,7 @@ function IDEContent() {
         
         const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
         await push(sharesRef, {
+            type: 'snippet',
             code: code,
             message: shareMessage,
             userId: user.uid,
