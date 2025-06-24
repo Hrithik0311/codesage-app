@@ -23,7 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Code2, Folder, File, Play, Bug, GitCommit, Settings,
-  Save, FolderOpen, History, ShieldCheck, FilePlus, FolderPlus, Terminal, Copy, Scissors, Search, UploadCloud, ChevronDown
+  Save, FolderOpen, History, ShieldCheck, FilePlus, FolderPlus, Terminal, Copy, Scissors, Search, UploadCloud, ChevronDown, X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -82,7 +82,9 @@ const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => v
 export default function IDEClient() {
   const [fileTree] = useState<FileNode[]>(fileTreeData);
   const [fileContents] = useState<Map<string, string>>(fileContentData);
-  const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
+  const [openFiles, setOpenFiles] = useState<{ path: string; content: string }[]>([]);
+  const [activeFilePath, setActiveFilePath] = useState<string | null>(null);
+
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const [teamCode, setTeamCode] = useState<string | null>(null);
@@ -102,10 +104,37 @@ export default function IDEClient() {
   }, [user]);
 
   const handleFileSelect = useCallback((path: string) => {
-    const content = fileContents.get(path);
-    setActiveFile({ path, content: content || `// Content for ${path}` });
+    setOpenFiles(prevOpenFiles => {
+        if (prevOpenFiles.some(f => f.path === path)) {
+            return prevOpenFiles;
+        }
+        const content = fileContents.get(path);
+        return [...prevOpenFiles, { path, content: content || `// Content for ${path}` }];
+    });
+    setActiveFilePath(path);
   }, [fileContents]);
   
+  const handleCloseTab = useCallback((path: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    setOpenFiles(prevOpenFiles => {
+        const fileIndex = prevOpenFiles.findIndex(f => f.path === path);
+        if (fileIndex === -1) return prevOpenFiles;
+
+        const newOpenFiles = prevOpenFiles.filter(f => f.path !== path);
+
+        if (path === activeFilePath) {
+            if (newOpenFiles.length === 0) {
+                setActiveFilePath(null);
+            } else {
+                const newActiveIndex = Math.max(0, fileIndex - 1);
+                setActiveFilePath(newOpenFiles[newActiveIndex].path);
+            }
+        }
+        return newOpenFiles;
+    });
+  }, [activeFilePath]);
+
   const handleCommit = async () => {
     if (!commitMessage.trim()) {
         toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
@@ -137,6 +166,8 @@ export default function IDEClient() {
         </div>
     );
   }
+  
+  const activeFile = openFiles.find(f => f.path === activeFilePath);
 
   const MainContent = () => {
     return (
@@ -149,7 +180,7 @@ export default function IDEClient() {
               <ScrollArea className="flex-grow p-2">
                  <ul className="space-y-1">
                   {fileTree.map(node => (
-                    <FileTreeItem key={node.path} node={node} onSelectFile={handleFileSelect} activeFilePath={activeFile?.path ?? null} level={0} />
+                    <FileTreeItem key={node.path} node={node} onSelectFile={handleFileSelect} activeFilePath={activeFilePath} level={0} />
                   ))}
                 </ul>
               </ScrollArea>
@@ -159,24 +190,47 @@ export default function IDEClient() {
           <ResizablePanel defaultSize={80}>
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel defaultSize={75} minSize={30}>
-                {activeFile ? (
+                {openFiles.length > 0 ? (
                     <div className="h-full flex flex-col bg-background">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border/50 flex-shrink-0 shadow-sm">
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                        {/* Tab Bar */}
+                        <div className="flex-shrink-0 bg-muted/30 border-b border-border/50">
+                            <ScrollArea orientation="horizontal" className="h-full">
+                                <div className="flex items-center">
+                                    {openFiles.map(file => (
+                                        <button
+                                            key={file.path}
+                                            onClick={() => setActiveFilePath(file.path)}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-2.5 text-sm border-r border-border/50 transition-colors",
+                                                activeFilePath === file.path ? "bg-background text-foreground" : "text-muted-foreground hover:bg-muted"
+                                            )}
+                                        >
+                                            <File className="h-4 w-4" />
+                                            <span>{file.path.split('/').pop()}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 rounded-full ml-2 hover:bg-destructive/20 hover:text-destructive"
+                                                onClick={(e) => handleCloseTab(file.path, e)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </button>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                        {/* Editor for active file */}
+                        {activeFile ? (
+                            <div className="flex-grow relative">
+                                <Textarea
+                                    value={activeFile.content}
+                                    readOnly
+                                    className="absolute inset-0 w-full h-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
+                                    spellCheck="false"
+                                />
                             </div>
-                            <div className="text-sm text-foreground/80">{activeFile.path.split('/').pop()}</div>
-                        </div>
-                        <div className="flex-grow relative">
-                            <Textarea
-                                value={activeFile.content}
-                                readOnly
-                                className="absolute inset-0 w-full h-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
-                                spellCheck="false"
-                            />
-                        </div>
+                        ) : null}
                     </div>
                 ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center text-center gap-4 text-muted-foreground">
@@ -295,3 +349,5 @@ export default function IDEClient() {
     </div>
   );
 }
+
+    
