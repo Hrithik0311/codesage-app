@@ -31,7 +31,7 @@ import { fileTreeData, fileContentData, type FileNode } from '@/data/ftc-file-tr
 
 
 const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => void; activeFilePath: string | null; level: number }> = ({ node, onSelectFile, activeFilePath, level }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(level === 0);
 
   const handleToggle = () => {
     if (node.type === 'folder') {
