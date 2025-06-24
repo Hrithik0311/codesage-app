@@ -1,6 +1,8 @@
 
 'use client';
 
+import type { z } from 'zod';
+import type { UseFormReturn } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -19,25 +21,133 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(1, { message: 'Password is required.' }),
 });
+type SignInSchema = z.infer<typeof signInSchema>;
 
 const signUpSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
+type SignUpSchema = z.infer<typeof signUpSchema>;
+
+interface SignInFormProps {
+  form: UseFormReturn<SignInSchema>;
+  onSubmit: (values: SignInSchema) => void;
+  isLoading: boolean;
+}
+
+const SignInForm: React.FC<SignInFormProps> = ({ form, onSubmit, isLoading }) => {
+  const { formState } = form;
+  const isDisabled = isLoading || formState.isSubmitting;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={isDisabled}>
+          {isDisabled ? 'Processing...' : 'Sign In'}
+        </Button>
+      </form>
+    </Form>
+  );
+};
+
+interface SignUpFormProps {
+  form: UseFormReturn<SignUpSchema>;
+  onSubmit: (values: SignUpSchema) => void;
+  isLoading: boolean;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({ form, onSubmit, isLoading }) => {
+  const { formState } = form;
+  const isDisabled = isLoading || formState.isSubmitting;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Display Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Your Name" {...field} disabled={isDisabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full" disabled={isDisabled}>
+          {isDisabled ? 'Processing...' : 'Create Account'}
+        </Button>
+      </form>
+    </Form>
+  );
+};
 
 export default function AuthClient() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
-  const signInForm = useForm<z.infer<typeof signInSchema>>({
+  const signInForm = useForm<SignInSchema>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
       email: '',
@@ -45,7 +155,7 @@ export default function AuthClient() {
     },
   });
 
-  const signUpForm = useForm<z.infer<typeof signUpSchema>>({
+  const signUpForm = useForm<SignUpSchema>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       displayName: '',
@@ -80,7 +190,7 @@ export default function AuthClient() {
     console.error('Authentication Failed', description);
   };
 
-  const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
+  const handleSignIn = async (values: SignInSchema) => {
     if (!auth) return;
     setIsProcessingAuth(true);
     try {
@@ -92,7 +202,7 @@ export default function AuthClient() {
     }
   };
 
-  const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
+  const handleSignUp = async (values: SignUpSchema) => {
     if (!auth) return;
     setIsProcessingAuth(true);
     try {
@@ -137,99 +247,6 @@ export default function AuthClient() {
 
   if (user) return null;
 
-  const SignInForm = () => {
-    const isFormSubmitting = signInForm.formState.isSubmitting;
-    const isDisabled = globalIsLoading || isFormSubmitting;
-    return (
-        <Form {...signInForm}>
-          <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
-            <FormField
-              control={signInForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signInForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isDisabled}>
-              {isDisabled ? 'Processing...' : 'Sign In'}
-            </Button>
-          </form>
-        </Form>
-    );
-  };
-
-  const SignUpForm = () => {
-      const isFormSubmitting = signUpForm.formState.isSubmitting;
-      const isDisabled = globalIsLoading || isFormSubmitting;
-      return (
-        <Form {...signUpForm}>
-          <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
-            <FormField
-              control={signUpForm.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Display Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Name" {...field} disabled={isDisabled} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signUpForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="name@example.com" {...field} disabled={isDisabled} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={signUpForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} disabled={isDisabled} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isDisabled}>
-              {isDisabled ? 'Processing...' : 'Create Account'}
-            </Button>
-          </form>
-        </Form>
-      );
-  };
-
   return (
     <Card className="w-full max-w-sm bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
       <CardHeader className="text-center">
@@ -243,10 +260,10 @@ export default function AuthClient() {
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
           <TabsContent value="login" className="pt-4">
-            <SignInForm />
+            <SignInForm form={signInForm} onSubmit={handleSignIn} isLoading={globalIsLoading} />
           </TabsContent>
           <TabsContent value="register" className="pt-4">
-            <SignUpForm />
+            <SignUpForm form={signUpForm} onSubmit={handleSignUp} isLoading={globalIsLoading} />
           </TabsContent>
         </Tabs>
 
