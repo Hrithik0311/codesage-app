@@ -197,11 +197,18 @@ export default function IDEClient() {
                             <ScrollArea orientation="horizontal" className="h-full">
                                 <div className="flex items-center">
                                     {openFiles.map(file => (
-                                        <button
+                                        <div
                                             key={file.path}
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={() => setActiveFilePath(file.path)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    setActiveFilePath(file.path);
+                                                }
+                                            }}
                                             className={cn(
-                                                "flex items-center gap-2 px-3 py-2.5 text-sm border-r border-border/50 transition-colors",
+                                                "flex items-center gap-2 px-3 py-2.5 text-sm border-r border-border/50 transition-colors cursor-pointer",
                                                 activeFilePath === file.path ? "bg-background text-foreground" : "text-muted-foreground hover:bg-muted"
                                             )}
                                         >
@@ -215,7 +222,7 @@ export default function IDEClient() {
                                             >
                                                 <X className="h-3 w-3" />
                                             </Button>
-                                        </button>
+                                        </div>
                                     ))}
                                 </div>
                             </ScrollArea>
@@ -247,8 +254,8 @@ export default function IDEClient() {
                         <h3 className="font-bold text-sm flex items-center gap-2"><Terminal className="h-4 w-4"/> Terminal</h3>
                     </div>
                     <ScrollArea className="flex-grow p-4 text-xs bg-black text-white/80">
-                      <p className="text-green-400">> build successful</p>
-                      <p>> ready</p>
+                      <p className="text-green-400">&gt; build successful</p>
+                      <p>&gt; ready</p>
                       <br />
                       <p>$</p>
                     </ScrollArea>
@@ -349,5 +356,3 @@ export default function IDEClient() {
     </div>
   );
 }
-
-    
