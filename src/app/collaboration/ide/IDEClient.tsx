@@ -212,7 +212,13 @@ function IDEContent() {
                 </div>
             </header>
             <main className="flex-grow flex flex-col p-4">
-                <h1 className="text-2xl font-headline font-bold mb-4">Real-time Code Share</h1>
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-headline font-bold">Real-time Code Share</h1>
+                    <Button onClick={() => setIsFileShareModalOpen(true)}>
+                        <FolderPlus className="mr-2 h-4 w-4" />
+                        Add Files/Folders
+                    </Button>
+                </div>
                 <Textarea
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
