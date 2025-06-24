@@ -23,18 +23,12 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, set, get, update, onValue, push, serverTimestamp } from 'firebase/database';
+import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
-
-
-const initialCommits = [
-  { hash: 'a1b2c3d', message: 'Feat: Implement new intake mechanism control', author: 'Maria Garcia', time: '2 hours ago' },
-  { hash: 'e4f5g6h', message: 'Fix: Corrected autonomous pathing error', author: 'Maria Garcia', time: '5 hours ago' },
-  { hash: 'i7j8k9l', message: 'Docs: Update README with build instructions', author: 'Alex Johnson', time: '1 day ago' },
-  { hash: 'm0n1o2p', message: 'Refactor: Clean up drivetrain class', author: 'Maria Garcia', time: '2 days ago' },
-];
+import { formatDistanceToNowStrict } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -109,7 +103,8 @@ const StatusBadge = ({ status }: { status?: string }) => {
 
 export default function CollaborationClient() {
     const [code, setCode] = useState(sampleCode);
-    const [commits, setCommits] = useState(initialCommits);
+    const [commits, setCommits] = useState<any[]>([]);
+    const [isLoadingCommits, setIsLoadingCommits] = useState(true);
     const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
     const [commitMessage, setCommitMessage] = useState('');
     const [deploymentSteps, setDeploymentSteps] = useState(initialDeploymentSteps);
@@ -233,6 +228,36 @@ export default function CollaborationClient() {
                 }
             });
             setMemberStatuses(teamStatuses);
+        });
+
+        return () => unsubscribe();
+    }, [team, database]);
+    
+    useEffect(() => {
+        if (!team || !database) return;
+        setIsLoadingCommits(true);
+
+        const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
+        const commitsQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(15));
+
+        const unsubscribe = onValue(commitsQuery, (snapshot) => {
+            const activitiesData: any[] = [];
+            snapshot.forEach((child) => {
+                activitiesData.push({ id: child.key, ...child.val() });
+            });
+
+            const commitActivities = activitiesData
+                .filter(activity => activity.type === 'commit')
+                .map(activity => ({
+                    hash: activity.id.substring(activity.id.length - 7),
+                    message: activity.details.message,
+                    author: activity.userName,
+                    time: activity.timestamp ? formatDistanceToNowStrict(new Date(activity.timestamp), { addSuffix: true }) : 'just now'
+                }))
+                .reverse();
+
+            setCommits(commitActivities);
+            setIsLoadingCommits(false);
         });
 
         return () => unsubscribe();
@@ -399,13 +424,6 @@ export default function CollaborationClient() {
             });
         }
 
-        const newCommit = {
-            hash: Math.random().toString(36).substring(2, 9),
-            message: commitMessage,
-            author: user?.displayName || 'You',
-            time: 'Just now',
-        };
-        setCommits([newCommit, ...commits]);
         setCommitMessage('');
         setIsCommitModalOpen(false);
         toast({ title: 'Commit Successful!', description: 'Your changes have been saved to version control.' });
@@ -719,16 +737,35 @@ export default function CollaborationClient() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {commits.map((commit) => (
-                                                <TableRow key={commit.hash}>
-                                                    <TableCell>
-                                                        <div className="font-medium text-foreground">{commit.message}</div>
-                                                        <div className="text-sm text-muted-foreground font-mono">{commit.hash}</div>
+                                            {isLoadingCommits ? (
+                                                [...Array(4)].map((_, i) => (
+                                                    <TableRow key={i}>
+                                                        <TableCell>
+                                                            <Skeleton className="h-4 w-4/5 mb-2" />
+                                                            <Skeleton className="h-3 w-1/4" />
+                                                        </TableCell>
+                                                        <TableCell><Skeleton className="h-4 w-3/4" /></TableCell>
+                                                        <TableCell><Skeleton className="h-4 w-1/2" /></TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : commits.length > 0 ? (
+                                                commits.map((commit) => (
+                                                    <TableRow key={commit.hash}>
+                                                        <TableCell>
+                                                            <div className="font-medium text-foreground">{commit.message}</div>
+                                                            <div className="text-sm text-muted-foreground font-mono">{commit.hash}</div>
+                                                        </TableCell>
+                                                        <TableCell>{commit.author}</TableCell>
+                                                        <TableCell>{commit.time}</TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={3} className="h-24 text-center">
+                                                        No commits yet. Make your first one!
                                                     </TableCell>
-                                                    <TableCell>{commit.author}</TableCell>
-                                                    <TableCell>{commit.time}</TableCell>
                                                 </TableRow>
-                                            ))}
+                                            )}
                                         </TableBody>
                                     </Table>
                                 </CardContent>
