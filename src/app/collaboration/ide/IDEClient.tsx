@@ -135,6 +135,15 @@ export default function IDEClient() {
     });
   }, [activeFilePath]);
 
+  const handleContentChange = (newContent: string) => {
+    if (!activeFilePath) return;
+    setOpenFiles(prevOpenFiles =>
+      prevOpenFiles.map(file =>
+        file.path === activeFilePath ? { ...file, content: newContent } : file
+      )
+    );
+  };
+
   const handleCommit = async () => {
     if (!commitMessage.trim()) {
         toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
@@ -232,7 +241,7 @@ export default function IDEClient() {
                             <div className="flex-grow relative">
                                 <Textarea
                                     value={activeFile.content}
-                                    readOnly
+                                    onChange={(e) => handleContentChange(e.target.value)}
                                     className="absolute inset-0 w-full h-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
                                     spellCheck="false"
                                 />
