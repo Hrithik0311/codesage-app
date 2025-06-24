@@ -76,9 +76,8 @@ function IDEContent() {
                     get(shareRef).then((shareSnapshot) => {
                         if (shareSnapshot.exists()) {
                             const shareData = shareSnapshot.val();
-                            if (shareData.code) { // Simple check for content
+                            if (shareData.code != null) { 
                                 setCode(shareData.code);
-                                // Use filename for uploaded files, otherwise the snippet message
                                 setShareMessage(shareData.fileName || shareData.message || '');
                             } else {
                                 toast({ title: "Cannot Open", description: "This share is an announcement and does not contain viewable content.", variant: "destructive" });
@@ -161,20 +160,6 @@ function IDEContent() {
     
         const filePromises = Array.from(files).map(file => {
             return new Promise<void>((resolve, reject) => {
-                // Only try to read text-based files.
-                if (!file.type.startsWith('text/') && !/\.(java|txt|md|json|xml|gradle)$/.test(file.name)) {
-                     // For non-text files, just announce them.
-                    push(sharesRef, {
-                        type: 'file',
-                        fileName: file.name,
-                        message: 'Shared from computer (content not viewable)',
-                        userId: user.uid,
-                        userName: user.displayName || user.email,
-                        timestamp: serverTimestamp(),
-                    }).then(() => resolve()).catch(reject);
-                    return;
-                }
-    
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const content = e.target?.result as string;
