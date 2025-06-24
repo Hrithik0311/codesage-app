@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,17 +23,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Code2, Folder, File, Play, Bug, GitCommit, Settings,
-  Save, FolderOpen, History, ShieldCheck, FilePlus, FolderPlus, Terminal, Copy, Scissors, Search, UploadCloud
+  Save, FolderOpen, History, ShieldCheck, FilePlus, FolderPlus, Terminal, Copy, Scissors, Search, UploadCloud, ChevronDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { fileTreeData, fileContentData, type FileNode } from '@/data/ftc-file-tree';
 
-interface FileNode {
-  name: string;
-  path: string;
-  type: 'file' | 'folder';
-  children?: FileNode[];
-}
 
 const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => void; activeFilePath: string | null; level: number }> = ({ node, onSelectFile, activeFilePath, level }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -58,17 +53,17 @@ const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => v
           "flex items-center gap-2 p-1.5 rounded-md text-sm hover:bg-muted/50",
           isActive && "bg-muted font-semibold"
         )}
-        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
+        style={{ paddingLeft: `${level * 1.25}rem` }}
       >
         {isFolder ? (
-          <Folder className={cn("h-4 w-4 text-accent transition-transform", isOpen && "rotate-0")} />
+            <ChevronDown className={cn("h-4 w-4 text-foreground/70 transition-transform", !isOpen && "-rotate-90")} />
         ) : (
           <File className="h-4 w-4 text-foreground/70" />
         )}
         {node.name}
       </a>
       {isFolder && isOpen && node.children && (
-        <ul className="space-y-1">
+        <ul className="space-y-1 mt-1">
           {node.children.map(child => (
             <FileTreeItem key={child.path} node={child} onSelectFile={onSelectFile} activeFilePath={activeFilePath} level={level + 1} />
           ))}
@@ -80,133 +75,24 @@ const FileTreeItem: React.FC<{ node: FileNode; onSelectFile: (path: string) => v
 
 
 export default function IDEClient() {
-  const [fileTree, setFileTree] = useState<FileNode[]>([]);
-  const [fileContents, setFileContents] = useState<Map<string, string>>(new Map());
+  const [fileTree] = useState<FileNode[]>(fileTreeData);
+  const [fileContents] = useState<Map<string, string>>(fileContentData);
   const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleFileSelect = useCallback((path: string) => {
     const content = fileContents.get(path);
-    if (content !== undefined) {
-      setActiveFile({ path, content });
-    }
+    setActiveFile({ path, content: content || `// Content for ${path}` });
   }, [fileContents]);
 
-  const handleOpenFolderClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    setIsLoading(true);
-
-    const buildTree = (files: FileList): FileNode[] => {
-        const root: { name: string; type: 'folder'; children: Map<string, any> } = { name: 'root', type: 'folder', children: new Map() };
-
-        for (const file of Array.from(files)) {
-            const pathParts = file.webkitRelativePath.split('/');
-            let currentNode = root;
-
-            pathParts.forEach((part, index) => {
-                if (!currentNode.children.has(part)) {
-                    currentNode.children.set(part, {
-                        name: part,
-                        path: pathParts.slice(0, index + 1).join('/'),
-                        type: index === pathParts.length - 1 ? 'file' : 'folder',
-                        children: new Map(),
-                    });
-                }
-                currentNode = currentNode.children.get(part)!;
-            });
-        }
-        
-        const mapToArray = (node: any): FileNode[] | undefined => {
-            if (!node.children) return undefined;
-            const childrenAsArray = Array.from(node.children.values()).map(childNode => ({
-                ...childNode,
-                children: mapToArray(childNode)
-            })).sort((a, b) => {
-                if (a.type === 'folder' && b.type === 'file') return -1;
-                if (a.type === 'file' && b.type === 'folder') return 1;
-                return a.name.localeCompare(b.name);
-            });
-            return childrenAsArray.length > 0 ? childrenAsArray : undefined;
-        };
-        
-        return mapToArray(root) || [];
-    };
-    
-    const readFiles = async (files: FileList): Promise<Map<string, string>> => {
-        const contents = new Map<string, string>();
-        const promises = Array.from(files).map(file => {
-            return new Promise<void>(resolve => {
-                if(file.size > 5 * 1024 * 1024) { // 5MB limit for text files
-                     contents.set(file.webkitRelativePath, "File is too large to display.");
-                     resolve();
-                     return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                    contents.set(file.webkitRelativePath, reader.result as string);
-                    resolve();
-                };
-                reader.onerror = () => {
-                    contents.set(file.webkitRelativePath, "Error: Could not read file content.");
-                    resolve();
-                };
-                reader.readAsText(file);
-            });
-        });
-        await Promise.all(promises);
-        return contents;
-    };
-    
-    const [tree, contents] = await Promise.all([
-        Promise.resolve(buildTree(files)),
-        readFiles(files)
-    ]);
-    
-    setFileTree(tree);
-    setFileContents(contents);
-    setActiveFile(null);
-    setIsLoading(false);
-    toast({ title: "Folder Loaded", description: `${files.length} files have been loaded into the IDE.` });
-  };
   
   const MainContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center text-center gap-4">
-          <div className="loading-spinner"></div>
-          <p className="text-muted-foreground">Loading project files...</p>
-        </div>
-      );
-    }
-    
-    if (fileTree.length === 0) {
-      return (
-        <div className="flex h-full w-full flex-col items-center justify-center text-center gap-4">
-            <UploadCloud className="h-16 w-16 text-muted-foreground/50" />
-            <h3 className="text-xl font-semibold">Welcome to the Live IDE</h3>
-            <p className="text-muted-foreground max-w-sm">
-                To get started, open a project folder from your local machine using the "File" menu.
-            </p>
-            <Button onClick={handleOpenFolderClick} className="mt-4">
-                <FolderOpen className="mr-2"/> Open Folder
-            </Button>
-        </div>
-      );
-    }
-    
     return (
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={20} minSize={15}>
             <div className="h-full flex flex-col">
               <div className="p-2 border-b border-border/50 flex-shrink-0">
-                  <h3 className="font-bold text-sm flex items-center gap-2"><FolderOpen className="h-4 w-4"/> Project</h3>
+                  <h3 className="font-bold text-sm flex items-center gap-2 p-2"><FolderOpen className="h-4 w-4"/> Testing_Ftc_robot_controller</h3>
               </div>
               <ScrollArea className="flex-grow p-2">
                  <ul className="space-y-1">
@@ -241,8 +127,10 @@ export default function IDEClient() {
                         </div>
                     </div>
                 ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                        <p>Select a file to view its content.</p>
+                    <div className="flex h-full w-full flex-col items-center justify-center text-center gap-4 text-muted-foreground">
+                       <Code2 className="h-16 w-16 text-muted-foreground/50" />
+                       <h3 className="text-xl font-semibold">Select a file to begin editing.</h3>
+                       <p className="max-w-sm">Choose a file from the explorer on the left to view its contents and start working.</p>
                     </div>
                 )}
               </ResizablePanel>
@@ -253,7 +141,8 @@ export default function IDEClient() {
                         <h3 className="font-bold text-sm flex items-center gap-2"><Terminal className="h-4 w-4"/> Terminal</h3>
                     </div>
                     <ScrollArea className="flex-grow p-4 text-xs bg-black text-white/80">
-                      <p>Output terminal. Ready.</p>
+                      <p className="text-green-400">> build successful</p>
+                      <p>> ready</p>
                       <br />
                       <p>$</p>
                     </ScrollArea>
@@ -276,9 +165,10 @@ export default function IDEClient() {
           <MenubarMenu>
             <MenubarTrigger>File</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={handleOpenFolderClick}>Open Folder...</MenubarItem>
+              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>New File</MenubarItem>
+              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>New Folder</MenubarItem>
               <MenubarSeparator />
-              <MenubarItem onClick={() => toast({ title: "Save Action", description: "File saving is not implemented in this demo."})}>Save <MenubarShortcut>⌘S</MenubarShortcut></MenubarItem>
+              <MenubarItem onClick={() => toast({ title: "Action not available in demo."})}>Save <MenubarShortcut>⌘S</MenubarShortcut></MenubarItem>
               <MenubarSeparator />
               <MenubarItem asChild><Link href="/collaboration">Close Workspace</Link></MenubarItem>
             </MenubarContent>
@@ -323,15 +213,6 @@ export default function IDEClient() {
         </Menubar>
       </header>
       <div className="flex-grow min-h-0">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFolderUpload}
-            webkitdirectory=""
-            directory=""
-            multiple
-            style={{ display: 'none' }}
-          />
         <MainContent />
       </div>
     </div>
