@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, GitCommit, Save, PlusCircle, LogIn, Trash2 } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, FolderPlus, PlusCircle, LogIn, Trash2, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -80,10 +80,11 @@ const StatusBadge = ({ status }: { status?: string }) => {
 
 
 export default function CollaborationClient() {
-    const [commits, setCommits] = useState<any[]>([]);
-    const [isLoadingCommits, setIsLoadingCommits] = useState(true);
-    const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
-    const [commitMessage, setCommitMessage] = useState('');
+    const [shares, setShares] = useState<any[]>([]);
+    const [isLoadingShares, setIsLoadingShares] = useState(true);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [shareMessage, setShareMessage] = useState('');
+    const [shareFileName, setShareFileName] = useState('');
     const [deploymentSteps, setDeploymentSteps] = useState(initialDeploymentSteps);
     const [isDeploying, setIsDeploying] = useState(false);
     const { toast } = useToast();
@@ -212,29 +213,30 @@ export default function CollaborationClient() {
     
     useEffect(() => {
         if (!team || !database) return;
-        setIsLoadingCommits(true);
+        setIsLoadingShares(true);
 
         const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
-        const commitsQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(15));
+        const sharesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(15));
 
-        const unsubscribe = onValue(commitsQuery, (snapshot) => {
+        const unsubscribe = onValue(sharesQuery, (snapshot) => {
             const activitiesData: any[] = [];
             snapshot.forEach((child) => {
                 activitiesData.push({ id: child.key, ...child.val() });
             });
 
-            const commitActivities = activitiesData
-                .filter(activity => activity.type === 'commit')
+            const shareActivities = activitiesData
+                .filter(activity => activity.type === 'share')
                 .map(activity => ({
-                    hash: activity.id.substring(activity.id.length - 7),
+                    id: activity.id,
                     message: activity.details.message,
+                    fileName: activity.details.fileName,
                     author: activity.userName,
                     time: activity.timestamp ? formatDistanceToNowStrict(new Date(activity.timestamp), { addSuffix: true }) : 'just now'
                 }))
                 .reverse();
 
-            setCommits(commitActivities);
-            setIsLoadingCommits(false);
+            setShares(shareActivities);
+            setIsLoadingShares(false);
         });
 
         return () => unsubscribe();
@@ -380,30 +382,32 @@ export default function CollaborationClient() {
         }
     };
 
-    const handleOpenCommitModal = () => setIsCommitModalOpen(true);
+    const handleOpenShareModal = () => setIsShareModalOpen(true);
 
-    const handleCommit = async () => {
-        if (!commitMessage.trim()) {
-            toast({ title: 'Error', description: 'Commit message cannot be empty.', variant: 'destructive' });
+    const handleCreateShare = async () => {
+        if (!shareMessage.trim()) {
+            toast({ title: 'Error', description: 'Share message cannot be empty.', variant: 'destructive' });
             return;
         }
 
         if (team && user && database) {
             const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
             await push(activitiesRef, {
-                type: 'commit',
+                type: 'share',
                 userId: user.uid,
                 userName: user.displayName || user.email,
                 details: {
-                    message: commitMessage,
+                    message: shareMessage,
+                    fileName: shareFileName,
                 },
                 timestamp: serverTimestamp(),
             });
         }
-
-        setCommitMessage('');
-        setIsCommitModalOpen(false);
-        toast({ title: 'Commit Successful!', description: 'Your changes have been saved to version control.' });
+        
+        setShareMessage('');
+        setShareFileName('');
+        setIsShareModalOpen(false);
+        toast({ title: 'Shared!', description: 'Your update has been shared with the team.' });
     };
 
     const handleDeploy = () => {
@@ -674,28 +678,28 @@ export default function CollaborationClient() {
                                 </CardFooter>
                             </Card>
 
-                            {/* Version Control Card */}
+                            {/* File Sharing Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle className="flex items-center gap-2"><GitBranch /> Version Control</CardTitle>
-                                        <CardDescription>Showing recent commits to `main` branch.</CardDescription>
+                                        <CardTitle className="flex items-center gap-2"><FolderKanban /> File Sharing</CardTitle>
+                                        <CardDescription>Recent file shares and team updates.</CardDescription>
                                     </div>
-                                    <Button onClick={handleOpenCommitModal} className="bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90">
-                                        <GitCommit className="mr-2 h-4 w-4" /> New Commit
+                                    <Button onClick={handleOpenShareModal} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:opacity-90">
+                                        <FolderPlus className="mr-2 h-4 w-4" /> New Share
                                     </Button>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Commit</TableHead>
+                                                <TableHead>Update</TableHead>
                                                 <TableHead>Author</TableHead>
                                                 <TableHead>Time</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {isLoadingCommits ? (
+                                            {isLoadingShares ? (
                                                 [...Array(4)].map((_, i) => (
                                                     <TableRow key={i}>
                                                         <TableCell>
@@ -706,21 +710,26 @@ export default function CollaborationClient() {
                                                         <TableCell><Skeleton className="h-4 w-1/2" /></TableCell>
                                                     </TableRow>
                                                 ))
-                                            ) : commits.length > 0 ? (
-                                                commits.map((commit) => (
-                                                    <TableRow key={commit.hash}>
+                                            ) : shares.length > 0 ? (
+                                                shares.map((share) => (
+                                                    <TableRow key={share.id}>
                                                         <TableCell>
-                                                            <div className="font-medium text-foreground">{commit.message}</div>
-                                                            <div className="text-sm text-muted-foreground font-mono">{commit.hash}</div>
+                                                            <div className="font-medium text-foreground">{share.message}</div>
+                                                            {share.fileName && (
+                                                                <div className="text-sm text-muted-foreground flex items-center gap-2 pt-1">
+                                                                    <File className="h-3 w-3"/>
+                                                                    <span>{share.fileName}</span>
+                                                                </div>
+                                                            )}
                                                         </TableCell>
-                                                        <TableCell>{commit.author}</TableCell>
-                                                        <TableCell>{commit.time}</TableCell>
+                                                        <TableCell>{share.author}</TableCell>
+                                                        <TableCell>{share.time}</TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : (
                                                 <TableRow>
                                                     <TableCell colSpan={3} className="h-24 text-center">
-                                                        No commits yet. Make your first one!
+                                                        No shares yet. Make your first one!
                                                     </TableCell>
                                                 </TableRow>
                                             )}
@@ -794,24 +803,29 @@ export default function CollaborationClient() {
                 </div>
             </div>
             
-            <Dialog open={isCommitModalOpen} onOpenChange={setIsCommitModalOpen}>
+            <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Commit Changes</DialogTitle>
+                        <DialogTitle>Share an Update</DialogTitle>
                         <DialogDescription>
-                            Enter a message to describe the changes you made.
+                            Share files, folders, or a quick update with the team.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
+                    <div className="py-4 space-y-4">
                         <Input 
-                            value={commitMessage}
-                            onChange={(e) => setCommitMessage(e.target.value)}
-                            placeholder="e.g., Fix drivetrain alignment issue"
+                            value={shareFileName}
+                            onChange={(e) => setShareFileName(e.target.value)}
+                            placeholder="File or Folder Name (optional)"
+                        />
+                        <Input 
+                            value={shareMessage}
+                            onChange={(e) => setShareMessage(e.target.value)}
+                            placeholder="Describe your share..."
                         />
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsCommitModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCommit}>Commit</Button>
+                        <Button variant="outline" onClick={() => setIsShareModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateShare}>Share</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
