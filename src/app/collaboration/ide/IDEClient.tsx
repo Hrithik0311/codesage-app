@@ -14,13 +14,17 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Copy, Save, Share2 } from 'lucide-react';
+import { ShieldCheck, Copy, Save, Share2, FolderPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -52,14 +56,25 @@ public class SharedCode extends LinearOpMode {
     }
 }`;
 
+const fileShareSchema = z.object({
+    name: z.string().min(1, "File or folder name is required."),
+    message: z.string().optional(),
+});
+
 function IDEContent() {
     const [code, setCode] = useState(sampleCode);
     const { toast } = useToast();
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+    const [isFileShareModalOpen, setIsFileShareModalOpen] = useState(false);
     const [shareMessage, setShareMessage] = useState('');
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
+
+    const fileShareForm = useForm<z.infer<typeof fileShareSchema>>({
+        resolver: zodResolver(fileShareSchema),
+        defaultValues: { name: "", message: "" },
+    });
 
     useEffect(() => {
         const shareId = searchParams.get('shareId');
@@ -72,8 +87,12 @@ function IDEContent() {
                     get(shareRef).then((shareSnapshot) => {
                         if (shareSnapshot.exists()) {
                             const shareData = shareSnapshot.val();
-                            setCode(shareData.code);
-                            setShareMessage(shareData.message);
+                            if (shareData.type === 'snippet') {
+                                setCode(shareData.code);
+                                setShareMessage(shareData.message);
+                            } else {
+                                toast({ title: "Invalid Share", description: "This share is a file announcement and cannot be opened in the editor.", variant: "destructive" });
+                            }
                         } else {
                             toast({ title: "Share not found", description: "This share could not be loaded.", variant: "destructive" });
                         }
@@ -135,6 +154,35 @@ function IDEContent() {
         });
     };
 
+    const handleConfirmFileShare = async (values: z.infer<typeof fileShareSchema>) => {
+        if (!user || !database) {
+            toast({ title: "Authentication Error", description: "You must be logged in to share.", variant: "destructive" });
+            return;
+        }
+
+        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+        const teamCodeSnapshot = await get(teamCodeRef);
+        if (!teamCodeSnapshot.exists()) {
+            toast({ title: "Team not found", description: "You must be part of a team to share.", variant: "destructive" });
+            return;
+        }
+        const teamCode = teamCodeSnapshot.val();
+        
+        const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
+        await push(sharesRef, {
+            type: 'file',
+            fileName: values.name,
+            message: values.message,
+            userId: user.uid,
+            userName: user.displayName || user.email,
+            timestamp: serverTimestamp(),
+        });
+        
+        toast({ title: "Shared!", description: "Your file announcement has been shared with the team." });
+        setIsFileShareModalOpen(false);
+        fileShareForm.reset();
+    };
+
     if (authLoading) {
         return <div className="flex h-screen w-screen items-center justify-center bg-background"><div className="loading-spinner"></div></div>;
     }
@@ -150,13 +198,15 @@ function IDEContent() {
                     <MenubarMenu>
                         <MenubarTrigger>File</MenubarTrigger>
                         <MenubarContent>
-                            <MenubarItem onClick={handleOpenSaveDialog}>Save and Share<span className="ml-auto text-xs">⌘S</span></MenubarItem>
+                            <MenubarItem onClick={handleOpenSaveDialog}>Save and Share Snippet<span className="ml-auto text-xs">⌘S</span></MenubarItem>
+                            <MenubarItem onClick={() => setIsFileShareModalOpen(true)}>Announce File Share</MenubarItem>
                             <MenubarSeparator />
                             <MenubarItem asChild><Link href="/collaboration">Close Workspace</Link></MenubarItem>
                         </MenubarContent>
                     </MenubarMenu>
                 </Menubar>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => setIsFileShareModalOpen(true)}><FolderPlus className="mr-2 h-4 w-4" /> Announce Share</Button>
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
                     <Button variant="outline" onClick={handleShareLink}><Share2 className="mr-2 h-4 w-4" /> Share Link</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
@@ -176,9 +226,9 @@ function IDEContent() {
             <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Save & Share Code</DialogTitle>
+                        <DialogTitle>Save & Share Code Snippet</DialogTitle>
                         <DialogDescription>
-                            Enter a brief message to describe this version of the code.
+                            Enter a brief message to describe this version of the code. This will be saved as a shareable snippet.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
@@ -190,8 +240,29 @@ function IDEContent() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsSaveModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleConfirmSave}>Save Share</Button>
+                        <Button onClick={handleConfirmSave}>Save Snippet</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isFileShareModalOpen} onOpenChange={setIsFileShareModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Announce a File or Folder Share</DialogTitle>
+                        <DialogDescription>
+                            Share a resource with your team. This will appear in the history feed as an announcement.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...fileShareForm}>
+                        <form onSubmit={fileShareForm.handleSubmit(handleConfirmFileShare)} className="space-y-4 py-4">
+                            <FormField control={fileShareForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>File/Folder Name</FormLabel><FormControl><Input placeholder="e.g., new-design.pdf or /designs/v2" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={fileShareForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the share..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsFileShareModalOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={fileShareForm.formState.isSubmitting}>{fileShareForm.formState.isSubmitting ? 'Sharing...' : 'Share Announcement'}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
         </div>
