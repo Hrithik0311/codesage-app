@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, FolderPlus, PlusCircle, LogIn, Trash2, File } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, FolderPlus, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -82,9 +82,6 @@ const StatusBadge = ({ status }: { status?: string }) => {
 export default function CollaborationClient() {
     const [shares, setShares] = useState<any[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(true);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [shareMessage, setShareMessage] = useState('');
-    const [shareFileName, setShareFileName] = useState('');
     const [deploymentSteps, setDeploymentSteps] = useState(initialDeploymentSteps);
     const [isDeploying, setIsDeploying] = useState(false);
     const { toast } = useToast();
@@ -215,27 +212,25 @@ export default function CollaborationClient() {
         if (!team || !database) return;
         setIsLoadingShares(true);
 
-        const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
-        const sharesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(15));
+        const sharesRef = dbRef(database, `teams/${team.id}/shares`);
+        const sharesQuery = query(sharesRef, orderByChild('timestamp'), limitToLast(15));
 
         const unsubscribe = onValue(sharesQuery, (snapshot) => {
-            const activitiesData: any[] = [];
+            const sharesData: any[] = [];
             snapshot.forEach((child) => {
-                activitiesData.push({ id: child.key, ...child.val() });
+                sharesData.push({ id: child.key, ...child.val() });
             });
 
-            const shareActivities = activitiesData
-                .filter(activity => activity.type === 'share')
-                .map(activity => ({
-                    id: activity.id,
-                    message: activity.details.message,
-                    fileName: activity.details.fileName,
-                    author: activity.userName,
-                    time: activity.timestamp ? formatDistanceToNowStrict(new Date(activity.timestamp), { addSuffix: true }) : 'just now'
+            const formattedShares = sharesData
+                .map(share => ({
+                    id: share.id,
+                    message: share.message,
+                    author: share.userName,
+                    time: share.timestamp ? formatDistanceToNowStrict(new Date(share.timestamp), { addSuffix: true }) : 'just now'
                 }))
                 .reverse();
 
-            setShares(shareActivities);
+            setShares(formattedShares);
             setIsLoadingShares(false);
         });
 
@@ -380,34 +375,6 @@ export default function CollaborationClient() {
             console.error("Error updating team settings:", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
         }
-    };
-
-    const handleOpenShareModal = () => setIsShareModalOpen(true);
-
-    const handleCreateShare = async () => {
-        if (!shareMessage.trim()) {
-            toast({ title: 'Error', description: 'Share message cannot be empty.', variant: 'destructive' });
-            return;
-        }
-
-        if (team && user && database) {
-            const activitiesRef = dbRef(database, `teams/${team.id}/activities`);
-            await push(activitiesRef, {
-                type: 'share',
-                userId: user.uid,
-                userName: user.displayName || user.email,
-                details: {
-                    message: shareMessage,
-                    fileName: shareFileName,
-                },
-                timestamp: serverTimestamp(),
-            });
-        }
-        
-        setShareMessage('');
-        setShareFileName('');
-        setIsShareModalOpen(false);
-        toast({ title: 'Shared!', description: 'Your update has been shared with the team.' });
     };
 
     const handleDeploy = () => {
@@ -682,12 +649,9 @@ export default function CollaborationClient() {
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <div>
-                                        <CardTitle className="flex items-center gap-2"><FolderKanban /> File Sharing</CardTitle>
-                                        <CardDescription>Recent file shares and team updates.</CardDescription>
+                                        <CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle>
+                                        <CardDescription>Recent code shares from your team.</CardDescription>
                                     </div>
-                                    <Button onClick={handleOpenShareModal} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:opacity-90">
-                                        <FolderPlus className="mr-2 h-4 w-4" /> New Share
-                                    </Button>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>
@@ -696,18 +660,17 @@ export default function CollaborationClient() {
                                                 <TableHead>Update</TableHead>
                                                 <TableHead>Author</TableHead>
                                                 <TableHead>Time</TableHead>
+                                                <TableHead className="text-right">Action</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {isLoadingShares ? (
                                                 [...Array(4)].map((_, i) => (
                                                     <TableRow key={i}>
-                                                        <TableCell>
-                                                            <Skeleton className="h-4 w-4/5 mb-2" />
-                                                            <Skeleton className="h-3 w-1/4" />
-                                                        </TableCell>
+                                                        <TableCell><Skeleton className="h-4 w-4/5" /></TableCell>
                                                         <TableCell><Skeleton className="h-4 w-3/4" /></TableCell>
                                                         <TableCell><Skeleton className="h-4 w-1/2" /></TableCell>
+                                                        <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : shares.length > 0 ? (
@@ -715,21 +678,23 @@ export default function CollaborationClient() {
                                                     <TableRow key={share.id}>
                                                         <TableCell>
                                                             <div className="font-medium text-foreground">{share.message}</div>
-                                                            {share.fileName && (
-                                                                <div className="text-sm text-muted-foreground flex items-center gap-2 pt-1">
-                                                                    <File className="h-3 w-3"/>
-                                                                    <span>{share.fileName}</span>
-                                                                </div>
-                                                            )}
                                                         </TableCell>
                                                         <TableCell>{share.author}</TableCell>
                                                         <TableCell>{share.time}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button asChild variant="outline" size="sm">
+                                                                <Link href={`/collaboration/ide?shareId=${share.id}`}>
+                                                                    <Eye className="mr-2 h-4 w-4" />
+                                                                    Open
+                                                                </Link>
+                                                            </Button>
+                                                        </TableCell>
                                                     </TableRow>
                                                 ))
                                             ) : (
                                                 <TableRow>
-                                                    <TableCell colSpan={3} className="h-24 text-center">
-                                                        No shares yet. Make your first one!
+                                                    <TableCell colSpan={4} className="h-24 text-center">
+                                                        No shares yet. Open the code share to make your first one!
                                                     </TableCell>
                                                 </TableRow>
                                             )}
@@ -802,33 +767,6 @@ export default function CollaborationClient() {
                     </div>
                 </div>
             </div>
-            
-            <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Share an Update</DialogTitle>
-                        <DialogDescription>
-                            Share files, folders, or a quick update with the team.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <Input 
-                            value={shareFileName}
-                            onChange={(e) => setShareFileName(e.target.value)}
-                            placeholder="File or Folder Name (optional)"
-                        />
-                        <Input 
-                            value={shareMessage}
-                            onChange={(e) => setShareMessage(e.target.value)}
-                            placeholder="Describe your share..."
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsShareModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateShare}>Share</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }
