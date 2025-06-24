@@ -682,11 +682,8 @@ export default function CollaborationClient() {
                             {/* Live IDE Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
                                 <CardHeader>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <CardTitle className="flex items-center gap-2"><Terminal /> Live IDE</CardTitle>
-                                            <CardDescription>File: `src/main/CollaborativeTankDrive.java`</CardDescription>
-                                        </div>
+                                    <div className="flex justify-between items-center">
+                                        <CardTitle className="flex items-center gap-3"><Terminal /> Live IDE</CardTitle>
                                         <div className="flex items-center gap-2">
                                             <div className="flex -space-x-2 overflow-hidden">
                                                 <TooltipProvider>
@@ -708,11 +705,22 @@ export default function CollaborationClient() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="flex-grow flex flex-col p-4 pt-0">
-                                    <Textarea
-                                        value={code}
-                                        onChange={(e) => setCode(e.target.value)}
-                                        className="flex-grow w-full font-mono text-sm bg-muted/50 border-border/60 resize-none min-h-[300px]"
-                                    />
+                                    <div className="flex-grow flex flex-col bg-muted/30 border border-border/50 rounded-lg overflow-hidden shadow-inner">
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-background/50 border-b border-border/50 flex-shrink-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                                                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+                                                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                                            </div>
+                                            <div className="text-sm font-mono text-muted-foreground">CollaborativeTankDrive.java</div>
+                                        </div>
+                                        <Textarea
+                                            value={code}
+                                            onChange={(e) => setCode(e.target.value)}
+                                            className="flex-grow w-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                                            spellCheck="false"
+                                        />
+                                    </div>
                                 </CardContent>
                                 <CardFooter>
                                     <Button onClick={handleOpenCommitModal} className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
