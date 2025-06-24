@@ -7,11 +7,51 @@ export interface FileNode {
 }
 
 export const fileTreeData: FileNode[] = [
+  { name: ".gitignore", path: ".gitignore", type: "file" },
+  {
+    name: "FtcRobotController",
+    path: "FtcRobotController",
+    type: "folder",
+    children: [
+      { name: "build.gradle", path: "FtcRobotController/build.gradle", type: "file" },
+      {
+        name: "src",
+        path: "FtcRobotController/src",
+        type: "folder",
+        children: [
+          {
+            name: "main",
+            path: "FtcRobotController/src/main",
+            type: "folder",
+            children: [
+              { name: "AndroidManifest.xml", path: "FtcRobotController/src/main/AndroidManifest.xml", type: "file" },
+              {
+                name: "java",
+                path: "FtcRobotController/src/main/java",
+                type: "folder",
+                children: [
+                    { name: "org.firstinspires.ftc.robotcontroller", path: "FtcRobotController/src/main/java/org", type: "folder" }
+                ],
+              },
+              {
+                name: "res",
+                path: "FtcRobotController/src/main/res",
+                type: "folder",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  { name: "README.md", path: "README.md", type: "file" },
+  { name: "settings.gradle", path: "settings.gradle", type: "file" },
   {
     name: "TeamCode",
     path: "TeamCode",
     type: "folder",
     children: [
+      { name: "build.gradle", path: "TeamCode/build.gradle", type: "file" },
       {
         name: "src",
         path: "TeamCode/src",
@@ -47,9 +87,9 @@ export const fileTreeData: FileNode[] = [
                                 path: "TeamCode/src/main/java/org/firstinspires/ftc/teamcode",
                                 type: "folder",
                                 children: [
+                                  { name: "Autonomous.java", path: "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Autonomous.java", type: "file" },
                                   { name: "HardwareRobot.java", path: "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/HardwareRobot.java", type: "file" },
                                   { name: "TeleOp.java", path: "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/TeleOp.java", type: "file" },
-                                  { name: "Autonomous.java", path: "TeamCode/src/main/java/org/firstinspires/ftc/teamcode/Autonomous.java", type: "file" },
                                 ],
                               },
                             ],
@@ -64,48 +104,8 @@ export const fileTreeData: FileNode[] = [
           },
         ],
       },
-      { name: "build.gradle", path: "TeamCode/build.gradle", type: "file" },
     ],
   },
-  {
-    name: "FtcRobotController",
-    path: "FtcRobotController",
-    type: "folder",
-    children: [
-      {
-        name: "src",
-        path: "FtcRobotController/src",
-        type: "folder",
-        children: [
-          {
-            name: "main",
-            path: "FtcRobotController/src/main",
-            type: "folder",
-            children: [
-              {
-                name: "java",
-                path: "FtcRobotController/src/main/java",
-                type: "folder",
-                children: [
-                    { name: "org.firstinspires.ftc.robotcontroller", path: "FtcRobotController/src/main/java/org", type: "folder" }
-                ],
-              },
-              {
-                name: "res",
-                path: "FtcRobotController/src/main/res",
-                type: "folder",
-              },
-              { name: "AndroidManifest.xml", path: "FtcRobotController/src/main/AndroidManifest.xml", type: "file" },
-            ],
-          },
-        ],
-      },
-      { name: "build.gradle", path: "FtcRobotController/build.gradle", type: "file" },
-    ],
-  },
-  { name: ".gitignore", path: ".gitignore", type: "file" },
-  { name: "README.md", path: "README.md", type: "file" },
-  { name: "settings.gradle", path: "settings.gradle", type: "file" },
 ];
 
 export const fileContentData = new Map<string, string>([
