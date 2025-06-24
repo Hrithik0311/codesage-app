@@ -19,14 +19,22 @@ let auth: Auth | null = null;
 let database: Database | null = null;
 
 // This check prevents Firebase from being initialized on the server.
-if (typeof window !== "undefined" && firebaseConfig.apiKey) {
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig);
+if (typeof window !== "undefined") {
+    if (firebaseConfig.apiKey) {
+        if (getApps().length === 0) {
+          app = initializeApp(firebaseConfig);
+        } else {
+          app = getApp();
+        }
+        auth = getAuth(app);
+        database = getDatabase(app);
     } else {
-      app = getApp();
+        console.error(
+            "FIREBASE CONFIG ERROR: Firebase API key is missing. " +
+            "Please check your environment configuration and ensure that NEXT_PUBLIC_FIREBASE_API_KEY is set correctly. " +
+            "Firebase will not work without it."
+        );
     }
-    auth = getAuth(app);
-    database = getDatabase(app);
 }
 
 export { app, auth, database };
