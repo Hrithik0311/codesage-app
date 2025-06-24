@@ -264,8 +264,6 @@ export default function AuthClient() {
           <svg
             className="mr-2 h-4 w-4"
             aria-hidden="true"
-            focusable="false"
-            role="img"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 488 512"
           >
