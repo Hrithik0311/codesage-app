@@ -16,15 +16,14 @@ import {
 } from "@/components/ui/menubar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Copy, Save, Share2, FolderPlus } from 'lucide-react';
+import { ShieldCheck, Copy, Save, Share2, FolderPlus, Folder, FolderOpen, FileText, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { fileTreeData, type FileNode as FileExplorerNodeType } from '@/data/ftc-file-tree';
+import { cn } from '@/lib/utils';
+
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -56,25 +55,72 @@ public class SharedCode extends LinearOpMode {
     }
 }`;
 
-const fileShareSchema = z.object({
-    name: z.string().min(1, "File or folder name is required."),
-    message: z.string().optional(),
-});
+interface FileExplorerNodeProps {
+  node: FileExplorerNodeType;
+  selectedPath: string | null;
+  onSelectPath: (path: string) => void;
+  level?: number;
+}
+
+const FileExplorerNode: React.FC<FileExplorerNodeProps> = ({ node, selectedPath, onSelectPath, level = 0 }) => {
+  const [isOpen, setIsOpen] = useState(level < 1);
+  const isFolder = node.type === 'folder';
+  const isSelected = node.path === selectedPath;
+
+  const handleSelect = () => {
+    onSelectPath(node.path);
+  };
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isFolder) {
+      setIsOpen(!isOpen);
+    }
+  };
+
+  const Icon = isFolder ? (isOpen ? FolderOpen : Folder) : FileText;
+
+  return (
+    <div className="my-1">
+      <div
+        className={cn(
+          'flex items-center gap-2 p-1.5 rounded-md cursor-pointer',
+          isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+        )}
+        onClick={handleSelect}
+        style={{ paddingLeft: `${level * 1.5 + 0.375}rem` }}
+      >
+        {isFolder && (
+          <button onClick={handleToggle} className="p-0 bg-transparent hover:bg-transparent">
+            <ChevronRight className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-90')} />
+          </button>
+        )}
+        <Icon className={cn('h-4 w-4 flex-shrink-0', isFolder ? 'text-yellow-400' : 'text-muted-foreground')} />
+        <span className="truncate text-sm">{node.name}</span>
+      </div>
+      {isFolder && isOpen && (
+        <div>
+          {node.children?.map(child => (
+            <FileExplorerNode key={child.path} node={child} selectedPath={selectedPath} onSelectPath={onSelectPath} level={level + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 function IDEContent() {
     const [code, setCode] = useState(sampleCode);
     const { toast } = useToast();
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-    const [isFileShareModalOpen, setIsFileShareModalOpen] = useState(false);
+    const [isExplorerShareModalOpen, setIsExplorerShareModalOpen] = useState(false);
+    const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
     const [shareMessage, setShareMessage] = useState('');
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const fileShareForm = useForm<z.infer<typeof fileShareSchema>>({
-        resolver: zodResolver(fileShareSchema),
-        defaultValues: { name: "", message: "" },
-    });
 
     useEffect(() => {
         const shareId = searchParams.get('shareId');
@@ -154,12 +200,12 @@ function IDEContent() {
         });
     };
 
-    const handleConfirmFileShare = async (values: z.infer<typeof fileShareSchema>) => {
-        if (!user || !database) {
-            toast({ title: "Authentication Error", description: "You must be logged in to share.", variant: "destructive" });
+    const handleShareFromExplorer = async () => {
+        if (!selectedFilePath || !user || !database) {
+            toast({ title: "Error", description: "No file selected or user not authenticated.", variant: "destructive" });
             return;
         }
-
+        
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
@@ -167,20 +213,20 @@ function IDEContent() {
             return;
         }
         const teamCode = teamCodeSnapshot.val();
-        
+    
         const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
         await push(sharesRef, {
             type: 'file',
-            fileName: values.name,
-            message: values.message,
+            fileName: selectedFilePath.split('/').pop(),
+            message: `Shared: ${selectedFilePath}`,
             userId: user.uid,
             userName: user.displayName || user.email,
             timestamp: serverTimestamp(),
         });
         
-        toast({ title: "Shared!", description: "Your file announcement has been shared with the team." });
-        setIsFileShareModalOpen(false);
-        fileShareForm.reset();
+        toast({ title: "Shared!", description: `'${selectedFilePath.split('/').pop()}' has been announced to the team.` });
+        setIsExplorerShareModalOpen(false);
+        setSelectedFilePath(null);
     };
 
     if (authLoading) {
@@ -199,7 +245,7 @@ function IDEContent() {
                         <MenubarTrigger>File</MenubarTrigger>
                         <MenubarContent>
                             <MenubarItem onClick={handleOpenSaveDialog}>Save and Share Snippet<span className="ml-auto text-xs">⌘S</span></MenubarItem>
-                            <MenubarItem onClick={() => setIsFileShareModalOpen(true)}>Announce File Share</MenubarItem>
+                            <MenubarItem onClick={() => setIsExplorerShareModalOpen(true)}>Announce File Share</MenubarItem>
                             <MenubarSeparator />
                             <MenubarItem asChild><Link href="/collaboration">Close Workspace</Link></MenubarItem>
                         </MenubarContent>
@@ -214,7 +260,7 @@ function IDEContent() {
             <main className="flex-grow flex flex-col p-4">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-headline font-bold">Real-time Code Share</h1>
-                    <Button onClick={() => setIsFileShareModalOpen(true)}>
+                    <Button onClick={() => setIsExplorerShareModalOpen(true)}>
                         <FolderPlus className="mr-2 h-4 w-4" />
                         Add Files/Folders
                     </Button>
@@ -250,24 +296,23 @@ function IDEContent() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isFileShareModalOpen} onOpenChange={setIsFileShareModalOpen}>
-                <DialogContent>
+            <Dialog open={isExplorerShareModalOpen} onOpenChange={setIsExplorerShareModalOpen}>
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Announce a File or Folder Share</DialogTitle>
+                        <DialogTitle>Share a File or Folder</DialogTitle>
                         <DialogDescription>
-                            Share a resource with your team. This will appear in the history feed as an announcement.
+                            Select a resource from the project explorer to announce to your team.
                         </DialogDescription>
                     </DialogHeader>
-                    <Form {...fileShareForm}>
-                        <form onSubmit={fileShareForm.handleSubmit(handleConfirmFileShare)} className="space-y-4 py-4">
-                            <FormField control={fileShareForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>File/Folder Name</FormLabel><FormControl><Input placeholder="e.g., new-design.pdf or /designs/v2" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={fileShareForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the share..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsFileShareModalOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={fileShareForm.formState.isSubmitting}>{fileShareForm.formState.isSubmitting ? 'Sharing...' : 'Share Announcement'}</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
+                    <div className="h-[50vh] overflow-y-auto border rounded-md p-2 bg-muted/20">
+                       {fileTreeData.map(node => (
+                         <FileExplorerNode key={node.path} node={node} selectedPath={selectedFilePath} onSelectPath={setSelectedFilePath} />
+                       ))}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsExplorerShareModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleShareFromExplorer} disabled={!selectedFilePath}>Share Selection</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
