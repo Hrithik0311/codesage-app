@@ -14,7 +14,6 @@ import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -35,7 +34,6 @@ const signUpSchema = z.object({
 
 export default function AuthClient() {
   const router = useRouter();
-  const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
@@ -79,11 +77,7 @@ export default function AuthClient() {
     } else if (error.code === 'auth/popup-closed-by-user') {
       description = 'The sign-in window was closed. Please try again.';
     }
-    toast({
-      title: 'Authentication Failed',
-      description,
-      variant: 'destructive',
-    });
+    console.error('Authentication Failed', description);
   };
 
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
@@ -117,10 +111,7 @@ export default function AuthClient() {
     setIsProcessingAuth(true);
     try {
       const result = await signInWithPopup(auth, provider);
-      toast({
-        title: 'Success!',
-        description: `Welcome, ${result.user.displayName || result.user.email}`,
-      });
+      console.log(`Welcome, ${result.user.displayName || result.user.email}`);
     } catch (error: any) {
       handleAuthError(error);
     } finally {
