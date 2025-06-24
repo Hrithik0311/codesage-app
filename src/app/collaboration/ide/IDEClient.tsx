@@ -76,11 +76,12 @@ function IDEContent() {
                     get(shareRef).then((shareSnapshot) => {
                         if (shareSnapshot.exists()) {
                             const shareData = shareSnapshot.val();
-                            if (shareData.type === 'snippet') {
+                            if (shareData.code) { // Simple check for content
                                 setCode(shareData.code);
-                                setShareMessage(shareData.message);
+                                // Use filename for uploaded files, otherwise the snippet message
+                                setShareMessage(shareData.fileName || shareData.message || '');
                             } else {
-                                toast({ title: "Invalid Share", description: "This share is a file announcement and cannot be opened in the editor.", variant: "destructive" });
+                                toast({ title: "Cannot Open", description: "This share is an announcement and does not contain viewable content.", variant: "destructive" });
                             }
                         } else {
                             toast({ title: "Share not found", description: "This share could not be loaded.", variant: "destructive" });
@@ -158,19 +159,54 @@ function IDEContent() {
         const teamCode = teamCodeSnapshot.val();
         const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
     
-        for (const file of Array.from(files)) {
-            await push(sharesRef, {
-                type: 'file',
-                fileName: file.name,
-                message: `Shared from computer`,
-                userId: user.uid,
-                userName: user.displayName || user.email,
-                timestamp: serverTimestamp(),
+        const filePromises = Array.from(files).map(file => {
+            return new Promise<void>((resolve, reject) => {
+                // Only try to read text-based files.
+                if (!file.type.startsWith('text/') && !/\.(java|txt|md|json|xml|gradle)$/.test(file.name)) {
+                     // For non-text files, just announce them.
+                    push(sharesRef, {
+                        type: 'file',
+                        fileName: file.name,
+                        message: 'Shared from computer (content not viewable)',
+                        userId: user.uid,
+                        userName: user.displayName || user.email,
+                        timestamp: serverTimestamp(),
+                    }).then(() => resolve()).catch(reject);
+                    return;
+                }
+    
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const content = e.target?.result as string;
+                    try {
+                        // Upload file with its content.
+                        await push(sharesRef, {
+                            type: 'file',
+                            fileName: file.name,
+                            code: content, // Storing content here
+                            message: 'Shared from computer',
+                            userId: user.uid,
+                            userName: user.displayName || user.email,
+                            timestamp: serverTimestamp(),
+                        });
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsText(file);
             });
+        });
+    
+        try {
+            await Promise.all(filePromises);
+            toast({ title: "Shared!", description: `${files.length} file(s) have been shared.` });
+        } catch (error) {
+            console.error("File sharing failed:", error);
+            toast({ title: "Sharing Failed", description: "An error occurred while sharing files.", variant: "destructive" });
         }
-        
-        toast({ title: "Shared!", description: `${files.length} file(s) have been announced to the team.` });
-
+    
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }

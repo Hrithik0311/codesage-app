@@ -237,11 +237,12 @@ export default function CollaborationClient() {
             const formattedShares = sharesData
                 .map(share => ({
                     id: share.id,
-                    type: share.type || 'snippet', // Default to snippet for old data
+                    type: share.type || 'snippet',
                     fileName: share.fileName,
                     message: share.message,
                     author: share.userName,
-                    time: share.timestamp ? formatDistanceToNowStrict(new Date(share.timestamp), { addSuffix: true }) : 'just now'
+                    time: share.timestamp ? formatDistanceToNowStrict(new Date(share.timestamp), { addSuffix: true }) : 'just now',
+                    code: share.code, // Pass code content through
                 }))
                 .reverse();
 
@@ -397,7 +398,7 @@ export default function CollaborationClient() {
 
         const sharesRef = dbRef(database, `teams/${team.id}/shares`);
         await push(sharesRef, {
-            type: 'file', // Distinguish this from code snippets
+            type: 'file',
             fileName: values.name,
             message: values.message,
             userId: user.uid,
@@ -731,17 +732,17 @@ export default function CollaborationClient() {
                                                     <TableRow key={share.id}>
                                                         <TableCell>
                                                             <div className="font-medium text-foreground flex items-center gap-2">
-                                                                {share.type === 'file' ? <File className="h-4 w-4 text-accent" /> : <Code2 className="h-4 w-4 text-accent" />}
-                                                                <span>{share.type === 'file' ? share.fileName : share.message}</span>
+                                                                {share.fileName ? <File className="h-4 w-4 text-accent" /> : <Code2 className="h-4 w-4 text-accent" />}
+                                                                <span>{share.fileName || share.message}</span>
                                                             </div>
-                                                            {share.type === 'file' && share.message && (
+                                                            {share.fileName && share.message && (
                                                                 <p className="text-sm text-muted-foreground pl-6">{share.message}</p>
                                                             )}
                                                         </TableCell>
                                                         <TableCell>{share.author}</TableCell>
                                                         <TableCell>{share.time}</TableCell>
                                                         <TableCell className="text-right">
-                                                            {share.type === 'snippet' && (
+                                                            {share.code && (
                                                                 <Button asChild variant="outline" size="sm">
                                                                     <Link href={`/collaboration/ide?shareId=${share.id}`}>
                                                                         <Eye className="mr-2 h-4 w-4" />
