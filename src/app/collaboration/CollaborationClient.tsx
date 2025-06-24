@@ -8,13 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Settings, UploadCloud, Share2, Circle, GitCommit, Save, PlusCircle, LogIn, Trash2 } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Settings, UploadCloud, Code2, GitCommit, Save, PlusCircle, LogIn, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -29,33 +28,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const sampleCode = `package org.firstinspires.ftc.teamcode;
-
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-
-@TeleOp(name="Collaborative: Tank Drive", group="Linear Opmode")
-public class CollaborativeTankDrive extends LinearOpMode {
-    // Other collaborators are watching this file!
-    private DcMotor leftDrive = null;
-    private DcMotor rightDrive = null;
-
-    @Override
-    public void runOpMode() {
-        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
-
-        // ... robot initialization
-    }
-}`;
-
-const initialDeploymentSteps = [
-  { id: 'build', icon: Terminal, title: 'Build', status: 'Pending', description: 'Compile the project code.' },
-  { id: 'test', icon: Settings, title: 'Unit Tests', status: 'Pending', description: 'Run all automated tests.' },
-  { id: 'deploy', icon: UploadCloud, title: 'Deploy to Robot', status: 'Pending', description: 'Upload firmware to the robot controller.' }
-];
 
 const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
@@ -82,6 +54,12 @@ const settingsSchema = z.object({
     members: z.array(memberSchema),
 });
 
+const initialDeploymentSteps = [
+  { id: 'build', icon: Terminal, title: 'Build', status: 'Pending', description: 'Compile the project code.' },
+  { id: 'test', icon: Settings, title: 'Unit Tests', status: 'Pending', description: 'Run all automated tests.' },
+  { id: 'deploy', icon: UploadCloud, title: 'Deploy to Robot', status: 'Pending', description: 'Upload firmware to the robot controller.' }
+];
+
 
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig: { [key: string]: { text: string; className: string } } = {
@@ -102,7 +80,6 @@ const StatusBadge = ({ status }: { status?: string }) => {
 
 
 export default function CollaborationClient() {
-    const [code, setCode] = useState(sampleCode);
     const [commits, setCommits] = useState<any[]>([]);
     const [isLoadingCommits, setIsLoadingCommits] = useState(true);
     const [isCommitModalOpen, setIsCommitModalOpen] = useState(false);
@@ -679,61 +656,34 @@ export default function CollaborationClient() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Main Content: IDE and Version Control */}
                         <div className="lg:col-span-2 flex flex-col gap-8">
-                            {/* Live IDE Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
                                 <CardHeader>
-                                    <div className="flex justify-between items-center">
-                                        <CardTitle className="flex items-center gap-3"><Terminal /> Live IDE</CardTitle>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex -space-x-2 overflow-hidden">
-                                                <TooltipProvider>
-                                                    {Object.values(team.roles || {}).flatMap((members: any) => Object.entries(members)).slice(0, 3).map(([memberId, memberName]) => (
-                                                        <Tooltip key={memberId}>
-                                                            <TooltipTrigger asChild>
-                                                            <Avatar className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
-                                                                <AvatarImage data-ai-hint="person" src={`https://placehold.co/32x32.png`} />
-                                                                <AvatarFallback>{(memberName as string).substring(0, 1)}</AvatarFallback>
-                                                            </Avatar>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>{memberName as string}</TooltipContent>
-                                                        </Tooltip>
-                                                    ))}
-                                                </TooltipProvider>
-                                            </div>
-                                            <Button variant="ghost" size="sm"><Share2 className="mr-2 h-4 w-4" /> Share</Button>
-                                        </div>
-                                    </div>
+                                    <CardTitle className="flex items-center gap-3"><Terminal /> Live IDE</CardTitle>
+                                    <CardDescription>A real-time, cloud-based development environment.</CardDescription>
                                 </CardHeader>
-                                <CardContent className="flex-grow flex flex-col p-4 pt-0">
-                                    <div className="flex-grow flex flex-col bg-muted/30 border border-border/50 rounded-lg overflow-hidden shadow-inner">
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-background/50 border-b border-border/50 flex-shrink-0">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                                                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                                                <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                                            </div>
-                                            <div className="text-sm font-mono text-muted-foreground">CollaborativeTankDrive.java</div>
-                                        </div>
-                                        <Textarea
-                                            value={code}
-                                            onChange={(e) => setCode(e.target.value)}
-                                            className="flex-grow w-full p-4 font-mono text-sm bg-transparent border-0 rounded-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                                            spellCheck="false"
-                                        />
+                                <CardContent className="flex-grow flex flex-col items-center justify-center text-center">
+                                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-primary-foreground mb-6">
+                                        <Code2 size={50} />
                                     </div>
+                                    <p className="text-foreground/80 mb-6">Launch the full, collaborative IDE in a new workspace to code together in real-time.</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button onClick={handleOpenCommitModal} className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                                        <GitCommit className="mr-2 h-4 w-4" /> Commit Changes
+                                    <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                                        <Link href="/collaboration/ide"><Rocket className="mr-2 h-4 w-4" /> Launch Full IDE</Link>
                                     </Button>
                                 </CardFooter>
                             </Card>
 
                             {/* Version Control Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><GitBranch /> Version Control</CardTitle>
-                                    <CardDescription>Showing recent commits to `main` branch.</CardDescription>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2"><GitBranch /> Version Control</CardTitle>
+                                        <CardDescription>Showing recent commits to `main` branch.</CardDescription>
+                                    </div>
+                                    <Button onClick={handleOpenCommitModal} className="bg-gradient-to-r from-green-500 to-green-600 text-white hover:opacity-90">
+                                        <GitCommit className="mr-2 h-4 w-4" /> New Commit
+                                    </Button>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>
