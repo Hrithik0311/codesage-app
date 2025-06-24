@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { UseFormReturn } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
