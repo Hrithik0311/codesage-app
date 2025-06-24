@@ -742,7 +742,7 @@ export default function CollaborationClient() {
                                                         <TableCell>{share.author}</TableCell>
                                                         <TableCell>{share.time}</TableCell>
                                                         <TableCell className="text-right">
-                                                            {share.code && (
+                                                            {share.code != null && (
                                                                 <Button asChild variant="outline" size="sm">
                                                                     <Link href={`/collaboration/ide?shareId=${share.id}`}>
                                                                         <Eye className="mr-2 h-4 w-4" />
