@@ -169,13 +169,7 @@ export default function NotificationsClient() {
 
             const resolvedChats = (await Promise.all(chatPromises)).filter(Boolean) as Chat[];
 
-            const sortedChats = [
-                {
-                    id: 'codesage-ai', name: 'CodeSage AI', avatar: 'https://placehold.co/40x40.png', hint: 'robot' as const, type: 'ai' as const,
-                    lastMessage: { text: "Ask me anything about your code...", timestamp: Date.now() },
-                },
-                ...resolvedChats
-            ].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
+            const sortedChats = [...resolvedChats].sort((a, b) => (b.lastMessage?.timestamp || 0) - (a.lastMessage?.timestamp || 0));
 
             setChats(sortedChats);
             
@@ -210,11 +204,6 @@ export default function NotificationsClient() {
     const currentActiveChat = chats.find(c => c.id === activeChatId);
     if (!currentActiveChat) return;
 
-    if (currentActiveChat.type === 'ai') {
-        setMessages([{ key: '1', senderId: 'ai', senderName: 'CodeSage AI', text: "Hello! I am CodeSage AI. I'm here to assist with your development process. You can paste code snippets for analysis, ask for suggestions, or generate unit tests. How can I help you today?", timestamp: Date.now() }]);
-        return;
-    }
-
     const messagesRef = dbRef(database, `chats/${activeChatId}/messages`);
     const messagesQuery = query(messagesRef, orderByChild('timestamp'));
     const unsubscribe = onValue(messagesQuery, (snapshot) => {
@@ -245,29 +234,6 @@ export default function NotificationsClient() {
     setIsSending(true);
     const currentInput = newMessage;
     setNewMessage("");
-
-    if (activeChat.type === 'ai') {
-        const myName = allUsers.find(m => m.id === user.uid)?.name || user.displayName || 'You';
-        const userMessage: Message = { 
-            key: Date.now().toString(), 
-            text: currentInput,
-            senderId: user.uid,
-            senderName: myName,
-            timestamp: Date.now() 
-        };
-        setMessages(prev => [...prev, userMessage]);
-        
-        setTimeout(() => {
-            const aiResponse: Message = {
-                key: (Date.now() + 1).toString(), senderId: 'ai', senderName: 'CodeSage AI',
-                text: `I've received your message: "${currentInput}". My full capabilities are still under development, but I'm learning fast!`,
-                timestamp: Date.now()
-            };
-            setMessages(prev => [...prev, aiResponse]);
-            setIsSending(false);
-        }, 1200);
-        return;
-    }
 
     try {
         const myName = allUsers.find(u => u.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
@@ -418,7 +384,6 @@ export default function NotificationsClient() {
   const isMessageInputDisabled = !activeChat || isSending || (activeChat.type === 'channel' && activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid);
   const messageInputPlaceholder =
       !activeChat ? "Select a chat to begin"
-    : activeChat.type === 'ai' ? "Message CodeSage AI..."
     : (activeChat.type === 'channel' && activeChat.id === team?.announcementsChatId && team.creatorUid !== user?.uid) ? "Only the team captain can post here."
     : `Message ${activeChat.name}`;
   

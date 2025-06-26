@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
+import AIChatWidget from '@/components/AIChatWidget';
 
 const fontInter = FontInter({
   subsets: ['latin'],
@@ -43,6 +44,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             {children}
+            <AIChatWidget />
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

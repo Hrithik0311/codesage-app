@@ -1,0 +1,152 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { Bot, Send, X, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { AnimatePresence, motion } from 'framer-motion';
+
+interface Message {
+  key: string;
+  text: string;
+  sender: 'user' | 'ai';
+  senderName: string;
+}
+
+export default function AIChatWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      key: 'initial-message',
+      text: "Hello! I'm CodeSage AI, your personal assistant. How can I help you analyze code, generate tests, or answer your questions today?",
+      sender: 'ai',
+      senderName: 'CodeSage AI'
+    }
+  ]);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && scrollAreaRef.current) {
+        // A bit of a hacky way to scroll to bottom in a ScrollArea
+        setTimeout(() => {
+            const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
+            if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
+            }
+        }, 100);
+    }
+  }, [isOpen, messages]);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage: Message = {
+      key: `user-${Date.now()}`,
+      text: input,
+      sender: 'user',
+      senderName: user?.displayName || 'You',
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+
+    // Mock AI Response
+    setTimeout(() => {
+      const aiResponse: Message = {
+        key: `ai-${Date.now()}`,
+        text: `Thanks for your message: "${input}". As a prototype AI, I'm still learning. In a real application, I would connect to a powerful Genkit flow to analyze this request.`,
+        sender: 'ai',
+        senderName: 'CodeSage AI'
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    }, 1200);
+  };
+
+  return (
+    <>
+      <div className="fixed bottom-6 right-6 z-50">
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="w-[calc(100vw-3rem)] max-w-sm"
+            >
+              <Card className="h-[60vh] max-h-[700px] flex flex-col bg-card/80 backdrop-blur-xl border-border/50 shadow-2xl">
+                <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-border/40">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9 border-2 border-primary">
+                      <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="robot" />
+                      <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold font-headline">CodeSage AI</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <p className="text-xs text-muted-foreground">Online</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setIsOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="flex-1 p-0 overflow-hidden">
+                  <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
+                    <div className="space-y-6">
+                      {messages.map(msg => {
+                        const isUser = msg.sender === 'user';
+                        return (
+                          <div key={msg.key} className={cn("flex items-end gap-3", isUser && "flex-row-reverse")}>
+                            {!isUser && <Avatar className="h-8 w-8"><AvatarImage data-ai-hint="robot" src="https://placehold.co/40x40.png" /><AvatarFallback>AI</AvatarFallback></Avatar>}
+                            <div className={cn("rounded-2xl py-2 px-4 max-w-[80%] whitespace-pre-wrap", isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
+                              <p className="text-sm">{msg.text}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+                <CardFooter className="p-4 border-t border-border/40">
+                  <form onSubmit={handleSendMessage} className="w-full relative">
+                    <Input
+                      placeholder="Ask me anything..."
+                      className="h-10 pr-12"
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                    />
+                    <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!input.trim()}>
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <Button
+          onClick={() => setIsOpen(!isOpen)}
+          size="lg"
+          className="rounded-full w-16 h-16 shadow-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground text-lg font-bold hover:scale-110 active:scale-100 transition-transform duration-200 ease-in-out"
+        >
+          {isOpen ? <X size={28} /> : <MessageSquare size={28} />}
+        </Button>
+      </div>
+    </>
+  );
+}
