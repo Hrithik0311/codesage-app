@@ -105,12 +105,6 @@ function IDEContent() {
         setShareMessage('');
         router.push(`/collaboration/ide?shareId=${newShare.key}`);
     };
-  
-    const handleShareLink = () => {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            toast({ title: "Link Copied!", description: "A shareable link has been copied to your clipboard." });
-        });
-    };
 
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -188,7 +182,6 @@ function IDEContent() {
                 </Menubar>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
-                    <Button variant="outline" onClick={handleShareLink}><Share2 className="mr-2 h-4 w-4" /> Share Link</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
                 </div>
             </header>
