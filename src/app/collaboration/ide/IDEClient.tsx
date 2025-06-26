@@ -122,7 +122,7 @@ function IDEContent() {
             timestamp: serverTimestamp(),
         });
         
-        toast({ title: "Saved!", description: "Your code has been saved and shared with the team." });
+        toast({ title: "Success!", description: "Successfully shared the code snippet." });
         setIsSaveModalOpen(false);
         setShareMessage('');
         router.push(`/collaboration/ide?shareId=${newShare.key}`);
@@ -159,7 +159,7 @@ function IDEContent() {
             };
             reader.readAsText(file);
         }
-        toast({ title: "Files Shared", description: `${event.target.files.length} file(s) have been shared with the team.` });
+        toast({ title: "Success!", description: `Successfully shared ${event.target.files.length} file(s).` });
         
         if(fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -229,7 +229,7 @@ function IDEContent() {
                 timestamp: serverTimestamp(),
             });
 
-            toast({ title: 'Group Shared!', description: `The "${values.groupName}" group has been shared.` });
+            toast({ title: 'Success!', description: `Successfully shared the "${values.groupName}" group.` });
             closeGroupShareDialog();
         } catch (error) {
             console.error("Error sharing group:", error);
