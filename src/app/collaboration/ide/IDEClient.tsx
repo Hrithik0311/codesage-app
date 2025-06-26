@@ -1,22 +1,14 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarSeparator,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, Copy, Save, Share2, FolderPlus } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Copy, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
@@ -31,7 +23,6 @@ function IDEContent() {
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
 
     useEffect(() => {
@@ -106,59 +97,6 @@ function IDEContent() {
         router.push(`/collaboration/ide?shareId=${newShare.key}`);
     };
 
-    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files;
-        if (!files || files.length === 0 || !user || !database) {
-            return;
-        }
-    
-        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
-        const teamCodeSnapshot = await get(teamCodeRef);
-        if (!teamCodeSnapshot.exists()) {
-            toast({ title: "Team not found", description: "You must be part of a team to share.", variant: "destructive" });
-            return;
-        }
-        const teamCode = teamCodeSnapshot.val();
-        const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
-    
-        const filePromises = Array.from(files).map(file => {
-            return new Promise<void>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const content = e.target?.result as string;
-                    try {
-                        await push(sharesRef, {
-                            type: 'file',
-                            fileName: file.name,
-                            code: content,
-                            message: `Shared from computer`,
-                            userId: user.uid,
-                            userName: user.displayName || user.email,
-                            timestamp: serverTimestamp(),
-                        });
-                        resolve();
-                    } catch (error) {
-                        reject(error);
-                    }
-                };
-                reader.onerror = (error) => reject(error);
-                reader.readAsText(file);
-            });
-        });
-    
-        try {
-            await Promise.all(filePromises);
-            toast({ title: "Shared!", description: `${files.length} file(s) have been shared.` });
-        } catch (error) {
-            console.error("File sharing failed:", error);
-            toast({ title: "Sharing Failed", description: "An error occurred while sharing files.", variant: "destructive" });
-        }
-    
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
     if (authLoading) {
         return <div className="flex h-screen w-screen items-center justify-center bg-background"><div className="loading-spinner"></div></div>;
     }
@@ -166,20 +104,18 @@ function IDEContent() {
     return (
         <div className="h-screen w-screen flex flex-col bg-background text-foreground">
             <header className="flex-shrink-0 border-b border-border/50 px-4 py-2 flex items-center justify-between">
-                <Menubar className="border-none rounded-none bg-transparent">
-                    <Link href="/collaboration" className="flex items-center gap-2 mr-4 px-2 hover:bg-muted rounded-md">
+                <div className="flex items-center gap-4">
+                     <Button asChild variant="outline">
+                        <Link href="/collaboration">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                        </Link>
+                    </Button>
+                    <div className="flex items-center gap-2">
                         <ShieldCheck className="h-5 w-5 text-primary" />
                         <span className="font-headline font-bold">CodeSage</span>
-                    </Link>
-                    <MenubarMenu>
-                        <MenubarTrigger>File</MenubarTrigger>
-                        <MenubarContent>
-                            <MenubarItem onClick={handleOpenSaveDialog}>Save and Share Snippet<span className="ml-auto text-xs">⌘S</span></MenubarItem>
-                            <MenubarSeparator />
-                            <MenubarItem asChild><Link href="/collaboration">Close Workspace</Link></MenubarItem>
-                        </MenubarContent>
-                    </MenubarMenu>
-                </Menubar>
+                    </div>
+                </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
@@ -188,11 +124,6 @@ function IDEContent() {
             <main className="flex-grow flex flex-col p-4">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-headline font-bold">Real-time Code Share</h1>
-                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
-                    <Button onClick={() => fileInputRef.current?.click()}>
-                        <FolderPlus className="mr-2 h-4 w-4" />
-                        Share Files from Computer
-                    </Button>
                 </div>
                 <Textarea
                     value={code}
