@@ -63,9 +63,9 @@ const settingsSchema = z.object({
 
 
 const initialDeploymentSteps = [
-  { id: 'build', icon: Terminal, title: 'Build', status: 'Pending', description: 'Compile the project code.' },
-  { id: 'test', icon: Settings, title: 'Unit Tests', status: 'Pending', description: 'Run all automated tests.' },
-  { id: 'deploy', icon: UploadCloud, title: 'Deploy to Robot', status: 'Pending', description: 'Upload firmware to the robot controller.' }
+  { id: 'lint', icon: ShieldCheck, title: 'Lint & Test', status: 'Pending', description: 'Run code quality checks and tests.' },
+  { id: 'build', icon: Terminal, title: 'Build Project', status: 'Pending', description: 'Create production build for deployment.' },
+  { id: 'deploy', icon: UploadCloud, title: 'Deploy to Hosting', status: 'Pending', description: 'Push build to live servers.' }
 ];
 
 
@@ -427,7 +427,7 @@ export default function CollaborationClient() {
         const runStep = (stepIndex: number) => {
             if (stepIndex >= deploymentSteps.length) {
                 setIsDeploying(false);
-                toast({ title: 'Deployment Successful!', description: 'Your new code is live on the robot.' });
+                toast({ title: 'Deployment Successful!', description: 'Your new code is live.' });
                 return;
             }
             
