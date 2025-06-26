@@ -34,6 +34,7 @@ const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
     id: z.string().min(1, "Member ID is required."),
     role: z.string().min(1, "Role is required."),
+    _isNew: z.boolean().optional(),
 });
 
 const createTeamSchema = z.object({
@@ -148,6 +149,8 @@ export default function CollaborationClient() {
         control: settingsForm.control,
         name: "members",
     });
+    
+    const watchedMembers = settingsForm.watch("members");
 
     useEffect(() => {
         if (!loading && !user) {
@@ -167,10 +170,10 @@ export default function CollaborationClient() {
                       const teamData = { id: teamCode, ...teamSnapshot.val() };
                       setTeam(teamData);
                       
-                      const membersForForm = [];
+                      const membersForForm: any[] = [];
                       for (const role in teamData.roles) {
                           for (const id in teamData.roles[role]) {
-                              membersForForm.push({ id, name: teamData.roles[role][id], role });
+                              membersForForm.push({ id, name: teamData.roles[role][id], role, _isNew: false });
                           }
                       }
                       settingsForm.reset({ teamName: teamData.name, pin: teamData.pin, members: membersForForm });
@@ -364,15 +367,39 @@ export default function CollaborationClient() {
             return;
         }
 
+        const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
+        const newMemberIds = new Set(values.members.map(m => m.id));
+
         const newRoles: { [key: string]: { [uid: string]: string } } = {};
         const userUpdates: { [key: string]: any } = {};
 
+        // Process current members
         values.members.forEach(member => {
+            if (!member.id) return; // Skip if ID is empty
+
             if (!newRoles[member.role]) {
                 newRoles[member.role] = {};
             }
             newRoles[member.role][member.id] = member.name;
             userUpdates[`/users/${member.id}/name`] = member.name;
+
+            // If this is a newly added member, update their teamCode and chats
+            if (!originalMemberIds.has(member.id)) {
+                userUpdates[`/users/${member.id}/teamCode`] = team.id;
+                if (team.announcementsChatId) {
+                    userUpdates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
+                }
+            }
+        });
+        
+        // Process removed members
+        originalMemberIds.forEach(id => {
+            if (!newMemberIds.has(id)) {
+                userUpdates[`/users/${id}/teamCode`] = null;
+                 if (team.announcementsChatId) {
+                    userUpdates[`/users/${id}/chats/${team.announcementsChatId}`] = null;
+                }
+            }
         });
 
         const teamUpdates = {
@@ -627,10 +654,12 @@ export default function CollaborationClient() {
                                             </TabsContent>
                                             <TabsContent value="members" className="py-6 max-h-[50vh] overflow-y-auto">
                                                 <div className="space-y-4">
-                                                    {settingsMemberFields.map((field, index) => (
+                                                    {settingsMemberFields.map((field, index) => {
+                                                        const isNewMember = !!watchedMembers[index]?._isNew;
+                                                        return (
                                                         <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
                                                             <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} readOnly={user?.uid !== team.creatorUid} /></FormControl><FormMessage /></FormItem>)} />
-                                                            <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+                                                            <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly={!isNewMember} placeholder={isNewMember ? "Paste new Member ID" : ""} /></FormControl><FormMessage /></FormItem>)} />
                                                             <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
                                                                 <FormItem className="w-[150px]">
                                                                     <FormLabel className="text-xs">Role</FormLabel>
@@ -642,9 +671,9 @@ export default function CollaborationClient() {
                                                             )} />
                                                             <Button type="button" variant="destructive" size="icon" onClick={() => removeSettingsMember(index)} disabled={field.id === team.creatorUid}><Trash2 className="h-4 w-4" /></Button>
                                                         </div>
-                                                    ))}
+                                                    )})}
                                                 </div>
-                                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member" })}>
+                                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member", _isNew: true })}>
                                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Member
                                                 </Button>
                                             </TabsContent>
