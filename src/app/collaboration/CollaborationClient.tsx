@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -35,6 +35,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, DragStar
 import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar } from '@/components/ui/calendar';
 
 // --- Planner Types ---
 type Id = string;
@@ -108,6 +109,7 @@ export default function CollaborationClient() {
     const [activeColumn, setActiveColumn] = useState<Column | null>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
+    const [date, setDate] = useState<Date | undefined>(new Date());
 
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
@@ -847,44 +849,75 @@ export default function CollaborationClient() {
                             </Card>
                         </div>
                     </div>
+                    
+                    <Tabs defaultValue="planner" className="mt-8 w-full">
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                            <div>
+                                <h2 className="font-headline text-3xl font-bold">Project Hub</h2>
+                                <p className="text-muted-foreground">Organize team tasks on the planner or view the calendar.</p>
+                            </div>
+                            <TabsList>
+                                <TabsTrigger value="planner"><FolderKanban className="mr-2 h-4 w-4" /> Planner</TabsTrigger>
+                                <TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" /> Calendar</TabsTrigger>
+                            </TabsList>
+                        </div>
 
-                    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                        <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 mt-8 w-full">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <div>
-                                    <CardTitle className="flex items-center gap-2"><FolderKanban /> Project Planner</CardTitle>
-                                    <CardDescription>Organize your team's tasks.</CardDescription>
-                                </div>
-                                <Button onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button>
-                            </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="w-full whitespace-nowrap">
-                                    <div className="flex gap-4 p-4">
-                                    {isLoadingPlanner ? <Skeleton className="h-96 w-full" /> : (
-                                        <SortableContext items={columnsId}>
-                                            {columns.map(col => (
-                                                <ColumnContainer 
-                                                    key={col.id} 
-                                                    column={col}
-                                                    tasks={tasks.filter(task => task.columnId === col.id)}
-                                                    createTask={createTask}
-                                                />
-                                            ))}
-                                        </SortableContext>
-                                    )}
-                                    </div>
-                                    <div className="h-1 pb-1"></div>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
-                        
-                        {typeof document !== 'undefined' && createPortal(
-                            <DragOverlay>
-                                {activeTask && <TaskCard task={activeTask} />}
-                            </DragOverlay>,
-                            document.body
-                        )}
-                    </DndContext>
+                        <TabsContent value="planner">
+                            <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                                <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <div>
+                                            <CardTitle>Kanban Board</CardTitle>
+                                            <CardDescription>Drag and drop tasks to organize your workflow.</CardDescription>
+                                        </div>
+                                        <Button onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ScrollArea className="w-full whitespace-nowrap">
+                                            <div className="flex gap-4 p-4">
+                                            {isLoadingPlanner ? <Skeleton className="h-96 w-full" /> : (
+                                                <SortableContext items={columnsId}>
+                                                    {columns.map(col => (
+                                                        <ColumnContainer 
+                                                            key={col.id} 
+                                                            column={col}
+                                                            tasks={tasks.filter(task => task.columnId === col.id)}
+                                                            createTask={createTask}
+                                                        />
+                                                    ))}
+                                                </SortableContext>
+                                            )}
+                                            </div>
+                                            <div className="h-1 pb-1"></div>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                                
+                                {typeof document !== 'undefined' && createPortal(
+                                    <DragOverlay>
+                                        {activeTask && <TaskCard task={activeTask} />}
+                                    </DragOverlay>,
+                                    document.body
+                                )}
+                            </DndContext>
+                        </TabsContent>
+                        <TabsContent value="calendar">
+                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                                <CardHeader>
+                                    <CardTitle>Team Calendar</CardTitle>
+                                    <CardDescription>View important dates and deadlines.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex justify-center p-4">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date}
+                                        onSelect={setDate}
+                                        className="rounded-md border border-border/50"
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
 
                 </div>
             </div>
