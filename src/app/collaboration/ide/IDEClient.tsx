@@ -164,11 +164,10 @@ function IDEContent() {
                 reader.onload = async (e) => {
                     const content = e.target?.result as string;
                     try {
-                        // Upload file with its content.
                         await push(sharesRef, {
                             type: 'file',
                             fileName: file.name,
-                            code: content, // Storing content here
+                            code: content,
                             message: 'Shared from computer',
                             userId: user.uid,
                             userName: user.displayName || user.email,
