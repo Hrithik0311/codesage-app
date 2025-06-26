@@ -125,7 +125,7 @@ function IDEContent() {
         toast({ title: "Success!", description: "Successfully shared the code snippet." });
         setIsSaveModalOpen(false);
         setShareMessage('');
-        router.push(`/collaboration/ide?shareId=${newShare.key}`);
+        router.replace(`/collaboration/ide?shareId=${newShare.key}`);
     };
 
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
