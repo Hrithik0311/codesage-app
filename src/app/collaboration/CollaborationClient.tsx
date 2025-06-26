@@ -160,53 +160,64 @@ export default function CollaborationClient() {
 
     useEffect(() => {
         if (!loading && !user) {
-          router.push('/auth');
-          return;
+            router.push('/auth');
+            return;
         }
-        if (user && database) {
-          setIsLoadingTeam(true);
-          const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
-          get(userTeamRef).then((snapshot) => {
+
+        if (!user || !database) {
+            setIsLoadingTeam(false);
+            return;
+        }
+
+        let teamDataUnsubscribe: () => void = () => {};
+        setIsLoadingTeam(true);
+        const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+
+        get(userTeamRef).then((snapshot) => {
             if (snapshot.exists()) {
-              const teamCode = snapshot.val();
-              const teamDataRef = dbRef(database, `teams/${teamCode}`);
-              
-              const unsubscribe = onValue(teamDataRef, (teamSnapshot) => {
-                  if (teamSnapshot.exists()) {
-                      const teamData = { id: teamCode, ...teamSnapshot.val() };
-                      setTeam(teamData);
-                      
-                      const membersForForm: any[] = [];
-                      for (const role in teamData.roles) {
-                          for (const id in teamData.roles[role]) {
-                              membersForForm.push({ id, name: teamData.roles[role][id], role, _isNew: false });
-                          }
-                      }
-                      settingsForm.reset({ teamName: teamData.name, pin: teamData.pin, members: membersForForm });
-                      replaceSettingsMembers(membersForForm);
-
-                  } else {
-                      setTeam(null);
-                  }
-                  setIsLoadingTeam(false);
-              }, (error) => {
-                  console.error("Error fetching team data:", error);
-                  toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-                  setIsLoadingTeam(false);
-              });
-
-              return () => unsubscribe();
-
+                const teamCode = snapshot.val();
+                const teamDataRef = dbRef(database, `teams/${teamCode}`);
+                
+                teamDataUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
+                    if (teamSnapshot.exists()) {
+                        const teamData = { id: teamCode, ...teamSnapshot.val() };
+                        setTeam(teamData);
+                    } else {
+                        setTeam(null);
+                    }
+                    setIsLoadingTeam(false);
+                }, (error) => {
+                    console.error("Error fetching team data:", error);
+                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+                    setIsLoadingTeam(false);
+                });
             } else {
-              setIsLoadingTeam(false);
+                setTeam(null);
+                setIsLoadingTeam(false);
             }
-          }).catch(error => {
-              console.error("Error fetching user team data:", error);
-              toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-              setIsLoadingTeam(false);
-          });
+        }).catch(error => {
+            console.error("Error fetching user team data:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+            setIsLoadingTeam(false);
+        });
+
+        return () => {
+            teamDataUnsubscribe();
+        };
+    }, [user, loading, router, database, toast]);
+
+    useEffect(() => {
+        if (team && isSettingsOpen) {
+            const membersForForm: any[] = [];
+            for (const role in team.roles) {
+                for (const id in team.roles[role]) {
+                    membersForForm.push({ id, name: team.roles[role][id], role, _isNew: false });
+                }
+            }
+            settingsForm.reset({ teamName: team.name, pin: team.pin, members: membersForForm });
+            replaceSettingsMembers(membersForForm);
         }
-      }, [user, loading, router, toast]);
+    }, [team, isSettingsOpen, settingsForm, replaceSettingsMembers]);
 
     useEffect(() => {
         if (!team || !database) return;
