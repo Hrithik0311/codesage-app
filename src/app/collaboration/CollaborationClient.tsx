@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -9,17 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -34,6 +30,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { v4 as uuidv4 } from 'uuid';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// --- Planner Types ---
+type Id = string;
+type Column = { id: Id; title: string; };
+type Task = { id: Id; columnId: Id; content: string; };
 
 const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
@@ -80,6 +86,7 @@ const StatusBadge = ({ status }: { status?: string }) => {
 };
 
 
+// --- Collaboration Hub Main Component ---
 export default function CollaborationClient() {
     const [shares, setShares] = useState<any[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(true);
@@ -93,6 +100,14 @@ export default function CollaborationClient() {
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [memberStatuses, setMemberStatuses] = useState<Record<string, { state: string }>>({});
+
+    // --- Planner State ---
+    const [columns, setColumns] = useState<Column[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [isLoadingPlanner, setIsLoadingPlanner] = useState(true);
+    const [activeColumn, setActiveColumn] = useState<Column | null>(null);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
 
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
@@ -138,51 +153,51 @@ export default function CollaborationClient() {
     const watchedMembers = settingsForm.watch("members");
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/auth');
-            return;
-        }
+      let teamDataUnsubscribe: () => void = () => {};
+      let isMounted = true;
 
-        if (!user || !database) {
-            setIsLoadingTeam(false);
-            return;
-        }
+      if (loading || !user || !database) {
+          if (!loading) setIsLoadingTeam(false);
+          return;
+      }
 
-        let teamDataUnsubscribe: () => void = () => {};
-        setIsLoadingTeam(true);
-        const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
+      setIsLoadingTeam(true);
+      const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
 
-        get(userTeamRef).then((snapshot) => {
-            if (snapshot.exists()) {
-                const teamCode = snapshot.val();
-                const teamDataRef = dbRef(database, `teams/${teamCode}`);
-                
-                teamDataUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
-                    if (teamSnapshot.exists()) {
-                        const teamData = { id: teamCode, ...teamSnapshot.val() };
-                        setTeam(teamData);
-                    } else {
-                        setTeam(null);
-                    }
-                    setIsLoadingTeam(false);
-                }, (error) => {
-                    console.error("Error fetching team data:", error);
-                    toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-                    setIsLoadingTeam(false);
-                });
-            } else {
-                setTeam(null);
-                setIsLoadingTeam(false);
-            }
-        }).catch(error => {
-            console.error("Error fetching user team data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
-            setIsLoadingTeam(false);
-        });
+      get(userTeamRef).then((snapshot) => {
+          if (!isMounted) return;
+          if (snapshot.exists()) {
+              const teamCode = snapshot.val();
+              const teamDataRef = dbRef(database, `teams/${teamCode}`);
+              
+              teamDataUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
+                  if (!isMounted) return;
+                  if (teamSnapshot.exists()) {
+                      const teamData = { id: teamCode, ...teamSnapshot.val() };
+                      setTeam(teamData);
+                  } else {
+                      setTeam(null);
+                  }
+                  setIsLoadingTeam(false);
+              }, (error) => {
+                  console.error("Error fetching team data:", error);
+                  toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+                  setIsLoadingTeam(false);
+              });
+          } else {
+              setTeam(null);
+              setIsLoadingTeam(false);
+          }
+      }).catch(error => {
+          console.error("Error fetching user team data:", error);
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch your team information.' });
+          setIsLoadingTeam(false);
+      });
 
-        return () => {
-            teamDataUnsubscribe();
-        };
+      return () => {
+          isMounted = false;
+          teamDataUnsubscribe();
+      };
     }, [user, loading, router, database, toast]);
 
     useEffect(() => {
@@ -194,9 +209,8 @@ export default function CollaborationClient() {
                 }
             }
             settingsForm.reset({ teamName: team.name, pin: team.pin, members: membersForForm });
-            replaceSettingsMembers(membersForForm);
         }
-    }, [team, isSettingsOpen, settingsForm, replaceSettingsMembers]);
+    }, [team, isSettingsOpen, settingsForm]);
 
     useEffect(() => {
         if (!team || !database) return;
@@ -245,6 +259,46 @@ export default function CollaborationClient() {
             setIsLoadingShares(false);
         });
 
+        return () => unsubscribe();
+    }, [team, database]);
+
+    // --- Planner Data Fetching Effect ---
+    useEffect(() => {
+        if (!team || !database) {
+            setIsLoadingPlanner(true);
+            return;
+        };
+
+        const plannerRef = dbRef(database, `teams/${team.id}/planner`);
+
+        const initializePlanner = () => {
+            const defaultColumns = [
+                { id: 'col-1', title: 'To Do' },
+                { id: 'col-2', title: 'In Progress' },
+                { id: 'col-3', title: 'Done' }
+            ];
+            const updates: { [key: string]: any } = {};
+            defaultColumns.forEach(col => {
+                updates[`/teams/${team.id}/planner/columns/${col.id}`] = col;
+            });
+            update(dbRef(database), updates);
+        };
+        
+        const unsubscribe = onValue(plannerRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                initializePlanner();
+                setIsLoadingPlanner(false);
+                return;
+            }
+            const plannerData = snapshot.val();
+            const loadedColumns = plannerData.columns ? Object.values(plannerData.columns) : [];
+            const loadedTasks = plannerData.tasks ? Object.values(plannerData.tasks) : [];
+            
+            setColumns(loadedColumns as Column[]);
+            setTasks(loadedTasks as Task[]);
+            setIsLoadingPlanner(false);
+        });
+        
         return () => unsubscribe();
     }, [team, database]);
 
@@ -356,16 +410,11 @@ export default function CollaborationClient() {
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
         if (!user || !database || !team) return;
         
-        // Allow any member to edit their own name or role within the form, but only the creator can save all changes.
-        // The main permission check is for the final database write.
-        
         const updates: { [key: string]: any } = {};
         
         if (user.uid === team.creatorUid) {
-            // Creator can update everything
             const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
             const newMemberIds = new Set(values.members.map(m => m.id));
-
             const newRoles: { [key: string]: { [uid: string]: string } } = {};
             
             values.members.forEach(member => {
@@ -374,7 +423,7 @@ export default function CollaborationClient() {
                 newRoles[member.role][member.id] = member.name;
                 updates[`/users/${member.id}/name`] = member.name;
 
-                if (!originalMemberIds.has(member.id)) {
+                if (!originalMemberIds.has(member.id) && member._isNew) {
                     updates[`/users/${member.id}/teamCode`] = team.id;
                     if (team.announcementsChatId) {
                         updates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
@@ -409,6 +458,54 @@ export default function CollaborationClient() {
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
         }
     };
+
+
+    // --- Planner Functions ---
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
+
+    function createTask(columnId: Id) {
+        if (!team) return;
+        const newTask: Task = {
+            id: uuidv4(),
+            columnId,
+            content: `Task ${tasks.length + 1}`
+        };
+        const taskRef = dbRef(database, `teams/${team.id}/planner/tasks/${newTask.id}`);
+        set(taskRef, newTask);
+    }
+    
+    function createNewColumn() {
+        if (!team) return;
+        const columnToAdd: Column = {
+          id: uuidv4(),
+          title: `Column ${columns.length + 1}`,
+        };
+        const columnRef = dbRef(database, `teams/${team.id}/planner/columns/${columnToAdd.id}`);
+        set(columnRef, columnToAdd);
+    }
+
+    function onDragStart(event: DragStartEvent) {
+        if (event.active.data.current?.type === 'Task') {
+            setActiveTask(event.active.data.current.task);
+            return;
+        }
+    }
+
+    function onDragEnd(event: DragEndEvent) {
+        setActiveColumn(null);
+        setActiveTask(null);
+
+        const { active, over } = event;
+        if (!over) return;
+        if (active.id === over.id) return;
+        if (!team) return;
+        
+        const activeTask = tasks.find(t => t.id === active.id);
+        if (activeTask && activeTask.columnId !== over.id) {
+            const taskRef = dbRef(database, `teams/${team.id}/planner/tasks/${active.id}/columnId`);
+            set(taskRef, over.id);
+        }
+    }
 
     if (loading || isLoadingTeam) {
         return (
@@ -581,7 +678,7 @@ export default function CollaborationClient() {
                                                         const isNewMember = !!watchedMembers[index]?._isNew;
                                                         return (
                                                         <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
-                                                            <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} readOnly={user?.uid !== team.creatorUid} /></FormControl><FormMessage /></FormItem>)} />
+                                                            <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                                             <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly={!isNewMember} placeholder={isNewMember ? "Paste new Member ID" : ""} /></FormControl><FormMessage /></FormItem>)} />
                                                             <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (
                                                                 <FormItem className="w-[150px]">
@@ -630,8 +727,7 @@ export default function CollaborationClient() {
                                     </Button>
                                 </CardFooter>
                             </Card>
-
-                            {/* File Sharing Card */}
+                            
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle>
@@ -751,8 +847,91 @@ export default function CollaborationClient() {
                             </Card>
                         </div>
                     </div>
+
+                    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                        <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 mt-8 w-full">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2"><FolderKanban /> Project Planner</CardTitle>
+                                    <CardDescription>Organize your team's tasks.</CardDescription>
+                                </div>
+                                <Button onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="w-full whitespace-nowrap">
+                                    <div className="flex gap-4 p-4">
+                                    {isLoadingPlanner ? <Skeleton className="h-96 w-full" /> : (
+                                        <SortableContext items={columnsId}>
+                                            {columns.map(col => (
+                                                <ColumnContainer 
+                                                    key={col.id} 
+                                                    column={col}
+                                                    tasks={tasks.filter(task => task.columnId === col.id)}
+                                                    createTask={createTask}
+                                                />
+                                            ))}
+                                        </SortableContext>
+                                    )}
+                                    </div>
+                                    <div className="h-1 pb-1"></div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                        
+                        {typeof document !== 'undefined' && createPortal(
+                            <DragOverlay>
+                                {activeTask && <TaskCard task={activeTask} />}
+                            </DragOverlay>,
+                            document.body
+                        )}
+                    </DndContext>
+
                 </div>
             </div>
         </>
+    );
+}
+
+// --- Planner Sub-Components ---
+
+function ColumnContainer({ column, tasks, createTask }: { column: Column; tasks: Task[]; createTask: (columnId: Id) => void; }) {
+    const { setNodeRef } = useSortable({ id: column.id, data: { type: 'Column', column } });
+
+    return (
+        <div ref={setNodeRef} className="w-[300px] h-[500px] max-h-[500px] shrink-0 bg-muted/50 rounded-lg shadow-inner flex flex-col border border-border/60">
+            <div className="bg-muted/80 text-lg font-bold p-3 border-b border-border/60 flex justify-between items-center">
+                {column.title}
+                <Badge>{tasks.length}</Badge>
+            </div>
+            <ScrollArea className="flex-grow">
+                <div className="p-2 space-y-2">
+                    <SortableContext items={tasks.map(t => t.id)}>
+                        {tasks.map(task => <TaskCard key={task.id} task={task} />)}
+                    </SortableContext>
+                </div>
+            </ScrollArea>
+            <Button onClick={() => createTask(column.id)} variant="ghost" className="m-2">
+                <Plus className="mr-2 h-4 w-4" /> Add Task
+            </Button>
+        </div>
+    );
+}
+
+function TaskCard({ task }: { task: Task }) {
+    const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: task.id, data: { type: 'Task', task } });
+    const style = {
+        transition,
+        transform: CSS.Transform.toString(transform),
+    };
+
+    if (isDragging) {
+        return <div ref={setNodeRef} style={style} className="p-4 bg-card rounded-lg h-[100px] opacity-50 border-2 border-primary" />;
+    }
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 bg-card rounded-lg shadow-md cursor-grab active:cursor-grabbing border border-border/70 flex items-start gap-2">
+            <GripVertical className="h-5 w-5 text-muted-foreground mt-1 shrink-0" />
+            <p className="whitespace-pre-wrap flex-grow">{task.content}</p>
+        </div>
     );
 }
