@@ -19,7 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -62,13 +62,6 @@ const settingsSchema = z.object({
 });
 
 
-const initialDeploymentSteps = [
-  { id: 'lint', icon: ShieldCheck, title: 'Lint & Test', status: 'Pending', description: 'Run code quality checks and tests.' },
-  { id: 'build', icon: Terminal, title: 'Build Project', status: 'Pending', description: 'Create production build for deployment.' },
-  { id: 'deploy', icon: UploadCloud, title: 'Deploy to Hosting', status: 'Pending', description: 'Push build to live servers.' }
-];
-
-
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig: { [key: string]: { text: string; className: string } } = {
     online: { text: 'Online', className: 'bg-green-500/20 text-green-400 border-green-500/30' },
@@ -90,8 +83,6 @@ const StatusBadge = ({ status }: { status?: string }) => {
 export default function CollaborationClient() {
     const [shares, setShares] = useState<any[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(true);
-    const [deploymentSteps, setDeploymentSteps] = useState(initialDeploymentSteps);
-    const [isDeploying, setIsDeploying] = useState(false);
     const { toast } = useToast();
     const { user, loading } = useAuth();
     const router = useRouter();
@@ -419,33 +410,6 @@ export default function CollaborationClient() {
         }
     };
 
-    const handleDeploy = () => {
-        if (isDeploying) return;
-        setIsDeploying(true);
-        setDeploymentSteps(initialDeploymentSteps.map(s => ({ ...s, status: 'Pending' })));
-
-        const runStep = (stepIndex: number) => {
-            if (stepIndex >= deploymentSteps.length) {
-                setIsDeploying(false);
-                toast({ title: 'Deployment Successful!', description: 'Your new code is live.' });
-                return;
-            }
-            
-            setDeploymentSteps(prev => prev.map((step, i) => 
-                i === stepIndex ? { ...step, status: 'In Progress' } : step
-            ));
-            
-            setTimeout(() => {
-                setDeploymentSteps(prev => prev.map((step, i) => 
-                    i === stepIndex ? { ...step, status: 'Completed' } : step
-                ));
-                runStep(stepIndex + 1);
-            }, 1500);
-        };
-        
-        runStep(0);
-    };
-
     if (loading || isLoadingTeam) {
         return (
             <div className="flex min-h-screen w-full items-center justify-center bg-background">
@@ -552,28 +516,6 @@ export default function CollaborationClient() {
             </>
         )
     }
-
-    const DeploymentStep = ({ icon: Icon, title, status, isLast = false }) => {
-        const statusConfig = {
-          Completed: { color: 'text-green-500', icon: CheckCircle },
-          'In Progress': { color: 'text-yellow-500 animate-pulse', icon: Clock },
-          Pending: { color: 'text-foreground/50', icon: Circle }
-        };
-        const config = statusConfig[status];
-        const StatusIcon = config.icon;
-        return (
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center ${config.color}`}><Icon className="w-5 h-5" /></div>
-              {!isLast && <div className="w-px h-12 bg-border/70 mt-2"></div>}
-            </div>
-            <div>
-              <h4 className="font-semibold text-foreground">{title}</h4>
-              <p className={`text-sm font-medium flex items-center gap-1.5 ${config.color}`}><StatusIcon className="w-4 h-4" />{status}</p>
-            </div>
-          </div>
-        );
-      };
 
     return (
         <>
@@ -770,30 +712,8 @@ export default function CollaborationClient() {
                             </Card>
                         </div>
 
-                        {/* Right Sidebar: Deployment and Team Members */}
+                        {/* Right Sidebar: Team Members */}
                         <div className="lg:col-span-1 flex flex-col gap-8">
-                            {/* Deployment Pipeline Card */}
-                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2"><Rocket /> Deployment</CardTitle>
-                                    <Button size="sm" onClick={handleDeploy} disabled={isDeploying}>
-                                        <UploadCloud className="mr-2 h-4 w-4" /> {isDeploying ? 'Deploying...' : 'Deploy'}
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  {deploymentSteps.map((step, index) => (
-                                    <DeploymentStep 
-                                      key={step.id}
-                                      icon={step.icon} 
-                                      title={step.title} 
-                                      status={step.status} 
-                                      isLast={index === deploymentSteps.length - 1} 
-                                    />
-                                  ))}
-                                </CardContent>
-                            </Card>
-
-                            {/* Team Members Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle>
