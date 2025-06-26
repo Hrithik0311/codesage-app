@@ -20,7 +20,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 export function NotificationBell() {
   const { user, loading, notifications, markNotificationsAsRead } = useAuth();
   
-  const hasUnread = notifications.length > 0;
+  const hasUnread = notifications.some(n => !n.read);
 
   if (loading || !user) {
     return null; // Don't show notifications if not logged in

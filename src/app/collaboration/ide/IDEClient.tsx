@@ -125,7 +125,7 @@ function IDEContent() {
         toast({ title: "Success!", description: "Successfully shared the code snippet." });
         setIsSaveModalOpen(false);
         setShareMessage('');
-        router.push('/collaboration');
+        router.replace('/collaboration');
     };
 
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,7 +170,7 @@ function IDEContent() {
             }
 
             toast({ title: "Success!", description: `Successfully shared ${fileArray.length} file(s).` });
-            router.push('/collaboration');
+            router.replace('/collaboration');
 
         } catch (error) {
              console.error("Error sharing file(s):", error);
@@ -247,7 +247,7 @@ function IDEContent() {
 
             toast({ title: 'Success!', description: `Successfully shared the "${values.groupName}" group.` });
             closeGroupShareDialog();
-            router.push('/collaboration');
+            router.replace('/collaboration');
         } catch (error) {
             console.error("Error sharing group:", error);
             toast({ title: 'Sharing Failed', description: 'Could not share the file group.', variant: 'destructive' });
