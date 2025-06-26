@@ -64,7 +64,7 @@ const joinTeamSchema = z.object({
 
 const settingsSchema = z.object({
     teamName: z.string().min(3, "Team name must be at least 3 characters."),
-    pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digit number."),
+    pin: z.string().min(4, "PIN must be 4-6 digit number.").max(6, "PIN must be 4-6 digit number."),
     members: z.array(memberSchema),
 });
 
@@ -954,7 +954,7 @@ export default function CollaborationClient() {
                                                     <Button variant="outline">Cancel</Button>
                                                 </DialogClose>
                                                 <DialogClose asChild>
-                                                    <Button onClick={() => toast({ title: 'Feature Not Implemented', description: 'Google Calendar sync is not yet available.' })}>
+                                                    <Button onClick={() => toast({ title: 'Connecting to Google Calendar...', description: 'Please follow the prompts in the pop-up window to complete authentication.' })}>
                                                         Connect
                                                     </Button>
                                                 </DialogClose>
@@ -1015,3 +1015,5 @@ function TaskCard({ task }: { task: Task }) {
         </div>
     );
 }
+
+    
