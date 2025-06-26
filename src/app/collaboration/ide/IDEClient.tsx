@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
@@ -20,8 +20,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const shareGroupSchema = z.object({
   groupName: z.string().min(1, 'Group name is required.'),
-  files: z.custom<FileList>().refine(files => files && files.length > 0, 'Please select at least one file.'),
+  files: z.array(z.custom<File>()).min(1, { message: 'Please select at least one file.' }),
 });
+
 
 function IDEContent() {
     const [code, setCode] = useState("Type your code here to share...");
@@ -33,13 +34,17 @@ function IDEContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const groupFileInputRef = useRef<HTMLInputElement>(null);
 
     const shareGroupForm = useForm<z.infer<typeof shareGroupSchema>>({
         resolver: zodResolver(shareGroupSchema),
         defaultValues: {
             groupName: '',
+            files: [],
         },
     });
+
+    const watchedFiles = shareGroupForm.watch('files');
 
     useEffect(() => {
         const shareId = searchParams.get('shareId');
@@ -161,6 +166,30 @@ function IDEContent() {
         }
     };
     
+    const handleGroupFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newFiles = event.target.files;
+        if (newFiles) {
+            const currentFiles = shareGroupForm.getValues('files') || [];
+            const combinedFiles = [...currentFiles];
+            Array.from(newFiles).forEach(newFile => {
+                if (!combinedFiles.some(existingFile => existingFile.name === newFile.name)) {
+                    combinedFiles.push(newFile);
+                }
+            });
+            shareGroupForm.setValue('files', combinedFiles, { shouldValidate: true });
+        }
+        // Reset the file input so the same file can be selected again if removed
+        if (event.target) {
+            event.target.value = "";
+        }
+    };
+    
+    const removeFileFromGroup = (fileName: string) => {
+        const currentFiles = shareGroupForm.getValues('files') || [];
+        const updatedFiles = currentFiles.filter(file => file.name !== fileName);
+        shareGroupForm.setValue('files', updatedFiles, { shouldValidate: true });
+    };
+
     const handleShareGroup = async (values: z.infer<typeof shareGroupSchema>) => {
         if (!user || !database) return;
         
@@ -183,7 +212,7 @@ function IDEContent() {
         };
 
         try {
-            const filesToUpload = Array.from(values.files);
+            const filesToUpload = values.files;
             const fileData = await Promise.all(
                 filesToUpload.map(async (file) => ({
                     fileName: file.name,
@@ -201,12 +230,16 @@ function IDEContent() {
             });
 
             toast({ title: 'Group Shared!', description: `The "${values.groupName}" group has been shared.` });
-            setIsShareGroupModalOpen(false);
-            shareGroupForm.reset();
+            closeGroupShareDialog();
         } catch (error) {
             console.error("Error sharing group:", error);
             toast({ title: 'Sharing Failed', description: 'Could not share the file group.', variant: 'destructive' });
         }
+    };
+
+    const closeGroupShareDialog = () => {
+        setIsShareGroupModalOpen(false);
+        shareGroupForm.reset();
     };
 
 
@@ -278,7 +311,7 @@ function IDEContent() {
                 </DialogContent>
             </Dialog>
             
-            <Dialog open={isShareGroupModalOpen} onOpenChange={setIsShareGroupModalOpen}>
+            <Dialog open={isShareGroupModalOpen} onOpenChange={closeGroupShareDialog}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Share Files as a Group</DialogTitle>
@@ -301,25 +334,53 @@ function IDEContent() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={shareGroupForm.control}
-                                name="files"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Files</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="file" 
-                                                multiple
-                                                onChange={(e) => field.onChange(e.target.files)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                            
+                            <div className="space-y-2">
+                                <FormLabel>Selected Files</FormLabel>
+                                {watchedFiles.length > 0 ? (
+                                    <div className="space-y-2 rounded-md border p-2 max-h-40 overflow-y-auto">
+                                        {watchedFiles.map((file, index) => (
+                                            <div key={index} className="flex items-center justify-between text-sm p-1 bg-muted/50 rounded">
+                                                <span className="truncate pr-2">{file.name}</span>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 shrink-0"
+                                                    onClick={() => removeFileFromGroup(file.name)}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-20 border-2 border-dashed rounded-md text-muted-foreground">
+                                        <p>No files selected.</p>
+                                    </div>
                                 )}
-                            />
+                                <FormMessage>{shareGroupForm.formState.errors.files?.message}</FormMessage>
+                            </div>
+
+                            <div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => groupFileInputRef.current?.click()}
+                                >
+                                    Add Files
+                                </Button>
+                                <Input 
+                                    type="file" 
+                                    multiple
+                                    ref={groupFileInputRef}
+                                    className="hidden"
+                                    onChange={handleGroupFileChange}
+                                />
+                            </div>
+
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsShareGroupModalOpen(false)}>Cancel</Button>
+                                <Button variant="outline" onClick={closeGroupShareDialog}>Cancel</Button>
                                 <Button type="submit">Share Group</Button>
                             </DialogFooter>
                         </form>
