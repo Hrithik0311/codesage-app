@@ -129,7 +129,9 @@ function IDEContent() {
     };
 
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files) return;
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+
         if (!user || !database) {
             toast({ title: "Authentication Error", description: "You must be logged in to share files.", variant: "destructive" });
             return;
@@ -143,10 +145,19 @@ function IDEContent() {
         const teamCode = teamCodeSnapshot.val();
         const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
 
-        for (const file of Array.from(event.target.files)) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const content = e.target?.result;
+        const readFileAsText = (file: File): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        };
+        
+        try {
+            const fileArray = Array.from(files);
+            for (const file of fileArray) {
+                const content = await readFileAsText(file);
                 await push(sharesRef, {
                     type: 'file',
                     fileName: file.name,
@@ -156,13 +167,18 @@ function IDEContent() {
                     userName: user.displayName || user.email,
                     timestamp: serverTimestamp(),
                 });
-            };
-            reader.readAsText(file);
-        }
-        toast({ title: "Success!", description: `Successfully shared ${event.target.files.length} file(s).` });
-        
-        if(fileInputRef.current) {
-            fileInputRef.current.value = "";
+            }
+
+            toast({ title: "Success!", description: `Successfully shared ${fileArray.length} file(s).` });
+            router.push('/collaboration');
+
+        } catch (error) {
+             console.error("Error sharing file(s):", error);
+            toast({ title: 'Sharing Failed', description: 'Could not share the file(s).', variant: 'destructive' });
+        } finally {
+            if(fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
     
@@ -231,6 +247,7 @@ function IDEContent() {
 
             toast({ title: 'Success!', description: `Successfully shared the "${values.groupName}" group.` });
             closeGroupShareDialog();
+            router.push('/collaboration');
         } catch (error) {
             console.error("Error sharing group:", error);
             toast({ title: 'Sharing Failed', description: 'Could not share the file group.', variant: 'destructive' });
