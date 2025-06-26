@@ -121,7 +121,7 @@ function IDEContent() {
                     type: 'file',
                     fileName: file.name,
                     message: "Shared from computer",
-                    code: content, // Save the file content
+                    code: content,
                     userId: user.uid,
                     userName: user.displayName || user.email,
                     timestamp: serverTimestamp(),
@@ -131,7 +131,6 @@ function IDEContent() {
         }
         toast({ title: "Files Shared", description: `${event.target.files.length} file(s) have been shared with the team.` });
         
-        // Reset the file input so the same file can be selected again
         if(fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -163,7 +162,6 @@ function IDEContent() {
                         onChange={handleFileSelect}
                         className="hidden"
                         multiple
-                        accept=".java,.txt,.md,.xml,.gradle,.properties,.*"
                     />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
@@ -183,7 +181,7 @@ function IDEContent() {
                     placeholder="Type your code here to share..."
                     className="flex-grow w-full font-mono text-sm bg-muted/30 border-border/60 resize-none"
                 />
-                <p className="text-xs text-muted-foreground mt-2">Any changes you make here are visible to everyone currently in this session.</p>
+                <p className="text-xs text-muted-foreground mt-2">Any changes you make here are visible to everyone currently in this group.</p>
             </main>
 
             <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
