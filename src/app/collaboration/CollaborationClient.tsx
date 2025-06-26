@@ -23,7 +23,8 @@ import { UserProfile } from '@/components/UserProfile';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { database } from '@/lib/firebase';
+import { auth, database } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -109,7 +110,11 @@ export default function CollaborationClient() {
     const [activeColumn, setActiveColumn] = useState<Column | null>(null);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
+    
+    // --- Calendar State ---
     const [date, setDate] = useState<Date | undefined>(new Date());
+    const [isConnectCalendarOpen, setIsConnectCalendarOpen] = useState(false);
+    const [isCalendarConnected, setIsCalendarConnected] = useState(false);
 
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
@@ -508,6 +513,31 @@ export default function CollaborationClient() {
             set(taskRef, over.id);
         }
     }
+    
+    const handleConnectGoogleCalendar = async () => {
+        if (!auth) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Firebase auth is not available.' });
+            return;
+        }
+        const provider = new GoogleAuthProvider();
+        provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+        provider.setCustomParameters({
+            prompt: 'consent',
+        });
+
+        try {
+            const result = await signInWithPopup(auth, provider);
+            // In a real application, you would now take the access token from `result`
+            // and use it with the Google Calendar API.
+            toast({ title: 'Success!', description: 'Google Calendar has been connected.' });
+            setIsCalendarConnected(true);
+            setIsConnectCalendarOpen(false);
+        } catch (error) {
+            console.error("Google Calendar connection error:", error);
+            toast({ variant: 'destructive', title: 'Connection Failed', description: 'Could not connect to Google Calendar. Please try again.' });
+        }
+    };
+
 
     if (loading || isLoadingTeam) {
         return (
@@ -935,32 +965,38 @@ export default function CollaborationClient() {
                                     />
                                 </CardContent>
                                 <CardFooter className="p-4 border-t border-border/50">
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" className="w-full">
-                                                <CalendarPlus className="mr-2 h-4 w-4" />
-                                                Connect Google Calendar
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Connect Google Calendar</DialogTitle>
-                                                <DialogDescription>
-                                                    Would you like to sync this project calendar with your Google Calendar? This would allow you to see your project tasks and deadlines alongside your personal events.
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button variant="outline">Cancel</Button>
-                                                </DialogClose>
-                                                <DialogClose asChild>
-                                                    <Button onClick={() => toast({ title: 'Connecting to Google Calendar...', description: 'Please follow the prompts in the pop-up window to complete authentication.' })}>
+                                    {isCalendarConnected ? (
+                                        <Button variant="outline" className="w-full" onClick={() => {
+                                            setIsCalendarConnected(false);
+                                            toast({ title: 'Disconnected', description: 'Google Calendar has been disconnected.' });
+                                        }}>
+                                            <CalendarPlus className="mr-2 h-4 w-4" />
+                                            Disconnect Google Calendar
+                                        </Button>
+                                    ) : (
+                                        <Dialog open={isConnectCalendarOpen} onOpenChange={setIsConnectCalendarOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" className="w-full">
+                                                    <CalendarPlus className="mr-2 h-4 w-4" />
+                                                    Connect Google Calendar
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Connect Google Calendar</DialogTitle>
+                                                    <DialogDescription>
+                                                        Would you like to sync this project calendar with your Google Calendar? This would allow you to see your project tasks and deadlines alongside your personal events.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <DialogFooter>
+                                                    <Button variant="outline" onClick={() => setIsConnectCalendarOpen(false)}>Cancel</Button>
+                                                    <Button onClick={handleConnectGoogleCalendar}>
                                                         Connect
                                                     </Button>
-                                                </DialogClose>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    )}
                                 </CardFooter>
                             </Card>
                         </TabsContent>
@@ -1015,5 +1051,3 @@ function TaskCard({ task }: { task: Task }) {
         </div>
     );
 }
-
-    
