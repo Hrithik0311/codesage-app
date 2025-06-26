@@ -167,7 +167,7 @@ function IDEContent() {
                     />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
-                        Share Files
+                        Share Files from Computer
                     </Button>
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
