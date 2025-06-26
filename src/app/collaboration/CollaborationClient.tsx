@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -907,12 +907,31 @@ export default function CollaborationClient() {
                                     <CardTitle>Team Calendar</CardTitle>
                                     <CardDescription>View important dates and deadlines.</CardDescription>
                                 </CardHeader>
-                                <CardContent className="flex justify-center p-4">
+                                <CardContent className="p-0 sm:p-4">
                                     <Calendar
                                         mode="single"
                                         selected={date}
                                         onSelect={setDate}
-                                        className="rounded-md border border-border/50"
+                                        className="w-full border-0 sm:border"
+                                        classNames={{
+                                            months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                                            month: "space-y-4 w-full",
+                                            table: "w-full border-collapse",
+                                            head_row: "flex",
+                                            head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
+                                            row: "flex w-full mt-2",
+                                            cell: "w-full text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                            day: cn(
+                                                buttonVariants({ variant: "ghost" }),
+                                                "h-14 w-full p-0 font-normal aria-selected:opacity-100"
+                                            ),
+                                            day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                            day_today: "bg-accent text-accent-foreground",
+                                            day_outside: "day-outside text-muted-foreground opacity-50",
+                                            day_disabled: "text-muted-foreground opacity-50",
+                                            day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                                            day_hidden: "invisible",
+                                        }}
                                     />
                                 </CardContent>
                             </Card>
