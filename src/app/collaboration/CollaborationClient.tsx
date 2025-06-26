@@ -19,7 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, FolderPlus, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Terminal, CheckCircle, Clock, Circle, Settings, UploadCloud, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -34,7 +34,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationBell } from '@/components/NotificationBell';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 
 const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
@@ -60,11 +59,6 @@ const settingsSchema = z.object({
     teamName: z.string().min(3, "Team name must be at least 3 characters."),
     pin: z.string().min(4, "PIN must be 4-6 digits.").max(6, "PIN must be 4-6 digit number."),
     members: z.array(memberSchema),
-});
-
-const shareSchema = z.object({
-    name: z.string().min(1, "File or folder name is required."),
-    message: z.string().optional(),
 });
 
 
@@ -107,7 +101,6 @@ export default function CollaborationClient() {
     const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
     const [isJoinTeamOpen, setIsJoinTeamOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
     const [memberStatuses, setMemberStatuses] = useState<Record<string, { state: string }>>({});
 
 
@@ -146,11 +139,6 @@ export default function CollaborationClient() {
         defaultValues: { teamName: "", pin: "", members: [] },
     });
     
-    const shareForm = useForm<z.infer<typeof shareSchema>>({
-        resolver: zodResolver(shareSchema),
-        defaultValues: { name: "", message: "" },
-    });
-
     const { fields: settingsMemberFields, append: appendSettingsMember, remove: removeSettingsMember, replace: replaceSettingsMembers } = useFieldArray({
         control: settingsForm.control,
         name: "members",
@@ -430,24 +418,6 @@ export default function CollaborationClient() {
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
         }
     };
-    
-    const handleNewShare = async (values: z.infer<typeof shareSchema>) => {
-        if (!user || !database || !team) return;
-
-        const sharesRef = dbRef(database, `teams/${team.id}/shares`);
-        await push(sharesRef, {
-            type: 'file',
-            fileName: values.name,
-            message: values.message,
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            timestamp: serverTimestamp(),
-        });
-
-        toast({ title: 'Shared!', description: 'Your file/folder has been shared with the team.' });
-        setIsShareDialogOpen(false);
-        shareForm.reset();
-    };
 
     const handleDeploy = () => {
         if (isDeploying) return;
@@ -721,31 +691,9 @@ export default function CollaborationClient() {
 
                             {/* File Sharing Card */}
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <div>
-                                        <CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle>
-                                        <CardDescription>Recent code shares from your team.</CardDescription>
-                                    </div>
-                                     <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button><FolderPlus className="mr-2 h-4 w-4" /> New Share</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Share a File or Folder</DialogTitle>
-                                                <DialogDescription>Share a resource with your team. This will appear in the history feed.</DialogDescription>
-                                            </DialogHeader>
-                                            <Form {...shareForm}>
-                                                <form onSubmit={shareForm.handleSubmit(handleNewShare)} className="space-y-4 py-4">
-                                                    <FormField control={shareForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>File/Folder Name</FormLabel><FormControl><Input placeholder="e.g., new-autonomous.java" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                    <FormField control={shareForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (Optional)</FormLabel><FormControl><Textarea placeholder="Describe the share..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                    <DialogFooter>
-                                                        <Button type="submit" disabled={shareForm.formState.isSubmitting}>{shareForm.formState.isSubmitting ? 'Sharing...' : 'Share'}</Button>
-                                                    </DialogFooter>
-                                                </form>
-                                            </Form>
-                                        </DialogContent>
-                                    </Dialog>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle>
+                                    <CardDescription>Recent code shares from your team.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <Table>
