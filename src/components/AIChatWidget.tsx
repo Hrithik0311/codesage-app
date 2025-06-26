@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, MessageSquare } from 'lucide-react';
+import { Bot, Send, X, MessageSquare, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
+import { answerSiteQuestion } from '@/ai/flows/site-q-and-a';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   key: string;
@@ -22,6 +24,8 @@ export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const [input, setInput] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       key: 'initial-message',
@@ -34,7 +38,6 @@ export default function AIChatWidget() {
 
   useEffect(() => {
     if (isOpen && scrollAreaRef.current) {
-        // A bit of a hacky way to scroll to bottom in a ScrollArea
         setTimeout(() => {
             const viewport = scrollAreaRef.current?.querySelector('div[data-radix-scroll-area-viewport]');
             if (viewport) {
@@ -44,9 +47,9 @@ export default function AIChatWidget() {
     }
   }, [isOpen, messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isReplying) return;
 
     const userMessage: Message = {
       key: `user-${Date.now()}`,
@@ -56,18 +59,36 @@ export default function AIChatWidget() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
+    setIsReplying(true);
 
-    // Mock AI Response
-    setTimeout(() => {
+    try {
+      const result = await answerSiteQuestion({ question: currentInput });
       const aiResponse: Message = {
         key: `ai-${Date.now()}`,
-        text: `Thanks for your message: "${input}". As a prototype AI, I'm still learning. In a real application, I would connect to a powerful Genkit flow to analyze this request.`,
+        text: result.answer,
         sender: 'ai',
         senderName: 'CodeSage AI'
       };
       setMessages(prev => [...prev, aiResponse]);
-    }, 1200);
+    } catch (error) {
+      console.error("AI chat error:", error);
+      toast({
+        title: "AI Error",
+        description: "Sorry, I couldn't process that request. Please try again.",
+        variant: "destructive"
+      });
+      const errorResponse: Message = {
+        key: `ai-error-${Date.now()}`,
+        text: "I'm sorry, I seem to be having some trouble right now. Please try again in a moment.",
+        sender: 'ai',
+        senderName: 'CodeSage AI'
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setIsReplying(false);
+    }
   };
 
   return (
@@ -118,6 +139,17 @@ export default function AIChatWidget() {
                           </div>
                         );
                       })}
+                      {isReplying && (
+                        <div key="thinking" className={cn("flex items-end gap-3")}>
+                          <Avatar className="h-8 w-8"><AvatarImage data-ai-hint="robot" src="https://placehold.co/40x40.png" /><AvatarFallback>AI</AvatarFallback></Avatar>
+                          <div className={cn("rounded-2xl py-2 px-4 max-w-[80%] whitespace-pre-wrap bg-muted rounded-bl-none")}>
+                            <div className="flex items-center gap-2 text-sm">
+                                <Loader className="h-4 w-4 animate-spin" />
+                                <span>Thinking...</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -128,8 +160,9 @@ export default function AIChatWidget() {
                       className="h-10 pr-12"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
+                      disabled={isReplying}
                     />
-                    <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!input.trim()}>
+                    <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!input.trim() || isReplying}>
                       <Send className="h-4 w-4" />
                     </Button>
                   </form>
