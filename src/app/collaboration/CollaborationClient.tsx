@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays, CalendarPlus } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -23,8 +23,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { auth, database } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -113,8 +112,6 @@ export default function CollaborationClient() {
     
     // --- Calendar State ---
     const [date, setDate] = useState<Date | undefined>(new Date());
-    const [isConnectCalendarOpen, setIsConnectCalendarOpen] = useState(false);
-    const [isCalendarConnected, setIsCalendarConnected] = useState(false);
 
 
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
@@ -514,30 +511,6 @@ export default function CollaborationClient() {
         }
     }
     
-    const handleConnectGoogleCalendar = async () => {
-        if (!auth) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Firebase auth is not available.' });
-            return;
-        }
-        const provider = new GoogleAuthProvider();
-        provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-        provider.setCustomParameters({
-            prompt: 'consent',
-        });
-
-        try {
-            const result = await signInWithPopup(auth, provider);
-            // In a real application, you would now take the access token from `result`
-            // and use it with the Google Calendar API.
-            toast({ title: 'Success!', description: 'Google Calendar has been connected.' });
-            setIsCalendarConnected(true);
-            setIsConnectCalendarOpen(false);
-        } catch (error) {
-            console.error("Google Calendar connection error:", error);
-            toast({ variant: 'destructive', title: 'Connection Failed', description: 'Could not connect to Google Calendar. Please try again.' });
-        }
-    };
-
 
     if (loading || isLoadingTeam) {
         return (
@@ -964,40 +937,6 @@ export default function CollaborationClient() {
                                         }}
                                     />
                                 </CardContent>
-                                <CardFooter className="p-4 border-t border-border/50">
-                                    {isCalendarConnected ? (
-                                        <Button variant="outline" className="w-full" onClick={() => {
-                                            setIsCalendarConnected(false);
-                                            toast({ title: 'Disconnected', description: 'Google Calendar has been disconnected.' });
-                                        }}>
-                                            <CalendarPlus className="mr-2 h-4 w-4" />
-                                            Disconnect Google Calendar
-                                        </Button>
-                                    ) : (
-                                        <Dialog open={isConnectCalendarOpen} onOpenChange={setIsConnectCalendarOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline" className="w-full">
-                                                    <CalendarPlus className="mr-2 h-4 w-4" />
-                                                    Connect Google Calendar
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogHeader>
-                                                    <DialogTitle>Connect Google Calendar</DialogTitle>
-                                                    <DialogDescription>
-                                                        Would you like to sync this project calendar with your Google Calendar? This would allow you to see your project tasks and deadlines alongside your personal events.
-                                                    </DialogDescription>
-                                                </DialogHeader>
-                                                <DialogFooter>
-                                                    <Button variant="outline" onClick={() => setIsConnectCalendarOpen(false)}>Cancel</Button>
-                                                    <Button onClick={handleConnectGoogleCalendar}>
-                                                        Connect
-                                                    </Button>
-                                                </DialogFooter>
-                                            </DialogContent>
-                                        </Dialog>
-                                    )}
-                                </CardFooter>
                             </Card>
                         </TabsContent>
                     </Tabs>
