@@ -23,39 +23,8 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 
 
-const sampleCode = `package org.firstinspires.ftc.teamcode;
-
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-
-@TeleOp(name="Shared Code Snippet", group="Examples")
-public class SharedCode extends LinearOpMode {
-
-    private DcMotor leftDrive = null;
-    private DcMotor rightDrive = null;
-
-    @Override
-    public void runOpMode() {
-        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
-
-        leftDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightDrive.setDirection(DcMotor.Direction.REVERSE);
-
-        waitForStart();
-
-        while (opModeIsActive()) {
-            double drivePower = -gamepad1.left_stick_y;
-            leftDrive.setPower(drivePower);
-            rightDrive.setPower(drivePower);
-        }
-    }
-}`;
-
-
 function IDEContent() {
-    const [code, setCode] = useState(sampleCode);
+    const [code, setCode] = useState('');
     const { toast } = useToast();
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [shareMessage, setShareMessage] = useState('');
@@ -235,7 +204,7 @@ function IDEContent() {
                 <Textarea
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    placeholder="Paste your code here to share with your team..."
+                    placeholder="Type your code here to share..."
                     className="flex-grow w-full font-mono text-sm bg-muted/30 border-border/60 resize-none"
                 />
                 <p className="text-xs text-muted-foreground mt-2">Any changes you make here are visible to everyone currently in this session.</p>
