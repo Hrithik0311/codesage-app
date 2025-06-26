@@ -10,6 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
@@ -239,13 +245,9 @@ export default function CollaborationClient() {
 
             const formattedShares = sharesData
                 .map(share => ({
+                    ...share,
                     id: share.id,
-                    type: share.type || 'snippet',
-                    fileName: share.fileName,
-                    message: share.message,
-                    author: share.userName,
                     time: share.timestamp ? formatDistanceToNowStrict(new Date(share.timestamp), { addSuffix: true }) : 'just now',
-                    code: share.code, // Pass code content through
                 }))
                 .reverse();
 
@@ -362,56 +364,54 @@ export default function CollaborationClient() {
     };
     
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
-        if (!user || !database || !team || user.uid !== team.creatorUid) {
-            toast({ variant: 'destructive', title: 'Error', description: 'You do not have permission to change settings.' });
+        if (!user || !database || !team) return;
+        
+        // Allow any member to edit their own name or role within the form, but only the creator can save all changes.
+        // The main permission check is for the final database write.
+        
+        const updates: { [key: string]: any } = {};
+        
+        if (user.uid === team.creatorUid) {
+            // Creator can update everything
+            const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
+            const newMemberIds = new Set(values.members.map(m => m.id));
+
+            const newRoles: { [key: string]: { [uid: string]: string } } = {};
+            
+            values.members.forEach(member => {
+                if (!member.id) return;
+                if (!newRoles[member.role]) newRoles[member.role] = {};
+                newRoles[member.role][member.id] = member.name;
+                updates[`/users/${member.id}/name`] = member.name;
+
+                if (!originalMemberIds.has(member.id)) {
+                    updates[`/users/${member.id}/teamCode`] = team.id;
+                    if (team.announcementsChatId) {
+                        updates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
+                    }
+                }
+            });
+            
+            originalMemberIds.forEach(id => {
+                if (!newMemberIds.has(id)) {
+                    updates[`/users/${id}/teamCode`] = null;
+                    if (team.announcementsChatId) {
+                        updates[`/users/${id}/chats/${team.announcementsChatId}`] = null;
+                    }
+                }
+            });
+
+            updates[`/teams/${team.id}/name`] = values.teamName;
+            updates[`/teams/${team.id}/pin`] = values.pin;
+            updates[`/teams/${team.id}/roles`] = newRoles;
+
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Only the team creator can modify team settings.' });
             return;
         }
 
-        const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
-        const newMemberIds = new Set(values.members.map(m => m.id));
-
-        const newRoles: { [key: string]: { [uid: string]: string } } = {};
-        const userUpdates: { [key: string]: any } = {};
-
-        // Process current members
-        values.members.forEach(member => {
-            if (!member.id) return; // Skip if ID is empty
-
-            if (!newRoles[member.role]) {
-                newRoles[member.role] = {};
-            }
-            newRoles[member.role][member.id] = member.name;
-            userUpdates[`/users/${member.id}/name`] = member.name;
-
-            // If this is a newly added member, update their teamCode and chats
-            if (!originalMemberIds.has(member.id)) {
-                userUpdates[`/users/${member.id}/teamCode`] = team.id;
-                if (team.announcementsChatId) {
-                    userUpdates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
-                }
-            }
-        });
-        
-        // Process removed members
-        originalMemberIds.forEach(id => {
-            if (!newMemberIds.has(id)) {
-                userUpdates[`/users/${id}/teamCode`] = null;
-                 if (team.announcementsChatId) {
-                    userUpdates[`/users/${id}/chats/${team.announcementsChatId}`] = null;
-                }
-            }
-        });
-
-        const teamUpdates = {
-            name: values.teamName,
-            pin: values.pin,
-            roles: newRoles,
-        };
-
         try {
-            await update(dbRef(database, `teams/${team.id}`), teamUpdates);
-            await update(dbRef(database), userUpdates);
-
+            await update(dbRef(database), updates);
             toast({ title: 'Success!', description: 'Team settings have been updated.' });
             setIsSettingsOpen(false);
         } catch (error) {
@@ -761,24 +761,40 @@ export default function CollaborationClient() {
                                                     <TableRow key={share.id}>
                                                         <TableCell>
                                                             <div className="font-medium text-foreground flex items-center gap-2">
-                                                                {share.fileName ? <File className="h-4 w-4 text-accent" /> : <Code2 className="h-4 w-4 text-accent" />}
-                                                                <span>{share.fileName || share.message}</span>
+                                                                {share.type === 'group' ? <FolderKanban className="h-4 w-4 text-accent" /> : <File className="h-4 w-4 text-accent" />}
+                                                                <span>{share.groupName || share.fileName || share.message}</span>
                                                             </div>
-                                                            {share.fileName && share.message && (
+                                                            {share.type !== 'group' && share.fileName && share.message && (
                                                                 <p className="text-sm text-muted-foreground pl-6">{share.message}</p>
                                                             )}
                                                         </TableCell>
-                                                        <TableCell>{share.author}</TableCell>
+                                                        <TableCell>{share.userName}</TableCell>
                                                         <TableCell>{share.time}</TableCell>
                                                         <TableCell className="text-right">
-                                                            {share.code != null && (
+                                                           {share.type === 'group' ? (
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild><Button variant="outline" size="sm">View Files</Button></DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        {share.files?.map((file: any, index: number) => (
+                                                                            <DropdownMenuItem key={index} onSelect={(e) => e.preventDefault()} className="justify-between gap-4">
+                                                                                <span>{file.fileName}</span>
+                                                                                <Button asChild variant="ghost" size="sm">
+                                                                                    <Link href={`/collaboration/ide?shareId=${share.id}&fileName=${encodeURIComponent(file.fileName)}`}>
+                                                                                        Open
+                                                                                    </Link>
+                                                                                </Button>
+                                                                            </DropdownMenuItem>
+                                                                        ))}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            ) : share.code != null ? (
                                                                 <Button asChild variant="outline" size="sm">
                                                                     <Link href={`/collaboration/ide?shareId=${share.id}`}>
                                                                         <Eye className="mr-2 h-4 w-4" />
                                                                         Open
                                                                     </Link>
                                                                 </Button>
-                                                            )}
+                                                            ) : null}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))
@@ -861,5 +877,3 @@ export default function CollaborationClient() {
         </>
     );
 }
-
-    

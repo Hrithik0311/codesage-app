@@ -8,26 +8,42 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ShieldCheck, Copy, Save, Upload } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
+const shareGroupSchema = z.object({
+  groupName: z.string().min(1, 'Group name is required.'),
+  files: z.custom<FileList>().refine(files => files && files.length > 0, 'Please select at least one file.'),
+});
 
 function IDEContent() {
-    const [code, setCode] = useState('');
+    const [code, setCode] = useState("Type your code here to share...");
     const { toast } = useToast();
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+    const [isShareGroupModalOpen, setIsShareGroupModalOpen] = useState(false);
     const [shareMessage, setShareMessage] = useState('');
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const shareGroupForm = useForm<z.infer<typeof shareGroupSchema>>({
+        resolver: zodResolver(shareGroupSchema),
+        defaultValues: {
+            groupName: '',
+        },
+    });
 
     useEffect(() => {
         const shareId = searchParams.get('shareId');
+        const fileName = searchParams.get('fileName');
         if (shareId && user && database) {
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
@@ -37,7 +53,16 @@ function IDEContent() {
                     get(shareRef).then((shareSnapshot) => {
                         if (shareSnapshot.exists()) {
                             const shareData = shareSnapshot.val();
-                            if (shareData.code != null) { 
+
+                            if (fileName && shareData.type === 'group' && shareData.files) {
+                                const fileToLoad = shareData.files.find(f => f.fileName === fileName);
+                                if (fileToLoad) {
+                                    setCode(fileToLoad.code);
+                                    setShareMessage(shareData.groupName || '');
+                                } else {
+                                    toast({ title: "File not found", description: `The file "${fileName}" was not found in this group.`, variant: "destructive" });
+                                }
+                            } else if (shareData.code != null) { 
                                 setCode(shareData.code);
                                 setShareMessage(shareData.fileName || shareData.message || '');
                             } else {
@@ -135,6 +160,55 @@ function IDEContent() {
             fileInputRef.current.value = "";
         }
     };
+    
+    const handleShareGroup = async (values: z.infer<typeof shareGroupSchema>) => {
+        if (!user || !database) return;
+        
+        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+        const teamCodeSnapshot = await get(teamCodeRef);
+        if (!teamCodeSnapshot.exists()) {
+            toast({ title: "Team not found", description: "You must be part of a team to share code.", variant: "destructive" });
+            return;
+        }
+        const teamCode = teamCodeSnapshot.val();
+        const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
+
+        const readFileAsText = (file: File): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        };
+
+        try {
+            const filesToUpload = Array.from(values.files);
+            const fileData = await Promise.all(
+                filesToUpload.map(async (file) => ({
+                    fileName: file.name,
+                    code: await readFileAsText(file),
+                }))
+            );
+            
+            await push(sharesRef, {
+                type: 'group',
+                groupName: values.groupName,
+                files: fileData,
+                userId: user.uid,
+                userName: user.displayName || user.email,
+                timestamp: serverTimestamp(),
+            });
+
+            toast({ title: 'Group Shared!', description: `The "${values.groupName}" group has been shared.` });
+            setIsShareGroupModalOpen(false);
+            shareGroupForm.reset();
+        } catch (error) {
+            console.error("Error sharing group:", error);
+            toast({ title: 'Sharing Failed', description: 'Could not share the file group.', variant: 'destructive' });
+        }
+    };
+
 
     if (authLoading) {
         return <div className="flex h-screen w-screen items-center justify-center bg-background"><div className="loading-spinner"></div></div>;
@@ -156,16 +230,14 @@ function IDEContent() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        multiple
-                    />
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
                         Share Files from Computer
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsShareGroupModalOpen(true)}>
+                        <FolderUp className="mr-2 h-4 w-4" />
+                        Share Files as a Group
                     </Button>
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
@@ -203,6 +275,55 @@ function IDEContent() {
                         <Button variant="outline" onClick={() => setIsSaveModalOpen(false)}>Cancel</Button>
                         <Button onClick={handleConfirmSave}>Save Snippet</Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isShareGroupModalOpen} onOpenChange={setIsShareGroupModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Share Files as a Group</DialogTitle>
+                        <DialogDescription>
+                            Provide a group name and select multiple files to share as a single item in the history.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...shareGroupForm}>
+                        <form onSubmit={shareGroupForm.handleSubmit(handleShareGroup)} className="space-y-4 py-4">
+                             <FormField
+                                control={shareGroupForm.control}
+                                name="groupName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Group Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Autonomous Logic Files" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={shareGroupForm.control}
+                                name="files"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Files</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="file" 
+                                                multiple
+                                                onChange={(e) => field.onChange(e.target.files)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsShareGroupModalOpen(false)}>Cancel</Button>
+                                <Button type="submit">Share Group</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
 
