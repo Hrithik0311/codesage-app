@@ -168,7 +168,7 @@ function IDEContent() {
                             type: 'file',
                             fileName: file.name,
                             code: content,
-                            message: 'Shared from computer',
+                            message: `Shared from computer`,
                             userId: user.uid,
                             userName: user.displayName || user.email,
                             timestamp: serverTimestamp(),
