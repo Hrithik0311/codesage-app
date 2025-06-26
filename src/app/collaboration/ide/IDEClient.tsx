@@ -1,14 +1,14 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ShieldCheck, Copy, Save } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Copy, Save, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { database } from '@/lib/firebase';
@@ -23,6 +23,7 @@ function IDEContent() {
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
 
     useEffect(() => {
@@ -97,6 +98,45 @@ function IDEContent() {
         router.push(`/collaboration/ide?shareId=${newShare.key}`);
     };
 
+    const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files) return;
+        if (!user || !database) {
+            toast({ title: "Authentication Error", description: "You must be logged in to share files.", variant: "destructive" });
+            return;
+        }
+        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+        const teamCodeSnapshot = await get(teamCodeRef);
+        if (!teamCodeSnapshot.exists()) {
+            toast({ title: "Team not found", description: "You must be part of a team to share code.", variant: "destructive" });
+            return;
+        }
+        const teamCode = teamCodeSnapshot.val();
+        const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
+
+        for (const file of Array.from(event.target.files)) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const content = e.target?.result;
+                await push(sharesRef, {
+                    type: 'file',
+                    fileName: file.name,
+                    message: "Shared from computer",
+                    code: content, // Save the file content
+                    userId: user.uid,
+                    userName: user.displayName || user.email,
+                    timestamp: serverTimestamp(),
+                });
+            };
+            reader.readAsText(file);
+        }
+        toast({ title: "Files Shared", description: `${event.target.files.length} file(s) have been shared with the team.` });
+        
+        // Reset the file input so the same file can be selected again
+        if(fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     if (authLoading) {
         return <div className="flex h-screen w-screen items-center justify-center bg-background"><div className="loading-spinner"></div></div>;
     }
@@ -117,6 +157,18 @@ function IDEContent() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        multiple
+                        accept=".java,.txt,.md,.xml,.gradle,.properties,.*"
+                    />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Share Files
+                    </Button>
                     <Button variant="outline" onClick={handleCopy}><Copy className="mr-2 h-4 w-4" /> Copy Code</Button>
                     <Button onClick={handleOpenSaveDialog}><Save className="mr-2 h-4 w-4" /> Save & Share</Button>
                 </div>
