@@ -25,7 +25,7 @@ const shareGroupSchema = z.object({
 
 
 function IDEContent() {
-    const [code, setCode] = useState("Type your code here to share...");
+    const [code, setCode] = useState("");
     const { toast } = useToast();
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isShareGroupModalOpen, setIsShareGroupModalOpen] = useState(false);
