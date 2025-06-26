@@ -113,7 +113,7 @@ function IDEContent() {
         const teamCode = teamCodeSnapshot.val();
         
         const sharesRef = dbRef(database, `teams/${teamCode}/shares`);
-        const newShare = await push(sharesRef, {
+        await push(sharesRef, {
             type: 'snippet',
             code: code,
             message: shareMessage,
@@ -125,7 +125,7 @@ function IDEContent() {
         toast({ title: "Success!", description: "Successfully shared the code snippet." });
         setIsSaveModalOpen(false);
         setShareMessage('');
-        router.replace(`/collaboration/ide?shareId=${newShare.key}`);
+        router.push('/collaboration');
     };
 
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
