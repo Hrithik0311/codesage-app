@@ -21,7 +21,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2, Pencil } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +56,7 @@ interface Message {
     senderId: string;
     senderName: string;
     timestamp: number;
+    isEdited?: boolean;
 }
 
 interface Chat {
@@ -103,6 +105,8 @@ export default function ChatClient() {
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [editText, setEditText] = useState('');
 
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
@@ -343,6 +347,48 @@ export default function ChatClient() {
 
   }, [user, database, chats, toast, router, allUsers]);
 
+    const handleStartEdit = (message: Message) => {
+        setEditingMessage(message);
+        setEditText(message.text);
+    };
+    
+    const handleCancelEdit = () => {
+        setEditingMessage(null);
+        setEditText('');
+    };
+    
+    const handleSaveEdit = async () => {
+        if (!editingMessage || !editText.trim() || !activeChatId || !database) {
+            handleCancelEdit();
+            return;
+        }
+
+        const messageRef = dbRef(database, `chats/${activeChatId}/messages/${editingMessage.key}`);
+        
+        try {
+            await update(messageRef, {
+                text: editText,
+                isEdited: true
+            });
+
+            // If this was the last message, update the chat's lastMessage preview
+            const lastMessageInChat = messages[messages.length - 1];
+            if (lastMessageInChat.key === editingMessage.key) {
+                await update(dbRef(database, `/chats/${activeChatId}/metadata/lastMessage`), {
+                    text: editText,
+                    timestamp: lastMessageInChat.timestamp // Keep original timestamp for sorting
+                });
+            }
+
+            toast({ title: "Message Edited" });
+        } catch (error) {
+            console.error("Error saving edit:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not save message edit.' });
+        } finally {
+            handleCancelEdit();
+        }
+    };
+
   const handleDeleteMessage = async () => {
     if (!messageToDelete || !activeChatId || !database) return;
 
@@ -491,6 +537,10 @@ export default function ChatClient() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align={isSender ? "start" : "end"}>
+                                                <DropdownMenuItem onClick={() => handleStartEdit(msg)}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => setMessageToDelete(msg)} className="text-destructive focus:text-destructive">
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     Delete
@@ -503,9 +553,36 @@ export default function ChatClient() {
                                 <div className={cn("flex flex-col gap-1", isSender ? "items-end" : "items-start")}>
                                     {!isSender && <p className="text-xs font-bold pb-1 text-accent ml-4">{msg.senderName}</p>}
                                     <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
-                                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                        {editingMessage?.key === msg.key ? (
+                                            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2">
+                                                <Textarea 
+                                                    value={editText} 
+                                                    onChange={(e) => setEditText(e.target.value)} 
+                                                    className="bg-background/80 text-foreground h-auto text-sm"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            handleSaveEdit();
+                                                        }
+                                                        if (e.key === 'Escape') {
+                                                            handleCancelEdit();
+                                                        }
+                                                    }}
+                                                    autoFocus
+                                                />
+                                                <div className="flex justify-end gap-2 text-xs">
+                                                    <Button type="button" size="sm" variant="link" onClick={handleCancelEdit} className="p-0 h-auto">Cancel</Button>
+                                                    <Button type="submit" size="sm" className="h-auto py-1">Save</Button>
+                                                </div>
+                                            </form>
+                                        ) : (
+                                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">{formatTimestamp(msg.timestamp)}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-xs text-muted-foreground">{formatTimestamp(msg.timestamp)}</p>
+                                        {msg.isEdited && <p className="text-xs text-muted-foreground italic">(edited)</p>}
+                                    </div>
                                 </div>
                             </div>
                         )
