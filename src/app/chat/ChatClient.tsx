@@ -48,6 +48,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AnimatePresence, motion } from 'framer-motion';
+import { smartCompose } from '@/ai/flows/smart-compose';
 
 
 // --- Interfaces ---
@@ -115,6 +116,9 @@ export default function ChatClient() {
   // --- Threading State ---
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [threadReplyMessage, setThreadReplyMessage] = useState('');
+
+  // --- Smart Compose State ---
+  const [suggestion, setSuggestion] = useState('');
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
   const mainMessages = useMemo(() => messages.filter(m => !m.parentMessageId), [messages]);
@@ -252,6 +256,29 @@ export default function ChatClient() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mainMessages]);
   useEffect(() => { threadMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [threadMessages]);
 
+  useEffect(() => {
+    if (!newMessage.trim()) {
+      setSuggestion('');
+      return;
+    }
+    const handler = setTimeout(async () => {
+      try {
+        const result = await smartCompose({ text: newMessage });
+        if (result.suggestion) {
+           setSuggestion(result.suggestion);
+        } else {
+           setSuggestion('');
+        }
+      } catch (e) {
+        console.error("Smart compose failed", e);
+        setSuggestion('');
+      }
+    }, 500);
+
+    return () => { clearTimeout(handler); };
+  }, [newMessage]);
+
+
   const handleSetActiveChat = (chatId: string | null) => {
     setActiveChatId(chatId);
     setActiveThreadId(null);
@@ -265,8 +292,12 @@ export default function ChatClient() {
     if (!textToSend.trim() || !user || !activeChat || isSending) return;
     
     setIsSending(true);
-    if (isThreadReply) setThreadReplyMessage("");
-    else setNewMessage("");
+    if (isThreadReply) {
+        setThreadReplyMessage("");
+    } else {
+        setNewMessage("");
+        setSuggestion("");
+    }
 
     try {
         const myName = allUsers.find(u => u.id === user.uid)?.name || user.displayName || user.email?.split('@')[0];
@@ -302,6 +333,14 @@ export default function ChatClient() {
     }
   };
   
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab' && suggestion) {
+      e.preventDefault();
+      setNewMessage(newMessage + suggestion);
+      setSuggestion('');
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent, isThreadReply: boolean = false) => { e.preventDefault(); handleSendMessage(isThreadReply); };
 
   const handleStartChat = useCallback(async (userToChat: PlatformUser) => {
@@ -514,7 +553,28 @@ export default function ChatClient() {
 
                         <footer className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm flex-shrink-0">
                             <form onSubmit={(e) => handleFormSubmit(e, false)}>
-                                <div className="relative"><Input placeholder={messageInputPlaceholder} className="h-12 pr-14" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={isMessageInputDisabled} /><Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}><SendHorizontal className="h-5 w-5"/><span className="sr-only">Send</span></Button></div>
+                                <div className="relative">
+                                    <div className="relative">
+                                        <Input
+                                            placeholder={messageInputPlaceholder}
+                                            className="h-12 pr-14"
+                                            value={newMessage}
+                                            onChange={(e) => {
+                                                setNewMessage(e.target.value);
+                                                setSuggestion(''); // Clear suggestion on typing
+                                            }}
+                                            onKeyDown={handleKeyDown}
+                                            disabled={isMessageInputDisabled}
+                                        />
+                                        {suggestion && newMessage.trim() && (
+                                            <div className="absolute inset-y-0 left-[13px] top-[1px] flex items-center pointer-events-none">
+                                                <span className="text-transparent">{newMessage.replace(/ /g, '\u00A0')}</span>
+                                                <span className="text-muted-foreground">{suggestion}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-9 w-9" disabled={!newMessage.trim() || isMessageInputDisabled}><SendHorizontal className="h-5 w-5"/><span className="sr-only">Send</span></Button>
+                                </div>
                             </form>
                         </footer>
                     </div>
@@ -571,5 +631,3 @@ export default function ChatClient() {
     </>
   );
 }
-
-    
