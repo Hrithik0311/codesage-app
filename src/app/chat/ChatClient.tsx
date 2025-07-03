@@ -376,7 +376,6 @@ export default function ChatClient() {
             if (lastMessageInChat.key === editingMessage.key) {
                 await update(dbRef(database, `/chats/${activeChatId}/metadata/lastMessage`), {
                     text: editText,
-                    timestamp: lastMessageInChat.timestamp // Keep original timestamp for sorting
                 });
             }
 
