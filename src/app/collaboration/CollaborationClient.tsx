@@ -669,7 +669,7 @@ export default function CollaborationClient() {
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                                    <Link href="/notifications">
+                                    <Link href="/chat">
                                         <Users className="mr-2 h-4 w-4" /> Open Full Chat
                                     </Link>
                                 </Button>

@@ -69,7 +69,7 @@ const formatTimestamp = (timestamp: number | undefined): string => {
 };
 
 // --- Main Component ---
-export default function NotificationsClient() {
+export default function ChatClient() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
