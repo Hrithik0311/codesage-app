@@ -263,8 +263,8 @@ export default function DashboardClient() {
                          <h2 className="font-headline text-2xl font-bold mb-6">Activity Stats</h2>
                          <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                              <CardContent className="p-6 space-y-6">
-                                <ProgressItem icon={GitCommit} label="Team Commits" value={12} unit="commits" />
-                                <ProgressItem icon={BarChart} label="Analyses Run" value={8} unit="analyses" />
+                                <ProgressItem icon={GitCommit} label="Team Commits" value={0} unit="commits" />
+                                <ProgressItem icon={BarChart} label="Analyses Run" value={0} unit="analyses" />
                              </CardContent>
                          </Card>
                      </section>

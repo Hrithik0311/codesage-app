@@ -64,11 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         let idleTimer: NodeJS.Timeout;
 
         const resetIdleTimer = () => {
+            clearTimeout(idleTimer);
             set(userStatusDatabaseRef, {
                 state: 'online',
                 last_changed: serverTimestamp(),
             });
-            clearTimeout(idleTimer);
             idleTimer = setTimeout(() => {
                 set(userStatusDatabaseRef, {
                     state: 'idle',
@@ -134,10 +134,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             window.removeEventListener('scroll', resetIdleTimer);
             clearTimeout(idleTimer);
             if (userStatusDatabaseRef) {
-                set(userStatusDatabaseRef, {
-                    state: 'offline',
-                    last_changed: serverTimestamp(),
-                });
+                remove(userStatusDatabaseRef);
             }
         };
       } else {

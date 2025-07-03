@@ -303,7 +303,6 @@ function IDEContent() {
                     placeholder="Type your code here to share..."
                     className="flex-grow w-full font-mono text-sm bg-muted/30 border-border/60 resize-none"
                 />
-                <p className="text-xs text-muted-foreground mt-2">Any changes you make here are visible to everyone currently in this group.</p>
             </main>
 
             <Dialog open={isSaveModalOpen} onOpenChange={setIsSaveModalOpen}>
