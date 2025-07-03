@@ -19,7 +19,7 @@ import {
   SidebarMenuSkeleton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2 } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
