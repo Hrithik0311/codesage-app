@@ -5,11 +5,11 @@ import NotificationsClient from './NotificationsClient';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Notifications - CodeSage',
-  description: 'View your notifications, direct messages, and updates.',
+  title: 'Team Chat - CodeSage',
+  description: 'Communicate with your team in real-time.',
 };
 
-export default function NotificationsPage() {
+export default function ChatPage() {
   return (
     <>
       <AnimatedBackground />

@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays, Calendar as CalendarIcon } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays, Calendar as CalendarIcon, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -124,6 +124,15 @@ export default function CollaborationClient() {
     const [isEventsLoading, setIsEventsLoading] = useState(true);
     const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     
+    // --- Announcements State ---
+    const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
+
+    const formatTimestamp = (timestamp: number | undefined): string => {
+        if (!timestamp) return '';
+        return formatDistanceToNowStrict(new Date(timestamp), { addSuffix: true });
+    };
+
     // --- Forms ---
     const createForm = useForm<z.infer<typeof createTeamSchema>>({
         resolver: zodResolver(createTeamSchema),
@@ -262,6 +271,29 @@ export default function CollaborationClient() {
             setIsEventsLoading(false);
         });
         return () => unsubscribe();
+    }, [team, database]);
+
+    useEffect(() => {
+        if (!team || !database || !team.announcementsChatId) {
+            setIsLoadingAnnouncements(false);
+            return;
+        };
+        
+        setIsLoadingAnnouncements(true);
+        const announcementsRef = dbRef(database, `chats/${team.announcementsChatId}/messages`);
+        const announcementsQuery = query(announcementsRef, orderByChild('timestamp'), limitToLast(5));
+    
+        const unsubscribe = onValue(announcementsQuery, (snapshot) => {
+            const data: any[] = [];
+            snapshot.forEach((child) => {
+                data.push({ id: child.key, ...child.val() });
+            });
+            setAnnouncements(data.reverse());
+            setIsLoadingAnnouncements(false);
+        });
+    
+        return () => unsubscribe();
+    
     }, [team, database]);
 
 
@@ -600,6 +632,49 @@ export default function CollaborationClient() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </div>
+
+                    <div className="mt-8">
+                        <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-3">
+                                    <MessageSquare /> Team Announcements
+                                </CardTitle>
+                                <CardDescription>
+                                    Recent messages from your team's main channel.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {isLoadingAnnouncements ? (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-4 w-1/2" /></div>
+                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/5" /><Skeleton className="h-4 w-3/4" /></div>
+                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-2/5" /></div>
+                                    </div>
+                                ) : announcements.length > 0 ? (
+                                    <ul className="space-y-4">
+                                        {announcements.map(msg => (
+                                            <li key={msg.id} className="text-sm flex flex-col gap-1">
+                                                <div>
+                                                   <span className="font-semibold text-accent">{msg.senderName}</span>
+                                                   <span className="text-xs text-muted-foreground ml-2">{formatTimestamp(msg.timestamp)}</span>
+                                                </div>
+                                                <p className="pl-2 text-muted-foreground whitespace-pre-wrap">{msg.text}</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-center text-muted-foreground py-4">No announcements yet.</p>
+                                )}
+                            </CardContent>
+                            <CardFooter>
+                                <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                                    <Link href="/notifications">
+                                        <Users className="mr-2 h-4 w-4" /> Open Full Chat
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
                     </div>
                     
                     <Tabs defaultValue="planner" className="mt-8 w-full">
