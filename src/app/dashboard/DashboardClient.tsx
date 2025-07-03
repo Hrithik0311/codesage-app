@@ -10,7 +10,6 @@ import { Progress } from '@/components/ui/progress';
 import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
-import { NotificationBell } from '@/components/NotificationBell';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
@@ -178,7 +177,6 @@ export default function DashboardClient() {
                 <span className="text-xl font-headline font-bold">CodeSage</span>
             </Link>
             <div className="flex items-center gap-2">
-              <NotificationBell />
               <UserProfile />
             </div>
         </header>

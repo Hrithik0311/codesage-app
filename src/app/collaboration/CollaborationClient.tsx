@@ -27,7 +27,6 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild, remove } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NotificationBell } from '@/components/NotificationBell';
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { v4 as uuidv4 } from 'uuid';
@@ -432,7 +431,7 @@ export default function CollaborationClient() {
                         <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground"><ShieldCheck size={20} /></div>
                         <span className="text-xl font-headline font-bold">CodeSage</span>
                     </Link>
-                    <div className="flex items-center gap-2"><ThemeToggleButton /><NotificationBell /><UserProfile /></div>
+                    <div className="flex items-center gap-2"><ThemeToggleButton /><UserProfile /></div>
                 </div>
             </header>
             <div className="flex-grow container mx-auto p-4 md:p-8 flex items-center justify-center">
@@ -498,7 +497,7 @@ export default function CollaborationClient() {
                         <Link href="/" className="flex items-center gap-3 text-foreground hover:text-accent transition-colors"><div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center text-primary-foreground"><ShieldCheck size={20} /></div><span className="text-xl font-headline font-bold">CodeSage</span></Link>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2"><h1 className="hidden md:block text-xl md:text-2xl font-bold font-headline">{team.name} Hub</h1></div>
-                             <div className="flex items-center gap-2"><ThemeToggleButton /><NotificationBell /><UserProfile /></div>
+                             <div className="flex items-center gap-2"><ThemeToggleButton /><UserProfile /></div>
                         </div>
                     </div>
                 </header>

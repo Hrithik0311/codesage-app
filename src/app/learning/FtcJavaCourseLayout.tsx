@@ -11,7 +11,6 @@ import Link from 'next/link';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
-import { NotificationBell } from '@/components/NotificationBell';
 import { useToast } from '@/hooks/use-toast';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
@@ -198,7 +197,6 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
 
           <div className="flex items-center gap-2">
             <ThemeToggleButton />
-            <NotificationBell />
             <UserProfile />
           </div>
         </div>

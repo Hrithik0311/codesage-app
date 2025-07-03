@@ -255,35 +255,6 @@ export default function NotificationsClient() {
             text: currentInput,
             timestamp: serverTimestamp()
         };
-
-        const createNotification = (recipientId: string, title: string, description: string) => {
-            const notificationRef = push(dbRef(database, `notifications/${recipientId}`));
-            const notificationKey = notificationRef.key;
-            if (notificationKey) {
-                updates[`/notifications/${recipientId}/${notificationKey}`] = {
-                    title: title,
-                    description: description,
-                    link: `/notifications#${activeChat.id}`,
-                    timestamp: serverTimestamp(),
-                    read: false,
-                    senderId: user.uid,
-                    chatId: activeChat.id,
-                };
-            }
-        };
-
-        if (activeChat.type === 'dm') {
-            const otherUserId = Object.keys(activeChat.members!).find(id => id !== user.uid);
-            if (otherUserId) {
-                createNotification(otherUserId, `New message from ${myName}`, currentInput);
-            }
-        } else if (activeChat.type === 'channel') {
-            Object.keys(activeChat.members!).forEach(memberId => {
-                if (memberId !== user.uid) {
-                    createNotification(memberId, `New message in #${activeChat.name}`, `${myName}: ${currentInput}`);
-                }
-            });
-        }
         
         await update(dbRef(database), updates);
     } catch (error) {

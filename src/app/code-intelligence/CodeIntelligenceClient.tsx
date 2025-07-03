@@ -15,7 +15,6 @@ import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-comple
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
-import { NotificationBell } from '@/components/NotificationBell';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 
@@ -226,7 +225,6 @@ export default function CodeIntelligenceClient() {
                         </h1>
                         <div className="flex items-center gap-2">
                             <ThemeToggleButton />
-                            <NotificationBell />
                             <UserProfile />
                         </div>
                     </div>
