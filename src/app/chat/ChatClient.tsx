@@ -619,7 +619,7 @@ export default function ChatClient() {
                     {ChatSidebar}
                 </Sidebar>
                 <div className="md:hidden">
-                    <Sheet open={false}>
+                    <Sheet>
                         <SheetContent side="left" className="p-0 w-[80vw] max-w-xs" onOpenAutoFocus={(e) => e.preventDefault()}>
                            {ChatSidebar}
                         </SheetContent>
