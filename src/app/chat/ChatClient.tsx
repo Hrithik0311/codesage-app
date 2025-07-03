@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, remove, limitToLast } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
@@ -21,7 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageSquare, Search, SendHorizontal } from 'lucide-react';
+import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2 } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,23 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 // --- Interfaces ---
 interface Message {
@@ -85,6 +102,8 @@ export default function ChatClient() {
   const [isSending, setIsSending] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
 
@@ -324,6 +343,38 @@ export default function ChatClient() {
 
   }, [user, database, chats, toast, router, allUsers]);
 
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete || !activeChatId || !database) return;
+
+    const messageRef = dbRef(database, `chats/${activeChatId}/messages/${messageToDelete.key}`);
+
+    try {
+        await remove(messageRef);
+        
+        // If the deleted message was the last one, update the chat metadata
+        const lastMessageInChat = messages[messages.length - 1];
+        if(lastMessageInChat.key === messageToDelete.key && messages.length > 1) {
+            const newLastMessage = messages[messages.length - 2];
+            const updates: { [key: string]: any } = {};
+            updates[`/chats/${activeChatId}/metadata/lastMessage`] = {
+                text: newLastMessage.text,
+                timestamp: newLastMessage.timestamp,
+            };
+            await update(dbRef(database), updates);
+        } else if (messages.length === 1) {
+            await remove(dbRef(database, `/chats/${activeChatId}/metadata/lastMessage`));
+        }
+        
+        toast({ title: 'Message Deleted' });
+
+    } catch (error) {
+        console.error("Error deleting message:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not delete message.' });
+    } finally {
+        setMessageToDelete(null); // Close the dialog
+    }
+  };
+
 
   // --- Render Logic ---
   const filteredUsers = searchTerm ? allUsers.filter(m => 
@@ -430,7 +481,24 @@ export default function ChatClient() {
                     {messages.map((msg) => {
                         const isSender = msg.senderId === user?.uid;
                         return (
-                             <div key={msg.key} className={cn("flex items-end gap-3", isSender && "flex-row-reverse")}>
+                             <div key={msg.key} className={cn("group relative flex items-end gap-3", isSender && "flex-row-reverse")}>
+                                {isSender && (
+                                    <div className={cn("absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity", isSender ? "left-0" : "right-0")}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align={isSender ? "start" : "end"}>
+                                                <DropdownMenuItem onClick={() => setMessageToDelete(msg)} className="text-destructive focus:text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                )}
                                 <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>
                                 <div className={cn("flex flex-col gap-1", isSender ? "items-end" : "items-start")}>
                                     {!isSender && <p className="text-xs font-bold pb-1 text-accent ml-4">{msg.senderName}</p>}
@@ -468,20 +536,38 @@ export default function ChatClient() {
   )
 
   return (
-    <SidebarProvider defaultOpen>
-        <div className="flex w-full bg-background text-foreground">
-            <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:flex md:flex-col h-screen">
-                {ChatSidebar}
-            </Sidebar>
-            <div className="md:hidden">
-                <Sheet>
-                    <SheetContent side="left" className="p-0 w-[80vw] max-w-xs" onOpenAutoFocus={(e) => e.preventDefault()}>
-                       {ChatSidebar}
-                    </SheetContent>
-                </Sheet>
+    <>
+        <SidebarProvider defaultOpen>
+            <div className="flex w-full bg-background text-foreground">
+                <Sidebar collapsible="icon" className="border-r border-border/50 hidden md:flex md:flex-col h-screen">
+                    {ChatSidebar}
+                </Sidebar>
+                <div className="md:hidden">
+                    <Sheet open={false}>
+                        <SheetContent side="left" className="p-0 w-[80vw] max-w-xs" onOpenAutoFocus={(e) => e.preventDefault()}>
+                           {ChatSidebar}
+                        </SheetContent>
+                    </Sheet>
+                </div>
+                {ChatPane}
             </div>
-            {ChatPane}
-        </div>
-    </SidebarProvider>
+        </SidebarProvider>
+        <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the message.
+                </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteMessage} className={cn(buttonVariants({ variant: "destructive" }))}>
+                    Delete
+                </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </>
   );
 }
