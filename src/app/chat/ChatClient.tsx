@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { database } from '@/lib/firebase';
-import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, remove } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, remove, runTransaction } from 'firebase/database';
 import {
   SidebarProvider,
   Sidebar,
@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2, Pencil, Reply, X } from 'lucide-react';
+import { MessageSquare, Search, SendHorizontal, MoreHorizontal, Trash2, Pencil, Reply, X, SmilePlus } from 'lucide-react';
 import { UserProfile } from '@/components/UserProfile';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,6 +66,7 @@ interface Message {
     isEdited?: boolean;
     parentMessageId?: string; // For threads
     replyCount?: number; // Denormalized for UI
+    reactions?: { [emoji: string]: string[] }; // emoji -> array of user IDs
 }
 
 interface Chat {
@@ -408,6 +414,44 @@ export default function ChatClient() {
     }
   };
 
+  const handleToggleReaction = async (message: Message, emoji: string) => {
+    if (!user || !activeChatId || !database) return;
+
+    const messageRef = dbRef(database, `chats/${activeChatId}/messages/${message.key}`);
+    
+    try {
+        await runTransaction(messageRef, (currentData) => {
+            if (currentData) {
+                const reactions = currentData.reactions || {};
+                const reactors: string[] = reactions[emoji] || [];
+                const userIndex = reactors.indexOf(user.uid);
+
+                if (userIndex > -1) {
+                    // User has reacted, so remove reaction
+                    reactors.splice(userIndex, 1);
+                    if (reactors.length === 0) {
+                        delete reactions[emoji];
+                    } else {
+                        reactions[emoji] = reactors;
+                    }
+                } else {
+                    // User has not reacted, so add reaction
+                    reactions[emoji] = [...reactors, user.uid];
+                }
+                currentData.reactions = reactions;
+            }
+            return currentData;
+        });
+    } catch (error) {
+        console.error("Failed to update reaction:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not add reaction.'
+        });
+    }
+};
+
 
   const filteredUsers = searchTerm ? allUsers.filter(m => m.id !== user?.uid && m.name.toLowerCase().includes(searchTerm.toLowerCase())) : [];
 
@@ -485,34 +529,72 @@ export default function ChatClient() {
   const MessageItem = ({ msg }: { msg: Message }) => {
     const isSender = msg.senderId === user?.uid;
     return (
-        <div key={msg.key} className={cn("group relative flex items-start gap-2", isSender && "flex-row-reverse")}>
-            {!isSender && <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>}
-            <div className={cn("flex flex-col gap-1 w-full", isSender ? "items-end" : "items-start")}>
-                {!isSender && <p className="text-xs font-bold text-accent ml-2">{msg.senderName}</p>}
-                <div className={cn("flex items-center gap-2", isSender && "flex-row-reverse")}>
-                     <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
-                        {editingMessage?.key === msg.key ? (
-                            <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2">
-                                <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="bg-background/80 text-foreground h-auto text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); } if (e.key === 'Escape') { handleCancelEdit(); }}} autoFocus />
-                                <div className="flex justify-end gap-2 text-xs">
-                                    <Button type="button" size="sm" variant="link" onClick={handleCancelEdit} className="p-0 h-auto">Cancel</Button>
-                                    <Button type="submit" size="sm" className="h-auto py-1">Save</Button>
-                                </div>
-                            </form>
-                        ) : ( <p className="text-sm whitespace-pre-wrap">{msg.text}</p> )}
-                    </div>
-                    <div className={cn("flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1", isSender ? 'flex-row-reverse' : '')}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setActiveThreadId(msg.key)}><Reply className="h-4 w-4" /></Button>
-                         {isSender && <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align={isSender ? "end" : "start"}>
-                                <DropdownMenuItem onClick={() => handleStartEdit(msg)}><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setMessageToDelete(msg)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>}
+        <div className="flex flex-col" key={msg.key}>
+            <div className={cn("group relative flex items-start gap-2", isSender && "flex-row-reverse")}>
+                {!isSender && <Avatar className="h-8 w-8"><AvatarImage data-ai-hint={msg.senderId === 'ai' ? 'robot' : 'person'} src={'https://placehold.co/40x40.png'} /><AvatarFallback>{(msg.senderName || "U").substring(0, 1)}</AvatarFallback></Avatar>}
+                <div className={cn("flex flex-col gap-1 w-full", isSender ? "items-end" : "items-start")}>
+                    {!isSender && <p className="text-xs font-bold text-accent ml-2">{msg.senderName}</p>}
+                    <div className={cn("flex items-center gap-2", isSender && "flex-row-reverse")}>
+                        <div className={cn("rounded-2xl py-2 px-4 max-w-sm md:max-w-md", isSender ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted rounded-bl-none")}>
+                            {editingMessage?.key === msg.key ? (
+                                <form onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }} className="space-y-2">
+                                    <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="bg-background/80 text-foreground h-auto text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveEdit(); } if (e.key === 'Escape') { handleCancelEdit(); }}} autoFocus />
+                                    <div className="flex justify-end gap-2 text-xs">
+                                        <Button type="button" size="sm" variant="link" onClick={handleCancelEdit} className="p-0 h-auto">Cancel</Button>
+                                        <Button type="submit" size="sm" className="h-auto py-1">Save</Button>
+                                    </div>
+                                </form>
+                            ) : ( <p className="text-sm whitespace-pre-wrap">{msg.text}</p> )}
+                        </div>
+                        <div className={cn("flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1", isSender ? 'flex-row-reverse' : '')}>
+                             <Popover>
+                                <PopoverTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><SmilePlus className="h-4 w-4" /></Button></PopoverTrigger>
+                                <PopoverContent className="w-auto p-1">
+                                    <div className="flex gap-1">
+                                        {['👍', '❤️', '😂', '🎉', '🙏', '🤔'].map(emoji => (
+                                            <Button key={emoji} variant="ghost" size="icon" onClick={() => handleToggleReaction(msg, emoji)}><span className="text-lg">{emoji}</span></Button>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setActiveThreadId(msg.key)}><Reply className="h-4 w-4" /></Button>
+                            {isSender && <DropdownMenu>
+                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                <DropdownMenuContent align={isSender ? "end" : "start"}>
+                                    <DropdownMenuItem onClick={() => handleStartEdit(msg)}><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setMessageToDelete(msg)} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>}
+                        </div>
                     </div>
                 </div>
-                <div className={cn("flex items-center gap-2 mt-1", isSender ? "pr-2" : "pl-2")}>
+            </div>
+            
+            <div className="mt-1">
+                {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                    <div className={cn("flex gap-1 items-center flex-wrap pt-1", isSender ? "justify-end pr-2" : "pl-10")}>
+                        {Object.entries(msg.reactions).map(([emoji, userIds]) => {
+                        if (!userIds || userIds.length === 0) return null;
+                        const userHasReacted = userIds.includes(user!.uid);
+                        return (
+                            <Button
+                            key={emoji}
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                "h-auto rounded-full px-2.5 py-0.5 text-xs",
+                                userHasReacted ? "bg-accent text-accent-foreground border-accent" : "bg-muted/50"
+                            )}
+                            onClick={() => handleToggleReaction(msg, emoji)}
+                            >
+                            {emoji} {userIds.length}
+                            </Button>
+                        );
+                        })}
+                    </div>
+                )}
+                
+                <div className={cn("flex items-center gap-2 mt-1", isSender ? "pr-2 justify-end" : "pl-10")}>
                     {msg.replyCount > 0 && <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={() => setActiveThreadId(msg.key)}>{msg.replyCount} {msg.replyCount > 1 ? 'replies' : 'reply'}</Button>}
                     {msg.replyCount > 0 && <span className="text-muted-foreground text-xs">&middot;</span>}
                     <p className="text-xs text-muted-foreground">{formatTimestamp(msg.timestamp)}</p>
