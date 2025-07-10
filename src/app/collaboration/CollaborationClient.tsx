@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
-import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays, Calendar as CalendarIcon, MessageSquare } from 'lucide-react';
+import { ShieldCheck, GitBranch, Rocket, Users, Settings, Code2, FolderKanban, PlusCircle, LogIn, Trash2, File, Eye, GripVertical, Plus, CalendarDays, Calendar as CalendarIcon, MessageSquare, SendHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,7 @@ import { Textarea } from '@/components/ui/textarea';
 type Id = string;
 type Column = { id: Id; title: string; };
 type Task = { id: Id; columnId: Id; content: string; };
-type CalendarEvent = { id: string; date: string; title: string; description: string; createdBy: string; creatorName: string };
+type CalendarEvent = { id:string; date: string; title: string; description: string; createdBy: string; creatorName: string };
 
 const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
@@ -123,9 +123,13 @@ export default function CollaborationClient() {
     const [isEventsLoading, setIsEventsLoading] = useState(true);
     const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     
-    // --- Announcements State ---
-    const [announcements, setAnnouncements] = useState<any[]>([]);
-    const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
+    // --- Chat State ---
+    const [messages, setMessages] = useState<any[]>([]);
+    const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+    const [newMessage, setNewMessage] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const chatContentRef = useRef<HTMLDivElement>(null);
+
 
     const formatTimestamp = (timestamp: number | undefined): string => {
         if (!timestamp) return '';
@@ -271,29 +275,35 @@ export default function CollaborationClient() {
         });
         return () => unsubscribe();
     }, [team, database]);
-
+    
     useEffect(() => {
         if (!team || !database || !team.announcementsChatId) {
-            setIsLoadingAnnouncements(false);
+            setIsLoadingMessages(false);
             return;
         };
         
-        setIsLoadingAnnouncements(true);
+        setIsLoadingMessages(true);
         const announcementsRef = dbRef(database, `chats/${team.announcementsChatId}/messages`);
-        const announcementsQuery = query(announcementsRef, orderByChild('timestamp'), limitToLast(5));
+        const announcementsQuery = query(announcementsRef, orderByChild('timestamp'), limitToLast(50));
     
         const unsubscribe = onValue(announcementsQuery, (snapshot) => {
             const data: any[] = [];
             snapshot.forEach((child) => {
                 data.push({ id: child.key, ...child.val() });
             });
-            setAnnouncements(data.reverse());
-            setIsLoadingAnnouncements(false);
+            setMessages(data);
+            setIsLoadingMessages(false);
         });
     
         return () => unsubscribe();
     
     }, [team, database]);
+    
+    useEffect(() => {
+        if (chatContentRef.current) {
+            chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
+        }
+    }, [messages]);
 
 
     // --- Team Management Functions ---
@@ -385,6 +395,38 @@ export default function CollaborationClient() {
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
         }
     };
+
+    // --- Chat Functions ---
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMessage.trim() || !user || !team || !team.announcementsChatId || isSending) return;
+        
+        setIsSending(true);
+        const textToSend = newMessage;
+        setNewMessage("");
+
+        const messageData = {
+            text: textToSend,
+            senderId: user.uid,
+            senderName: user.displayName || user.email,
+            timestamp: serverTimestamp()
+        };
+
+        const messageRef = dbRef(database, `chats/${team.announcementsChatId}/messages`);
+        const lastMessageRef = dbRef(database, `chats/${team.announcementsChatId}/metadata/lastMessage`);
+
+        try {
+            await push(messageRef, messageData);
+            await set(lastMessageRef, { text: textToSend, timestamp: serverTimestamp() });
+        } catch (error) {
+            console.error("Error sending message:", error);
+            toast({ variant: 'destructive', title: 'Error', description: "Could not send message." });
+            setNewMessage(textToSend); // put message back in box on error
+        } finally {
+            setIsSending(false);
+        }
+    }
+
 
     // --- Planner Functions ---
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
@@ -574,13 +616,69 @@ export default function CollaborationClient() {
                     )}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 flex flex-col gap-8">
-                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
-                                <CardHeader><CardTitle className="flex items-center gap-3"><Code2 /> Real-time Code Share</CardTitle><CardDescription>Share and edit code snippets with your team in a live workspace.</CardDescription></CardHeader>
-                                <CardContent className="flex-grow flex flex-col items-center justify-center text-center">
-                                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-primary-foreground mb-6"><Code2 size={50} /></div>
-                                    <p className="text-foreground/80 mb-6">Open a shared workspace to view, edit, and discuss code together in real-time.</p>
+                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
+                                <CardHeader><CardTitle className="flex items-center gap-3"><MessageSquare /> Team Chat</CardTitle><CardDescription>Your team's main communication channel.</CardDescription></CardHeader>
+                                <CardContent className="flex-grow p-0 flex flex-col">
+                                    <ScrollArea className="flex-grow h-96">
+                                        <div ref={chatContentRef} className="p-4 space-y-4">
+                                            {isLoadingMessages ? (
+                                                <div className="flex justify-center items-center h-full"><Skeleton className="h-24 w-full" /></div>
+                                            ) : messages.length > 0 ? (
+                                                messages.map(msg => (
+                                                    <div key={msg.id} className="flex items-start gap-3">
+                                                        <Avatar className="h-8 w-8 border"><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{msg.senderName.substring(0,1)}</AvatarFallback></Avatar>
+                                                        <div>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <p className="font-bold text-sm">{msg.senderName}</p>
+                                                                <p className="text-xs text-muted-foreground">{formatTimestamp(msg.timestamp)}</p>
+                                                            </div>
+                                                            <div className="bg-muted/50 p-3 rounded-lg mt-1"><p className="text-sm whitespace-pre-wrap">{msg.text}</p></div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center text-muted-foreground">No messages yet. Start the conversation!</div>
+                                            )}
+                                        </div>
+                                    </ScrollArea>
                                 </CardContent>
-                                <CardFooter><Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"><Link href="/collaboration/ide"><Rocket className="mr-2 h-4 w-4" /> Open Code Share</Link></Button></CardFooter>
+                                <CardFooter className="border-t pt-4">
+                                    <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
+                                        <Input
+                                            placeholder={user?.uid === team.creatorUid ? "Send a message to the team..." : "Only the team captain can post here."}
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            disabled={isSending || user?.uid !== team.creatorUid}
+                                        />
+                                        <Button type="submit" size="icon" disabled={isSending || !newMessage.trim() || user?.uid !== team.creatorUid}>
+                                            <SendHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </form>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                        <div className="lg:col-span-1 flex flex-col gap-8">
+                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                                <CardHeader><CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle><CardDescription>Your current team workspace.</CardDescription></CardHeader>
+                                <CardContent>
+                                    <div className="space-y-6">
+                                        {team.roles && Object.entries(team.roles).map(([roleName, members]: [string, { [uid: string]: string }]) => (
+                                            <div key={roleName}>
+                                                <h4 className="font-semibold text-muted-foreground mb-3 px-1">{roleName}</h4>
+                                                <div className="space-y-4">
+                                                    {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberName]) => (
+                                                        <div key={memberId} className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberName.substring(0, 2)}</AvatarFallback></Avatar>
+                                                                <div className="flex flex-col"><p className="font-semibold text-foreground">{memberName}</p><p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>{user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}</div>
+                                                            </div><StatusBadge status={memberStatuses[memberId]?.state} />
+                                                        </div>
+                                                    )) : (<p className="text-sm text-muted-foreground px-2">No members in this role yet.</p>)}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
                             </Card>
                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                                 <CardHeader><CardTitle className="flex items-center gap-2"><FolderKanban /> Code Share History</CardTitle><CardDescription>Recent code shares from your team.</CardDescription></CardHeader>
@@ -607,149 +705,94 @@ export default function CollaborationClient() {
                                 </CardContent>
                             </Card>
                         </div>
-                        <div className="lg:col-span-1 flex flex-col gap-8">
-                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardHeader><CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle><CardDescription>Your current team workspace.</CardDescription></CardHeader>
-                                <CardContent>
-                                    <div className="space-y-6">
-                                        {team.roles && Object.entries(team.roles).map(([roleName, members]: [string, { [uid: string]: string }]) => (
-                                            <div key={roleName}>
-                                                <h4 className="font-semibold text-muted-foreground mb-3 px-1">{roleName}</h4>
-                                                <div className="space-y-4">
-                                                    {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberName]) => (
-                                                        <div key={memberId} className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberName.substring(0, 2)}</AvatarFallback></Avatar>
-                                                                <div className="flex flex-col"><p className="font-semibold text-foreground">{memberName}</p><p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>{user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}</div>
-                                                            </div><StatusBadge status={memberStatuses[memberId]?.state} />
-                                                        </div>
-                                                    )) : (<p className="text-sm text-muted-foreground px-2">No members in this role yet.</p>)}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-
-                    <div className="mt-8">
-                        <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-3">
-                                    <MessageSquare /> Team Announcements
-                                </CardTitle>
-                                <CardDescription>
-                                    Recent messages from your team's main channel.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {isLoadingAnnouncements ? (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-4 w-1/2" /></div>
-                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/5" /><Skeleton className="h-4 w-3/4" /></div>
-                                        <div className="flex items-center gap-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-2/5" /></div>
-                                    </div>
-                                ) : announcements.length > 0 ? (
-                                    <ul className="space-y-4">
-                                        {announcements.map(msg => (
-                                            <li key={msg.id} className="text-sm flex flex-col gap-1">
-                                                <div>
-                                                   <span className="font-semibold text-accent">{msg.senderName}</span>
-                                                   <span className="text-xs text-muted-foreground ml-2">{formatTimestamp(msg.timestamp)}</span>
-                                                </div>
-                                                <p className="pl-2 text-muted-foreground whitespace-pre-wrap">{msg.text}</p>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-center text-muted-foreground py-4">No announcements yet.</p>
-                                )}
-                            </CardContent>
-                            <CardFooter>
-                                <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
-                                    <Link href="/chat">
-                                        <Users className="mr-2 h-4 w-4" /> Open Full Chat
-                                    </Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
                     </div>
                     
-                    <Tabs defaultValue="planner" className="mt-8 w-full">
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                            <div><h2 className="font-headline text-3xl font-bold">Project Hub</h2><p className="text-muted-foreground">Organize team tasks on the planner or view the calendar.</p></div>
-                            <TabsList><TabsTrigger value="planner"><FolderKanban className="mr-2 h-4 w-4" /> Planner</TabsTrigger><TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" /> Calendar</TabsTrigger></TabsList>
-                        </div>
-                        <TabsContent value="planner">
-                            <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-                                <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                    <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Kanban Board</CardTitle><CardDescription>Drag and drop tasks to organize your workflow.</CardDescription></div><Button onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button></CardHeader>
-                                    <CardContent>
-                                        <ScrollArea className="w-full whitespace-nowrap"><div className="flex gap-4 p-4">{isLoadingPlanner ? <Skeleton className="h-96 w-full" /> : (<SortableContext items={columnsId}>{columns.map(col => (<ColumnContainer key={col.id} column={col} tasks={tasks.filter(task => task.columnId === col.id)} createTask={createTask} />))}</SortableContext>)}</div><div className="h-1 pb-1"></div></ScrollArea>
-                                    </CardContent>
-                                </Card>
-                                {typeof document !== 'undefined' && createPortal(<DragOverlay>{activeTask && <TaskCard task={activeTask} />}</DragOverlay>, document.body)}
-                            </DndContext>
-                        </TabsContent>
-                        <TabsContent value="calendar">
-                            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                                <CardContent className="p-4 md:p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        <div className="lg:col-span-2">
-                                            <Calendar
-                                                mode="single"
-                                                selected={date}
-                                                onSelect={setDate}
-                                                className="w-full border-0 sm:border rounded-md"
-                                                modifiers={calendarModifiers}
-                                                modifiersClassNames={{ hasEvent: 'day-with-event' }}
-                                                classNames={{
-                                                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                                                    month: "space-y-4 w-full", table: "w-full border-collapse", head_row: "flex",
-                                                    head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
-                                                    row: "flex w-full mt-2",
-                                                    cell: "w-full text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                                                    day: cn(buttonVariants({ variant: "ghost" }), "h-12 w-full p-0 font-normal aria-selected:opacity-100"),
-                                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                                    day_today: "bg-accent text-accent-foreground", day_outside: "day-outside text-muted-foreground opacity-50",
-                                                    day_disabled: "text-muted-foreground opacity-50", day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground", day_hidden: "invisible",
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="lg:col-span-1">
-                                            <h3 className="text-lg font-semibold font-headline mb-4">
-                                                Events for {date ? format(date, 'PPP') : 'selected date'}
-                                            </h3>
-                                            <Button onClick={() => setIsAddEventDialogOpen(true)} disabled={!date} className="w-full mb-4">
-                                                <Plus className="mr-2 h-4 w-4" /> Add Event
-                                            </Button>
-                                            <ScrollArea className="h-96">
-                                                <div className="space-y-4 pr-4">
-                                                    {isEventsLoading ? <Skeleton className="h-24 w-full" />
-                                                        : eventsForSelectedDay.length > 0 ? (
-                                                            eventsForSelectedDay.map(event => (
-                                                                <div key={event.id} className="p-4 rounded-lg border bg-muted/50 relative group">
-                                                                    <p className="font-bold">{event.title}</p>
-                                                                    <p className="text-sm text-muted-foreground">{event.description}</p>
-                                                                    <p className="text-xs text-muted-foreground mt-2">By: {event.creatorName}</p>
-                                                                    {user?.uid === event.createdBy && (
-                                                                        <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteEvent(event.id)}>
-                                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            ))
-                                                        ) : ( <div className="text-center text-muted-foreground py-10">No events for this day.</div> )
-                                                    }
-                                                </div>
-                                            </ScrollArea>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                    <div className="mt-8">
+                         <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                             <CardHeader>
+                                 <div className="flex flex-wrap items-center justify-between gap-4">
+                                     <div>
+                                         <CardTitle className="flex items-center gap-3">Project Hub</CardTitle>
+                                         <CardDescription>Organize team tasks on the planner or view the calendar.</CardDescription>
+                                     </div>
+                                     <Tabs defaultValue="planner" className="w-full sm:w-auto">
+                                        <TabsList><TabsTrigger value="planner"><FolderKanban className="mr-2 h-4 w-4" /> Planner</TabsTrigger><TabsTrigger value="calendar"><CalendarDays className="mr-2 h-4 w-4" /> Calendar</TabsTrigger></TabsList>
+                                     </Tabs>
+                                 </div>
+                             </CardHeader>
+                             <CardContent className="p-0">
+                                 <Tabs defaultValue="planner">
+                                     <TabsContent value="planner" className="m-0">
+                                         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+                                             <div className="p-4">
+                                                <ScrollArea className="w-full whitespace-nowrap"><div className="flex gap-4 p-4">{isLoadingPlanner ? <Skeleton className="h-96 w-full" /> : (<SortableContext items={columnsId}>{columns.map(col => (<ColumnContainer key={col.id} column={col} tasks={tasks.filter(task => task.columnId === col.id)} createTask={createTask} />))}</SortableContext>)}</div><div className="h-1 pb-1"></div></ScrollArea>
+                                             </div>
+                                             {typeof document !== 'undefined' && createPortal(<DragOverlay>{activeTask && <TaskCard task={activeTask} />}</DragOverlay>, document.body)}
+                                         </DndContext>
+                                     </TabsContent>
+                                     <TabsContent value="calendar" className="m-0">
+                                         <div className="p-4 md:p-6">
+                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                 <div className="lg:col-span-2">
+                                                     <Calendar
+                                                         mode="single"
+                                                         selected={date}
+                                                         onSelect={setDate}
+                                                         className="w-full border-0 sm:border rounded-md"
+                                                         modifiers={calendarModifiers}
+                                                         modifiersClassNames={{ hasEvent: 'day-with-event' }}
+                                                         classNames={{
+                                                             months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                                                             month: "space-y-4 w-full", table: "w-full border-collapse", head_row: "flex",
+                                                             head_cell: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
+                                                             row: "flex w-full mt-2",
+                                                             cell: "w-full text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                                                             day: cn(buttonVariants({ variant: "ghost" }), "h-12 w-full p-0 font-normal aria-selected:opacity-100"),
+                                                             day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                                             day_today: "bg-accent text-accent-foreground", day_outside: "day-outside text-muted-foreground opacity-50",
+                                                             day_disabled: "text-muted-foreground opacity-50", day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground", day_hidden: "invisible",
+                                                         }}
+                                                     />
+                                                 </div>
+                                                 <div className="lg:col-span-1">
+                                                     <h3 className="text-lg font-semibold font-headline mb-4">
+                                                         Events for {date ? format(date, 'PPP') : 'selected date'}
+                                                     </h3>
+                                                     <Button onClick={() => setIsAddEventDialogOpen(true)} disabled={!date} className="w-full mb-4">
+                                                         <Plus className="mr-2 h-4 w-4" /> Add Event
+                                                     </Button>
+                                                     <ScrollArea className="h-96">
+                                                         <div className="space-y-4 pr-4">
+                                                             {isEventsLoading ? <Skeleton className="h-24 w-full" />
+                                                                 : eventsForSelectedDay.length > 0 ? (
+                                                                     eventsForSelectedDay.map(event => (
+                                                                         <div key={event.id} className="p-4 rounded-lg border bg-muted/50 relative group">
+                                                                             <p className="font-bold">{event.title}</p>
+                                                                             <p className="text-sm text-muted-foreground">{event.description}</p>
+                                                                             <p className="text-xs text-muted-foreground mt-2">By: {event.creatorName}</p>
+                                                                             {user?.uid === event.createdBy && (
+                                                                                 <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDeleteEvent(event.id)}>
+                                                                                     <Trash2 className="h-4 w-4 text-destructive" />
+                                                                                 </Button>
+                                                                             )}
+                                                                         </div>
+                                                                     ))
+                                                                 ) : ( <div className="text-center text-muted-foreground py-10">No events for this day.</div> )
+                                                             }
+                                                         </div>
+                                                     </ScrollArea>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </TabsContent>
+                                 </Tabs>
+                             </CardContent>
+                            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                                 <Button variant="outline" onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button>
+                                 <Button asChild className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"><Link href="/chat"><MessageSquare className="mr-2 h-4 w-4" /> Open Full Chat</Link></Button>
+                            </CardFooter>
+                         </Card>
+                     </div>
                 </div>
             </div>
 
