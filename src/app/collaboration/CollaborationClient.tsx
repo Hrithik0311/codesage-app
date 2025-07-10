@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -828,7 +828,7 @@ function ColumnContainer({ column, tasks, createTask }: { column: Column; tasks:
 
 function TaskCard({ task }: { task: Task }) {
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: task.id, data: { type: 'Task', task } });
-    const style = { transition, transform: CSS.Transform.toString(transform) };
+    const style = { transition, transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined };
     if (isDragging) return <div ref={setNodeRef} style={style} className="p-4 bg-card rounded-lg h-[100px] opacity-50 border-2 border-primary" />;
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="p-4 bg-card rounded-lg shadow-md cursor-grab active:cursor-grabbing border border-border/70 flex items-start gap-2">
