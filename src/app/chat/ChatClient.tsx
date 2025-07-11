@@ -256,55 +256,55 @@ export default function ChatClient() {
   const messageInputPlaceholder = `Message ${activeChat?.name || '...'}`;
 
   const ChatSidebar = (
-    <div className={cn("sidebar", isSidebarCollapsed && "collapsed")}>
-        <div className="sidebar-header">
-            <div className="logo" style={{ display: isSidebarCollapsed ? 'none' : 'flex' }}>
-                <MessageSquare className="text-primary-color" />
+    <div className={cn("cs-sidebar", isSidebarCollapsed && "collapsed")}>
+        <div className="cs-sidebar-header">
+            <div className="cs-logo" style={{ display: isSidebarCollapsed ? 'none' : 'flex' }}>
+                <MessageSquare className="cs-logo-icon" />
                 <span>Chat</span>
             </div>
-            <div className="sidebar-controls">
-                <button className="control-btn" title="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            <div className="cs-sidebar-controls">
+                <button className="cs-control-btn" title="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                     {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                 </button>
-                 <button className="control-btn" title="Collapse sidebar" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+                 <button className="cs-control-btn" title="Collapse sidebar" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
                      <ChevronLeft size={16} className={cn('transition-transform', isSidebarCollapsed && 'rotate-180')} />
                  </button>
             </div>
         </div>
         <div className={cn("p-4", isSidebarCollapsed && "hidden")}>
-             <button className="compose-btn w-full justify-center" onClick={() => toast({title: "Coming Soon!", description: "Creating new spaces will be available in a future update."})}>
+             <button className="cs-compose-btn w-full justify-center" onClick={() => toast({title: "Coming Soon!", description: "Creating new spaces will be available in a future update."})}>
                 <Plus size={16} className="mr-2"/>
                 New Chat
             </button>
         </div>
-        <div className={cn("search-container", isSidebarCollapsed && "hidden")}>
+        <div className={cn("cs-search-container", isSidebarCollapsed && "hidden")}>
             <input 
                 type="text" 
-                className="search-input" 
+                className="cs-search-input" 
                 placeholder="Search" 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
             />
-            <Search size={16} className="search-icon" />
+            <Search size={16} className="cs-search-icon" />
         </div>
-        <div className={cn("filters", isSidebarCollapsed && "hidden")}>
-          <div className={cn("filter-chip", activeFilter === 'all' && 'active')} onClick={() => setActiveFilter('all')}>All</div>
-          <div className={cn("filter-chip", activeFilter === 'unread' && 'active')} onClick={() => setActiveFilter('unread')}>Unread</div>
-          <div className={cn("filter-chip", activeFilter === 'groups' && 'active')} onClick={() => setActiveFilter('groups')}>Groups</div>
-          <div className={cn("filter-chip", activeFilter === 'dm' && 'active')} onClick={() => setActiveFilter('dm')}>Direct</div>
+        <div className={cn("cs-filters", isSidebarCollapsed && "hidden")}>
+          <div className={cn("cs-filter-chip", activeFilter === 'all' && 'active')} onClick={() => setActiveFilter('all')}>All</div>
+          <div className={cn("cs-filter-chip", activeFilter === 'unread' && 'active')} onClick={() => setActiveFilter('unread')}>Unread</div>
+          <div className={cn("cs-filter-chip", activeFilter === 'groups' && 'active')} onClick={() => setActiveFilter('groups')}>Groups</div>
+          <div className={cn("cs-filter-chip", activeFilter === 'dm' && 'active')} onClick={() => setActiveFilter('dm')}>Direct</div>
         </div>
-        <div className="chat-list">
+        <div className="cs-chat-list">
             {searchTerm ? (
                 filteredUsers.length > 0 ? (
                     filteredUsers.map(u => (
-                         <div key={u.id} className="chat-item" onClick={() => handleStartChat(u)}>
-                            <div className="avatar"><span>{u.name.substring(0,2).toUpperCase()}</span></div>
-                            <div className={cn("chat-preview", isSidebarCollapsed && "hidden")}>
-                                <div className="chat-name">{u.name}</div>
+                         <div key={u.id} className="cs-chat-item" onClick={() => handleStartChat(u)}>
+                            <div className="cs-avatar"><span>{u.name.substring(0,2).toUpperCase()}</span></div>
+                            <div className={cn("cs-chat-preview", isSidebarCollapsed && "hidden")}>
+                                <div className="cs-chat-name">{u.name}</div>
                             </div>
                         </div>
                     ))
-                ) : <p className={cn("text-center text-sm text-text-secondary p-4", isSidebarCollapsed && 'hidden')}>No users found.</p>
+                ) : <p className={cn("text-center text-sm cs-text-secondary p-4", isSidebarCollapsed && 'hidden')}>No users found.</p>
             ) : (
                  filteredChats.map(chat => {
                     const otherUserId = chat.type === 'dm' ? Object.keys(chat.members || {}).find(id => id !== user?.uid) : null;
@@ -312,17 +312,17 @@ export default function ChatClient() {
                     const status = otherUser?.status || 'offline';
                     
                     return (
-                    <div key={chat.id} className={cn("chat-item", activeChatId === chat.id && 'active')} onClick={() => setActiveChatId(chat.id)}>
-                        <div className="avatar">
+                    <div key={chat.id} className={cn("cs-chat-item", activeChatId === chat.id && 'active')} onClick={() => setActiveChatId(chat.id)}>
+                        <div className="cs-avatar">
                             <span>{chat.name.substring(0,2).toUpperCase()}</span>
-                            {chat.type === 'dm' && <div className={cn("status-indicator", `status-${status}`)}></div>}
+                            {chat.type === 'dm' && <div className={cn("cs-status-indicator", `status-${status}`)}></div>}
                         </div>
-                        <div className={cn("chat-preview", isSidebarCollapsed && "hidden")}>
-                            <div className="chat-header-info">
-                                <div className="chat-name">{chat.name}</div>
-                                <div className="chat-time">{formatTimestamp(chat.lastMessage?.timestamp)}</div>
+                        <div className={cn("cs-chat-preview", isSidebarCollapsed && "hidden")}>
+                            <div className="cs-chat-header-info">
+                                <div className="cs-chat-name">{chat.name}</div>
+                                <div className="cs-chat-time">{formatTimestamp(chat.lastMessage?.timestamp)}</div>
                             </div>
-                            <div className="chat-last-message">
+                            <div className="cs-chat-last-message">
                                 {chat.type === 'channel' && <Users size={12} className="mr-1" />}
                                 {chat.lastMessage?.text || "No messages yet"}
                             </div>
@@ -337,14 +337,14 @@ export default function ChatClient() {
   const MessageItem = ({ msg }: { msg: Message }) => {
     const isSender = msg.senderId === user?.uid;
     return (
-        <div className={cn("message", isSender ? "sent" : "received")}>
-            <div className="message-content">
-                <div className="message-bubble">
-                    {!isSender && <p className="font-bold text-sm mb-1 text-primary-color">{msg.senderName}</p>}
+        <div className={cn("cs-message", isSender ? "sent" : "received")}>
+            <div className="cs-message-content">
+                <div className="cs-message-bubble">
+                    {!isSender && <p className="font-bold text-sm mb-1 cs-text-primary-color">{msg.senderName}</p>}
                     <p>{msg.text}</p>
                 </div>
-                 <div className="message-meta">
-                    <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
+                 <div className="cs-message-meta">
+                    <span className="cs-message-time">{formatTimestamp(msg.timestamp)}</span>
                  </div>
             </div>
         </div>
@@ -352,22 +352,22 @@ export default function ChatClient() {
   }
 
   return (
-    <div className="chat-container">
+    <div className="cs-chat-container">
         {ChatSidebar}
-        <div className="main-chat">
-            <div className="chat-header">
-                <div className="chat-title">
+        <div className="cs-main-chat">
+            <div className="cs-chat-header">
+                <div className="cs-chat-title">
                     {activeChat && (
                       <>
-                        <div className="avatar">
+                        <div className="cs-avatar">
                             <span>{activeChat.name.substring(0,2).toUpperCase()}</span>
-                            {activeChat.type === 'dm' && <div className={cn("status-indicator", `status-${activeChatUser?.status || 'offline'}`)}></div>}
+                            {activeChat.type === 'dm' && <div className={cn("cs-status-indicator", `status-${activeChatUser?.status || 'offline'}`)}></div>}
                         </div>
-                        <div className="chat-info">
+                        <div className="cs-chat-info">
                             <h3>{activeChat.name}</h3>
-                            <div className="chat-status">
+                            <div className="cs-chat-status">
                                 {activeChat.type === 'dm' && <>
-                                 <div className={cn("w-2 h-2 rounded-full", activeChatUser?.status === 'online' ? 'bg-success-color' : 'bg-gray-400')}></div>
+                                 <div className={cn("w-2 h-2 rounded-full", activeChatUser?.status === 'online' ? 'bg-green-500' : 'bg-gray-400')}></div>
                                  {activeChatUser?.status === 'online' ? 'Active now' : 'Offline'}
                                 </>}
                                 {activeChat.type === 'channel' && <><Users size={12} /> {Object.keys(activeChat.members || {}).length} members</>}
@@ -376,26 +376,26 @@ export default function ChatClient() {
                       </>
                     )}
                 </div>
-                <div className="chat-actions">
-                    <button className="action-btn"><Video size={20}/></button>
-                    <button className="action-btn"><Phone size={20}/></button>
-                    <button className="action-btn"><Search size={20}/></button>
-                    <button className="action-btn"><MoreHorizontal size={20}/></button>
+                <div className="cs-chat-actions">
+                    <button className="cs-action-btn"><Video size={20}/></button>
+                    <button className="cs-action-btn"><Phone size={20}/></button>
+                    <button className="cs-action-btn"><Search size={20}/></button>
+                    <button className="cs-action-btn"><MoreHorizontal size={20}/></button>
                 </div>
             </div>
-            <div className="messages-container" ref={messagesEndRef}>
-              <div className="date-separator"><span>Today</span></div>
+            <div className="cs-messages-container" ref={messagesEndRef}>
+              <div className="cs-date-separator"><span>Today</span></div>
               {messages.map(msg => <MessageItem key={msg.key} msg={msg} />)}
             </div>
-            <div className="input-container">
-                <div className="input-wrapper">
-                     <div className="input-tools">
-                        <button className="input-tool" title="Attach file"><Paperclip size={20} /></button>
-                        <button className="input-tool" title="Add emoji"><Smile size={20} /></button>
-                        <button className="input-tool" title="Record voice note"><Mic size={20} /></button>
+            <div className="cs-input-container">
+                <div className="cs-input-wrapper">
+                     <div className="cs-input-tools">
+                        <button className="cs-input-tool" title="Attach file"><Paperclip size={20} /></button>
+                        <button className="cs-input-tool" title="Add emoji"><Smile size={20} /></button>
+                        <button className="cs-input-tool" title="Record voice note"><Mic size={20} /></button>
                     </div>
                     <Textarea
-                        className="message-input"
+                        className="cs-message-input"
                         placeholder={messageInputPlaceholder}
                         rows={1}
                         value={newMessage}
@@ -403,7 +403,7 @@ export default function ChatClient() {
                         onKeyDown={(e) => {if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}}
                         disabled={!activeChatId}
                     />
-                    <button className={cn("send-btn", newMessage.trim() && "active")} onClick={handleSendMessage} disabled={!newMessage.trim() || isSending}>
+                    <button className={cn("cs-send-btn", newMessage.trim() && "active")} onClick={handleSendMessage} disabled={!newMessage.trim() || isSending}>
                         <SendHorizontal size={16}/>
                     </button>
                 </div>
