@@ -9,11 +9,12 @@ import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Search, SendHorizontal, MoreHorizontal, ChevronLeft, Moon, Sun, Plus, Video, Phone, Users } from 'lucide-react';
+import { MessageSquare, Search, SendHorizontal, MoreHorizontal, ChevronLeft, Moon, Sun, Plus, Video, Phone, Users, Paperclip, Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useTheme } from 'next-themes';
+import { Smile } from 'lucide-react';
 
 // --- Interfaces ---
 interface Message {
@@ -39,6 +40,7 @@ interface PlatformUser {
     id: string;
     name: string;
     role: string;
+    status?: 'online' | 'away' | 'busy' | 'offline';
 }
 
 type LoadingState = 'initializing' | 'ready';
@@ -66,12 +68,20 @@ export default function ChatClient() {
   const [isSending, setIsSending] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState('all');
 
   // --- UI State ---
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { theme, setTheme } = useTheme();
 
   const activeChat = useMemo(() => chats.find(c => c.id === activeChatId), [chats, activeChatId]);
+  const activeChatUser = useMemo(() => {
+    if (activeChat?.type === 'dm') {
+        const otherUserId = Object.keys(activeChat.members || {}).find(id => id !== user?.uid);
+        return allUsers.find(u => u.id === otherUserId);
+    }
+    return null;
+  }, [activeChat, user, allUsers]);
 
   useEffect(() => {
     if (authLoading || !user || !database) return;
@@ -82,11 +92,23 @@ export default function ChatClient() {
     const usersRef = dbRef(database, 'users');
     get(usersRef).then(usersSnapshot => {
         const usersData = usersSnapshot.val() || {};
-        const loadedUsers = Object.entries(usersData).map(([id, data]: [string, any]) => ({
+        const loadedUsers: PlatformUser[] = Object.entries(usersData).map(([id, data]: [string, any]) => ({
             id,
             name: data.name || `User...${id.substring(0,4)}`,
             role: '',
+            status: 'offline', // default status
         }));
+        
+        // Listen for status changes
+        const statusRef = dbRef(database, 'status');
+        onValue(statusRef, (statusSnapshot) => {
+            const statuses = statusSnapshot.val() || {};
+            setAllUsers(prevUsers => prevUsers.map(u => ({
+                ...u,
+                status: statuses[u.id]?.state || 'offline'
+            })));
+        });
+
         setAllUsers(loadedUsers);
         const usersById = new Map(loadedUsers.map(u => [u.id, u.name]));
 
@@ -135,7 +157,7 @@ export default function ChatClient() {
     return () => {
       if (chatsUnsubscribe) chatsUnsubscribe();
     };
-  }, [user, authLoading, toast]);
+  }, [user, authLoading, toast, activeChatId]);
 
   useEffect(() => {
     if (!activeChatId || !database) {
@@ -215,10 +237,17 @@ export default function ChatClient() {
 
     const filteredUsers = searchTerm ? allUsers.filter(m => m.id !== user?.uid && m.name.toLowerCase().includes(searchTerm.toLowerCase())) : [];
 
+    const filteredChats = useMemo(() => {
+        if (activeFilter === 'all') return chats;
+        if (activeFilter === 'unread') return chats.filter(c => false); // Unread logic needed
+        if (activeFilter === 'groups') return chats.filter(c => c.type === 'channel');
+        if (activeFilter === 'dm') return chats.filter(c => c.type === 'dm');
+        return chats;
+    }, [activeFilter, chats]);
 
   if (loadingState === 'initializing') {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex h-screen w-full items-center justify-center bg-surface-color">
         <div className="loading-spinner"></div>
       </div>
     );
@@ -227,72 +256,80 @@ export default function ChatClient() {
   const messageInputPlaceholder = `Message ${activeChat?.name || '...'}`;
 
   const ChatSidebar = (
-    <div className={cn("flex flex-col border-r border-border bg-muted/20 transition-all duration-300", isSidebarCollapsed ? "w-[70px]" : "w-[300px]")}>
-        <div className="p-4 border-b border-border flex items-center justify-between bg-background">
-            <div className={cn("flex items-center text-xl font-medium text-foreground", isSidebarCollapsed && "hidden")}>
-                <MessageSquare className="mr-2 text-primary" />
+    <div className={cn("sidebar", isSidebarCollapsed && "collapsed")}>
+        <div className="sidebar-header">
+            <div className="logo" style={{ display: isSidebarCollapsed ? 'none' : 'flex' }}>
+                <MessageSquare className="text-primary-color" />
                 <span>Chat</span>
             </div>
-            <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            <div className="sidebar-controls">
+                <button className="control-btn" title="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                     {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-                    <ChevronLeft size={16} className={cn('transition-transform', isSidebarCollapsed && 'rotate-180')} />
-                </Button>
+                </button>
+                 <button className="control-btn" title="Collapse sidebar" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+                     <ChevronLeft size={16} className={cn('transition-transform', isSidebarCollapsed && 'rotate-180')} />
+                 </button>
             </div>
         </div>
-        <div className={cn("p-4 relative", isSidebarCollapsed && "hidden")}>
-            <Input 
+        <div className={cn("p-4", isSidebarCollapsed && "hidden")}>
+             <button className="compose-btn w-full justify-center" onClick={() => toast({title: "Coming Soon!", description: "Creating new spaces will be available in a future update."})}>
+                <Plus size={16} className="mr-2"/>
+                New Chat
+            </button>
+        </div>
+        <div className={cn("search-container", isSidebarCollapsed && "hidden")}>
+            <input 
                 type="text" 
-                className="w-full py-3 pr-4 pl-11 border rounded-full text-sm" 
+                className="search-input" 
                 placeholder="Search" 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
             />
-            <Search size={16} className="absolute left-7 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={16} className="search-icon" />
         </div>
-        <div className={cn("flex gap-2 px-4 pb-4 overflow-x-auto", isSidebarCollapsed && "hidden")}>
-          <div className="py-1.5 px-3 border rounded-2xl text-xs cursor-pointer whitespace-nowrap bg-primary text-primary-foreground">All</div>
-          <div className="py-1.5 px-3 border rounded-2xl text-xs cursor-pointer whitespace-nowrap">Unread</div>
-          <div className="py-1.5 px-3 border rounded-2xl text-xs cursor-pointer whitespace-nowrap">Groups</div>
-          <div className="py-1.5 px-3 border rounded-2xl text-xs cursor-pointer whitespace-nowrap">Direct</div>
+        <div className={cn("filters", isSidebarCollapsed && "hidden")}>
+          <div className={cn("filter-chip", activeFilter === 'all' && 'active')} onClick={() => setActiveFilter('all')}>All</div>
+          <div className={cn("filter-chip", activeFilter === 'unread' && 'active')} onClick={() => setActiveFilter('unread')}>Unread</div>
+          <div className={cn("filter-chip", activeFilter === 'groups' && 'active')} onClick={() => setActiveFilter('groups')}>Groups</div>
+          <div className={cn("filter-chip", activeFilter === 'dm' && 'active')} onClick={() => setActiveFilter('dm')}>Direct</div>
         </div>
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="chat-list">
             {searchTerm ? (
                 filteredUsers.length > 0 ? (
                     filteredUsers.map(u => (
-                         <div key={u.id} className="py-3 px-4 cursor-pointer transition-all border-l-4 border-transparent flex items-center hover:bg-muted" onClick={() => handleStartChat(u)}>
-                            <div className="w-10 h-10 rounded-full flex-shrink-0 bg-muted flex items-center justify-center font-medium mr-3">{u.name.substring(0,1)}</div>
-                            <div className={cn("flex-1 min-w-0", isSidebarCollapsed && "hidden")}>
-                                <div className="font-medium text-foreground">{u.name}</div>
+                         <div key={u.id} className="chat-item" onClick={() => handleStartChat(u)}>
+                            <div className="avatar"><span>{u.name.substring(0,2).toUpperCase()}</span></div>
+                            <div className={cn("chat-preview", isSidebarCollapsed && "hidden")}>
+                                <div className="chat-name">{u.name}</div>
                             </div>
                         </div>
                     ))
-                ) : <p className={cn("text-center text-sm text-muted-foreground p-4", isSidebarCollapsed && 'hidden')}>No users found.</p>
+                ) : <p className={cn("text-center text-sm text-text-secondary p-4", isSidebarCollapsed && 'hidden')}>No users found.</p>
             ) : (
-                 chats.map(chat => (
-                    <div key={chat.id} className={cn("py-3 px-4 cursor-pointer transition-all border-l-4 border-transparent flex items-center hover:bg-muted", activeChatId === chat.id && 'bg-primary/10 border-primary')} onClick={() => setActiveChatId(chat.id)}>
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-muted flex items-center justify-center font-medium mr-3">{chat.name.substring(0,2).toUpperCase()}</div>
-                        <div className={cn("flex-1 min-w-0", isSidebarCollapsed && "hidden")}>
-                            <div className="flex justify-between items-center mb-1">
-                                <div className="font-medium text-foreground">{chat.name}</div>
-                                <div className="text-xs text-muted-foreground">{formatTimestamp(chat.lastMessage?.timestamp)}</div>
+                 filteredChats.map(chat => {
+                    const otherUserId = chat.type === 'dm' ? Object.keys(chat.members || {}).find(id => id !== user?.uid) : null;
+                    const otherUser = otherUserId ? allUsers.find(u => u.id === otherUserId) : null;
+                    const status = otherUser?.status || 'offline';
+                    
+                    return (
+                    <div key={chat.id} className={cn("chat-item", activeChatId === chat.id && 'active')} onClick={() => setActiveChatId(chat.id)}>
+                        <div className="avatar">
+                            <span>{chat.name.substring(0,2).toUpperCase()}</span>
+                            {chat.type === 'dm' && <div className={cn("status-indicator", `status-${status}`)}></div>}
+                        </div>
+                        <div className={cn("chat-preview", isSidebarCollapsed && "hidden")}>
+                            <div className="chat-header-info">
+                                <div className="chat-name">{chat.name}</div>
+                                <div className="chat-time">{formatTimestamp(chat.lastMessage?.timestamp)}</div>
                             </div>
-                            <div className="text-muted-foreground text-sm whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
+                            <div className="chat-last-message">
                                 {chat.type === 'channel' && <Users size={12} className="mr-1" />}
                                 {chat.lastMessage?.text || "No messages yet"}
                             </div>
                         </div>
                     </div>
-                ))
+                 )})
             )}
-        </div>
-        <div className={cn("p-4", isSidebarCollapsed && "hidden")}>
-            <Button className="w-full" onClick={() => toast({title: "Coming Soon!", description: "Creating new spaces will be available in a future update."})}>
-                <Plus size={16} className="mr-2"/>
-                New Chat
-            </Button>
         </div>
     </div>
   )
@@ -300,63 +337,65 @@ export default function ChatClient() {
   const MessageItem = ({ msg }: { msg: Message }) => {
     const isSender = msg.senderId === user?.uid;
     return (
-        <div className={cn("flex mb-4", isSender ? "justify-end" : "justify-start")}>
-          <div className="max-w-[70%]">
-            <div className={cn("py-3 px-4 rounded-2xl", isSender ? "bg-primary text-primary-foreground rounded-br-md" : "bg-background border rounded-bl-md")}>
-                {msg.text}
+        <div className={cn("message", isSender ? "sent" : "received")}>
+            <div className="message-content">
+                <div className="message-bubble">
+                    {!isSender && <p className="font-bold text-sm mb-1 text-primary-color">{msg.senderName}</p>}
+                    <p>{msg.text}</p>
+                </div>
+                 <div className="message-meta">
+                    <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
+                 </div>
             </div>
-            <div className="flex justify-between items-center mt-1 text-xs opacity-70 text-muted-foreground">
-              <span>{formatTimestamp(msg.timestamp)}</span>
-            </div>
-          </div>
         </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="chat-container">
         {ChatSidebar}
-        <div className="flex-1 flex flex-col bg-background relative">
-            <div className="py-4 px-6 border-b border-border flex items-center justify-between bg-background z-10">
-                <div className="flex items-center">
+        <div className="main-chat">
+            <div className="chat-header">
+                <div className="chat-title">
                     {activeChat && (
                       <>
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-muted flex items-center justify-center font-medium mr-3 relative">
+                        <div className="avatar">
                             <span>{activeChat.name.substring(0,2).toUpperCase()}</span>
-                            <div className="absolute bottom-[-2px] right-[-2px] w-3 h-3 rounded-full bg-green-500 border-2 border-background"></div>
+                            {activeChat.type === 'dm' && <div className={cn("status-indicator", `status-${activeChatUser?.status || 'offline'}`)}></div>}
                         </div>
-                        <div className="ml-3">
-                            <h3 className="text-base font-medium text-foreground mb-0">{activeChat.name}</h3>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
-                                Active now
+                        <div className="chat-info">
+                            <h3>{activeChat.name}</h3>
+                            <div className="chat-status">
+                                {activeChat.type === 'dm' && <>
+                                 <div className={cn("w-2 h-2 rounded-full", activeChatUser?.status === 'online' ? 'bg-success-color' : 'bg-gray-400')}></div>
+                                 {activeChatUser?.status === 'online' ? 'Active now' : 'Offline'}
+                                </>}
+                                {activeChat.type === 'channel' && <><Users size={12} /> {Object.keys(activeChat.members || {}).length} members</>}
                             </div>
                         </div>
                       </>
                     )}
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-9 w-9"><Video size={20}/></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9"><Phone size={20}/></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9"><Search size={20}/></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9"><MoreHorizontal size={20}/></Button>
+                <div className="chat-actions">
+                    <button className="action-btn"><Video size={20}/></button>
+                    <button className="action-btn"><Phone size={20}/></button>
+                    <button className="action-btn"><Search size={20}/></button>
+                    <button className="action-btn"><MoreHorizontal size={20}/></button>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 bg-muted/30" ref={messagesEndRef}>
-              <div className="text-center my-5 relative">
-                <div className="absolute top-1/2 left-0 right-0 h-px bg-border"></div>
-                <span className="bg-muted/30 px-4 text-muted-foreground text-xs relative z-10">Today</span>
-              </div>
+            <div className="messages-container" ref={messagesEndRef}>
+              <div className="date-separator"><span>Today</span></div>
               {messages.map(msg => <MessageItem key={msg.key} msg={msg} />)}
             </div>
-            <div className="p-4 px-6 bg-background border-t border-border">
-                <div className="flex items-end gap-3 bg-muted/30 rounded-3xl p-2 px-4 border border-border transition-all focus-within:border-primary">
-                    <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><Plus size={20}/></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><Users size={20}/></Button>
+            <div className="input-container">
+                <div className="input-wrapper">
+                     <div className="input-tools">
+                        <button className="input-tool" title="Attach file"><Paperclip size={20} /></button>
+                        <button className="input-tool" title="Add emoji"><Smile size={20} /></button>
+                        <button className="input-tool" title="Record voice note"><Mic size={20} /></button>
                     </div>
                     <Textarea
-                        className="flex-1 border-none bg-transparent p-2 text-sm resize-none h-auto min-h-[24px] outline-none shadow-none focus-visible:ring-0" 
+                        className="message-input"
                         placeholder={messageInputPlaceholder}
                         rows={1}
                         value={newMessage}
@@ -364,9 +403,9 @@ export default function ChatClient() {
                         onKeyDown={(e) => {if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}}
                         disabled={!activeChatId}
                     />
-                    <Button size="icon" className={cn("h-9 w-9 rounded-full transition-all", newMessage.trim() ? "opacity-100 scale-100" : "opacity-50 scale-90")} onClick={handleSendMessage} disabled={!newMessage.trim() || isSending}>
+                    <button className={cn("send-btn", newMessage.trim() && "active")} onClick={handleSendMessage} disabled={!newMessage.trim() || isSending}>
                         <SendHorizontal size={16}/>
-                    </Button>
+                    </button>
                 </div>
             </div>
         </div>
