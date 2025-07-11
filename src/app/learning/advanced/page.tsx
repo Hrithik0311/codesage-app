@@ -1,6 +1,5 @@
 
 import type { Metadata } from 'next';
-import AnimatedBackground from '@/components/landing/AnimatedBackground';
 import AdvancedLearningPageClient from './AdvancedLearningPageClient';
 
 
@@ -11,11 +10,8 @@ export const metadata: Metadata = {
 
 export default function AdvancedLearningPage() {
   return (
-    <>
-      <AnimatedBackground /> 
-      <div className="relative z-10 min-h-screen">
-        <AdvancedLearningPageClient />
-      </div>
-    </>
+    <div className="relative z-10 min-h-screen">
+      <AdvancedLearningPageClient />
+    </div>
   );
 }

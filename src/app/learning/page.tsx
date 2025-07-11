@@ -1,6 +1,5 @@
 
 import type { Metadata } from 'next';
-import AnimatedBackground from '@/components/landing/AnimatedBackground';
 import LearningPageClient from './LearningPageClient';
 
 
@@ -11,9 +10,6 @@ export const metadata: Metadata = {
 
 export default function LearningPage() {
   return (
-    <>
-      <AnimatedBackground /> 
-      <LearningPageClient />
-    </>
+    <LearningPageClient />
   );
 }

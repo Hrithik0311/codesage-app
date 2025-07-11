@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import AnimatedBackground from '@/components/landing/AnimatedBackground';
 import CodeIntelligenceClient from './CodeIntelligenceClient';
 
 export const metadata: Metadata = {
@@ -9,11 +8,8 @@ export const metadata: Metadata = {
 
 export default function CodeIntelligencePage() {
   return (
-    <>
-      <AnimatedBackground />
-      <main className="relative z-10">
-        <CodeIntelligenceClient />
-      </main>
-    </>
+    <main className="relative z-10">
+      <CodeIntelligenceClient />
+    </main>
   );
 }

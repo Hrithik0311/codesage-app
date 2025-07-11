@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import AnimatedBackground from '@/components/landing/AnimatedBackground';
 import AuthClient from './AuthClient';
 
 export const metadata: Metadata = {
@@ -9,11 +8,8 @@ export const metadata: Metadata = {
 
 export default function AuthPage() {
   return (
-    <>
-      <AnimatedBackground />
-      <main className="relative z-10 flex min-h-screen items-center justify-center p-4">
-        <AuthClient />
-      </main>
-    </>
+    <main className="relative z-10 flex min-h-screen items-center justify-center p-4">
+      <AuthClient />
+    </main>
   );
 }
