@@ -37,50 +37,74 @@ function hexToHsl(hex: string): string {
 const CustomThemeModal = ({ isOpen, onClose }) => {
     const { setTheme } = useTheme();
     
-    const [customPrimary, setCustomPrimary] = useLocalStorage('--custom-primary', '#7c3aed');
-    const [customAccent, setCustomAccent] = useLocalStorage('--custom-accent', '#a855f7');
-    const [customBackground, setCustomBackground] = useLocalStorage('--custom-background', '#0a0a0a');
+    const [savedPrimary, setSavedPrimary] = useLocalStorage('--custom-primary', '#7c3aed');
+    const [savedAccent, setSavedAccent] = useLocalStorage('--custom-accent', '#a855f7');
+    const [savedBackground, setSavedBackground] = useLocalStorage('--custom-background', '#0a0a0a');
 
-    useEffect(() => {
-        if (isOpen) {
-            setTheme('custom');
-        }
-    }, [isOpen, setTheme]);
+    const [primary, setPrimary] = useState(savedPrimary);
+    const [accent, setAccent] = useState(savedAccent);
+    const [background, setBackground] = useState(savedBackground);
     
     useEffect(() => {
         if (isOpen) {
-            document.documentElement.setAttribute('data-theme', 'custom');
-            document.documentElement.style.setProperty('--primary', hexToHsl(customPrimary));
-            document.documentElement.style.setProperty('--accent', hexToHsl(customAccent));
-            document.documentElement.style.setProperty('--background', hexToHsl(customBackground));
+            // When modal opens, sync state with saved values
+            setPrimary(savedPrimary);
+            setAccent(savedAccent);
+            setBackground(savedBackground);
+            setTheme('custom');
         }
-    }, [isOpen, customPrimary, customAccent, customBackground]);
+    }, [isOpen, setTheme, savedPrimary, savedAccent, savedBackground]);
+    
+    useEffect(() => {
+        if (isOpen) {
+            // Live preview effect
+            document.documentElement.setAttribute('data-theme', 'custom');
+            document.documentElement.style.setProperty('--primary', hexToHsl(primary));
+            document.documentElement.style.setProperty('--accent', hexToHsl(accent));
+            document.documentElement.style.setProperty('--background', hexToHsl(background));
+        } else {
+            // Revert to saved theme when modal is closed without saving
+            document.documentElement.style.setProperty('--primary', hexToHsl(savedPrimary));
+            document.documentElement.style.setProperty('--accent', hexToHsl(savedAccent));
+            document.documentElement.style.setProperty('--background', hexToHsl(savedBackground));
+        }
+    }, [isOpen, primary, accent, background, savedPrimary, savedAccent, savedBackground]);
+
+    const handleSave = () => {
+        setSavedPrimary(primary);
+        setSavedAccent(accent);
+        setSavedBackground(background);
+        onClose();
+    };
     
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
             title="Create Custom Theme"
+            buttons={[
+                { text: 'Save', action: handleSave, isPrimary: true }
+            ]}
         >
             <div className="space-y-8 py-4">
                 <div className="flex items-center justify-between">
                     <label htmlFor="primary-color" className="font-medium text-lg">Primary Color</label>
-                    <input id="primary-color" type="color" value={customPrimary} onChange={(e) => setCustomPrimary(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+                    <input id="primary-color" type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
                 </div>
                 <div className="flex items-center justify-between">
                     <label htmlFor="accent-color" className="font-medium text-lg">Accent Color</label>
-                    <input id="accent-color" type="color" value={customAccent} onChange={(e) => setCustomAccent(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+                    <input id="accent-color" type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
                 </div>
                  <div className="flex items-center justify-between">
                     <label htmlFor="bg-color" className="font-medium text-lg">Background Color</label>
-                    <input id="bg-color" type="color" value={customBackground} onChange={(e) => setCustomBackground(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+                    <input id="bg-color" type="color" value={background} onChange={(e) => setBackground(e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
                 </div>
             </div>
             
-            <div className="mt-8 p-6 rounded-lg border" style={{ backgroundColor: customBackground }}>
-                 <div className="text-center" style={{ color: customPrimary }}>
+            <div className="mt-8 p-6 rounded-lg border" style={{ backgroundColor: background }}>
+                 <div className="text-center" style={{ color: primary }}>
                     <h3 className="text-xl font-bold">Theme Preview</h3>
-                    <p className="mt-2" style={{ color: customAccent }}>This is how your theme looks.</p>
+                    <p className="mt-2" style={{ color: accent }}>This is how your theme looks.</p>
                  </div>
             </div>
         </Modal>
