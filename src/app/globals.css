@@ -56,7 +56,7 @@
     --ring: var(--custom-primary);
   }
 
-  .dark {
+  [data-theme='dark'] {
     --background: 240 5% 4%;
     --foreground: 0 0% 98%;
     --card: 240 5% 4%;
