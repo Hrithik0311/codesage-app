@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import { Inter as FontInter, Space_Grotesk as FontSpaceGrotesk } from 'next/font/google';
 import './globals.css';
