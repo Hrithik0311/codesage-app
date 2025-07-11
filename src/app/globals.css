@@ -34,16 +34,26 @@
     --ring: 278 100% 25%;
 
     --radius: 0.5rem;
-
-    --custom-primary: 278 100% 25%;
-    --custom-accent: 274 100% 50%;
-    --custom-background: 240 5% 4%;
   }
   
   [data-theme='custom'] {
-    --background: var(--custom-background) !important;
-    --primary: var(--custom-primary) !important;
-    --accent: var(--custom-accent) !important;
+    --background: var(--custom-background);
+    --foreground: var(--custom-foreground);
+    --card: var(--custom-background);
+    --card-foreground: var(--custom-foreground);
+    --popover: var(--custom-background);
+    --popover-foreground: var(--custom-foreground);
+    --primary: var(--custom-primary);
+    --primary-foreground: var(--custom-primary-foreground);
+    --secondary: var(--custom-accent);
+    --secondary-foreground: var(--custom-primary-foreground);
+    --muted: color-mix(in srgb, hsl(var(--custom-background)) 85%, #ffffff 15%);
+    --muted-foreground: color-mix(in srgb, hsl(var(--custom-foreground)) 60%, transparent);
+    --accent: var(--custom-accent);
+    --accent-foreground: var(--custom-primary-foreground);
+    --border: color-mix(in srgb, hsl(var(--custom-background)) 85%, #ffffff 15%);
+    --input: color-mix(in srgb, hsl(var(--custom-background)) 85%, #ffffff 15%);
+    --ring: var(--custom-primary);
   }
 
   .dark {

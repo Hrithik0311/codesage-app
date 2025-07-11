@@ -6,6 +6,16 @@ import { useTheme } from 'next-themes';
 import Modal from '@/components/Modal';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
+// Helper to calculate a contrasting foreground color
+function getContrastingColor(hex: string): string {
+    if (!hex) return '#FFFFFF';
+    const r = parseInt(hex.substring(1, 3), 16);
+    const g = parseInt(hex.substring(3, 5), 16);
+    const b = parseInt(hex.substring(5, 7), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#000000' : '#FFFFFF';
+}
+
 function hexToHsl(hex: string): string {
     if (!hex) return '0 0% 0%';
     hex = hex.replace(/^#/, '');
@@ -37,50 +47,60 @@ function hexToHsl(hex: string): string {
 const CustomThemeModal = ({ isOpen, onClose }) => {
     const { setTheme } = useTheme();
     
-    const [savedPrimary, setSavedPrimary] = useLocalStorage('--custom-primary', '#7c3aed');
-    const [savedAccent, setSavedAccent] = useLocalStorage('--custom-accent', '#a855f7');
-    const [savedBackground, setSavedBackground] = useLocalStorage('--custom-background', '#0a0a0a');
+    // Use local storage to persist custom theme settings
+    const [savedPrimary, setSavedPrimary] = useLocalStorage('custom-primary-color', '#7c3aed');
+    const [savedAccent, setSavedAccent] = useLocalStorage('custom-accent-color', '#a855f7');
+    const [savedBackground, setSavedBackground] = useLocalStorage('custom-background-color', '#0a0a0a');
 
+    // Local state for the color pickers in the modal for live preview
     const [primary, setPrimary] = useState(savedPrimary);
     const [accent, setAccent] = useState(savedAccent);
     const [background, setBackground] = useState(savedBackground);
     
+    // When the modal opens, sync the local state with the saved values
     useEffect(() => {
         if (isOpen) {
-            // When modal opens, sync state with saved values
             setPrimary(savedPrimary);
             setAccent(savedAccent);
             setBackground(savedBackground);
-            setTheme('custom');
         }
-    }, [isOpen, setTheme, savedPrimary, savedAccent, savedBackground]);
+    }, [isOpen, savedPrimary, savedAccent, savedBackground]);
     
+    // Live preview effect for when the modal is open
     useEffect(() => {
         if (isOpen) {
-            // Live preview effect
             document.documentElement.setAttribute('data-theme', 'custom');
-            document.documentElement.style.setProperty('--primary', hexToHsl(primary));
-            document.documentElement.style.setProperty('--accent', hexToHsl(accent));
-            document.documentElement.style.setProperty('--background', hexToHsl(background));
-        } else {
-            // Revert to saved theme when modal is closed without saving
-            document.documentElement.style.setProperty('--primary', hexToHsl(savedPrimary));
-            document.documentElement.style.setProperty('--accent', hexToHsl(savedAccent));
-            document.documentElement.style.setProperty('--background', hexToHsl(savedBackground));
+            document.documentElement.style.setProperty('--custom-primary', hexToHsl(primary));
+            document.documentElement.style.setProperty('--custom-accent', hexToHsl(accent));
+            document.documentElement.style.setProperty('--custom-background', hexToHsl(background));
+            const foreground = getContrastingColor(background);
+            document.documentElement.style.setProperty('--custom-foreground', hexToHsl(foreground));
+            document.documentElement.style.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(primary)));
         }
-    }, [isOpen, primary, accent, background, savedPrimary, savedAccent, savedBackground]);
+    }, [isOpen, primary, accent, background]);
 
     const handleSave = () => {
         setSavedPrimary(primary);
         setSavedAccent(accent);
         setSavedBackground(background);
+        setTheme('custom'); // Ensure the theme is set to custom
+        onClose();
+    };
+
+    const handleClose = () => {
+        // Revert any live preview changes if the user cancels
+        document.documentElement.style.removeProperty('--custom-primary');
+        document.documentElement.style.removeProperty('--custom-accent');
+        document.documentElement.style.removeProperty('--custom-background');
+        document.documentElement.style.removeProperty('--custom-foreground');
+        document.documentElement.style.removeProperty('--custom-primary-foreground');
         onClose();
     };
     
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title="Create Custom Theme"
             buttons={[
                 { text: 'Save', action: handleSave, isPrimary: true }
@@ -101,9 +121,9 @@ const CustomThemeModal = ({ isOpen, onClose }) => {
                 </div>
             </div>
             
-            <div className="mt-8 p-6 rounded-lg border" style={{ backgroundColor: background }}>
-                 <div className="text-center" style={{ color: primary }}>
-                    <h3 className="text-xl font-bold">Theme Preview</h3>
+            <div className="mt-8 p-6 rounded-lg border" style={{ backgroundColor: background, color: getContrastingColor(background) }}>
+                 <div className="text-center">
+                    <h3 className="text-xl font-bold" style={{ color: primary }}>Theme Preview</h3>
                     <p className="mt-2" style={{ color: accent }}>This is how your theme looks.</p>
                  </div>
             </div>

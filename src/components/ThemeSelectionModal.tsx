@@ -19,6 +19,11 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }) => {
   }, []);
   
   const handleSetTheme = (newTheme: string) => {
+    // When a standard theme is selected, remove any inline styles
+    // that the custom theme modal might have set.
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--background');
     setTheme(newTheme);
   }
 
@@ -58,19 +63,19 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }) => {
                 )}
                 onClick={() => handleSetTheme(item.value)}
                 style={{
-                  '--primary': `var(--${item.value}-primary, hsl(var(--primary)))`,
-                  '--background': `var(--${item.value}-background, hsl(var(--background)))`,
-                  '--border': `var(--${item.value}-border, hsl(var(--border)))`,
-                  '--primary-foreground': `var(--${item.value}-primary-foreground, hsl(var(--primary-foreground)))`,
-                  backgroundColor: `var(--background)`,
-                  borderColor: `var(--border)`,
+                  '--primary-preview': `hsl(var(--${item.value}-primary, 0 0% 0%))`,
+                  '--background-preview': `hsl(var(--${item.value}-background, 0 0% 100%))`,
+                  '--border-preview': `hsl(var(--${item.value}-border, 0 0% 80%))`,
+                  '--primary-foreground-preview': `hsl(var(--${item.value}-primary-foreground, 0 0% 100%))`,
+                  backgroundColor: `var(--background-preview)`,
+                  borderColor: `var(--border-preview)`,
                 } as React.CSSProperties}
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{
-                    backgroundColor: `var(--primary)`,
-                    color: `var(--primary-foreground)`,
+                    backgroundColor: `var(--primary-preview)`,
+                    color: `var(--primary-foreground-preview)`,
                   }}
                 >
                    {theme === item.value && <Check className="h-6 w-6" />}
