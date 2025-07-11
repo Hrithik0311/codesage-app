@@ -35,6 +35,7 @@ const ThemeSelectionModal = ({ isOpen, onClose }) => {
                   '--background': `hsl(var(--${item.value}-background, var(--background)))`,
                   '--foreground': `hsl(var(--${item.value}-foreground, var(--foreground)))`,
                   '--primary': `hsl(var(--${item.value}-primary, var(--primary)))`,
+                  '--primary-foreground': `hsl(var(--${item.value}-primary-foreground, var(--primary-foreground)))`,
                 } as React.CSSProperties}
                 data-theme={item.value}
               >
@@ -52,4 +53,3 @@ const ThemeSelectionModal = ({ isOpen, onClose }) => {
 };
 
 export default ThemeSelectionModal;
-
