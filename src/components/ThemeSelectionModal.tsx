@@ -20,10 +20,12 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }) => {
   
   const handleSetTheme = (newTheme: string) => {
     // When a standard theme is selected, remove any inline styles
-    // that the custom theme modal might have set.
-    document.documentElement.style.removeProperty('--primary');
-    document.documentElement.style.removeProperty('--accent');
-    document.documentElement.style.removeProperty('--background');
+    // that the custom theme modal might have set. This is the fix.
+    document.documentElement.style.removeProperty('--custom-primary');
+    document.documentElement.style.removeProperty('--custom-accent');
+    document.documentElement.style.removeProperty('--custom-background');
+    document.documentElement.style.removeProperty('--custom-foreground');
+    document.documentElement.style.removeProperty('--custom-primary-foreground');
     setTheme(newTheme);
   }
 
