@@ -34,6 +34,16 @@
     --ring: 278 100% 25%;
 
     --radius: 0.5rem;
+
+    --custom-primary: 278 100% 25%;
+    --custom-accent: 274 100% 50%;
+    --custom-background: 240 5% 4%;
+  }
+  
+  [data-theme='custom'] {
+    --background: var(--custom-background) !important;
+    --primary: var(--custom-primary) !important;
+    --accent: var(--custom-accent) !important;
   }
 
   .dark {
