@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface ModalButton {
   text: string;
@@ -20,20 +22,21 @@ export interface ModalButton {
   isPrimary?: boolean;
 }
 
-interface CodeSageModalProps {
+interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   buttons?: ModalButton[];
+  className?: string;
 }
 
-const CodeSageModal: React.FC<CodeSageModalProps> = ({ isOpen, onClose, title, children, buttons = [] }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, buttons = [], className }) => {
   if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-background/80 backdrop-blur-xl border-border/50 text-foreground rounded-2xl shadow-2xl max-w-lg w-[90%] md:max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className={cn("bg-background/80 backdrop-blur-xl border-border/50 text-foreground rounded-2xl shadow-2xl w-[90%] md:max-w-2xl max-h-[90vh] flex flex-col", className)}>
         <DialogHeader className="p-6 border-b border-border/30">
           <DialogTitle className="font-headline text-2xl text-foreground">{title}</DialogTitle>
           <DialogClose asChild>
@@ -65,4 +68,4 @@ const CodeSageModal: React.FC<CodeSageModalProps> = ({ isOpen, onClose, title, c
   );
 };
 
-export default CodeSageModal;
+export default Modal;
