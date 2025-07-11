@@ -39,32 +39,110 @@
   .dark {
     --background: 240 5% 4%;
     --foreground: 0 0% 98%;
-
     --card: 240 5% 4%;
     --card-foreground: 0 0% 98%;
-
     --popover: 240 5% 4%;
     --popover-foreground: 0 0% 98%;
-
     --primary: 278 100% 25%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 274 100% 50%;
     --secondary-foreground: 0 0% 100%;
-
     --muted: 240 5% 16%;
     --muted-foreground: 240 5% 52%;
-
     --accent: 274 100% 50%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 240 5% 16%;
     --input: 240 5% 16%;
     --ring: 278 100% 25%;
   }
+
+  /* Custom Themes */
+  .light {
+    --background: 0 0% 100%; --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%; --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%; --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%; --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%; --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%; --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%; --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%; --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+  .mono { --background: 0 0% 10%; --foreground: 0 0% 80%; --primary: 0 0% 100%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 20%; --accent: 0 0% 50%; }
+  .just-black { --background: 0 0% 0%; --foreground: 0 0% 100%; --primary: 180 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 10%; --accent: 180 100% 50%; }
+  .slate { --background: 220 15% 20%; --foreground: 220 10% 85%; --primary: 210 60% 60%; --primary-foreground: 0 0% 0%; --secondary: 220 15% 25%; --accent: 210 60% 60%; }
+  .oceanic { --background: 200 50% 10%; --foreground: 180 30% 90%; --primary: 170 80% 60%; --primary-foreground: 0 0% 0%; --secondary: 200 50% 15%; --accent: 170 80% 60%; }
+  .ultra-violet { --background: 270 50% 10%; --foreground: 270 30% 90%; --primary: 280 100% 70%; --primary-foreground: 0 0% 0%; --secondary: 270 50% 15%; --accent: 280 100% 70%; }
+  .classic-blue { --background: 210 60% 15%; --foreground: 210 20% 90%; --primary: 210 100% 60%; --primary-foreground: 0 0% 100%; --secondary: 210 60% 20%; --accent: 210 100% 60%; }
+  .banana { --background: 50 100% 80%; --foreground: 50 100% 10%; --primary: 40 100% 50%; --primary-foreground: 0 0% 100%; --secondary: 50 100% 75%; --accent: 40 100% 50%; }
+  [data-theme='black-white'] { --background: 0 0% 0%; --foreground: 0 0% 100%; --primary: 0 0% 100%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 15%; --accent: 0 0% 100%; }
+  .honeysuckle { --background: 340 80% 90%; --foreground: 340 60% 20%; --primary: 340 100% 60%; --primary-foreground: 0 0% 100%; --secondary: 340 80% 85%; --accent: 340 100% 60%; }
+  .rose { --background: 350 100% 95%; --foreground: 350 50% 20%; --primary: 350 90% 60%; --primary-foreground: 0 0% 100%; --secondary: 350 100% 90%; --accent: 350 90% 60%; }
+  .serenity { --background: 210 60% 90%; --foreground: 210 40% 20%; --primary: 210 80% 60%; --primary-foreground: 0 0% 100%; --secondary: 210 60% 85%; --accent: 210 80% 60%; }
+  [data-theme='sea-foam'] { --background: 150 50% 90%; --foreground: 150 40% 15%; --primary: 150 70% 50%; --primary-foreground: 0 0% 100%; --secondary: 150 50% 85%; --accent: 150 70% 50%; }
+  .marsala { --background: 0 20% 90%; --foreground: 0 40% 20%; --primary: 0 60% 40%; --primary-foreground: 0 0% 100%; --secondary: 0 20% 85%; --accent: 0 60% 40%; }
+  [data-theme='high-contrast-colorful'] { --background: 0 0% 0%; --foreground: 0 0% 100%; --primary: 60 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 180 100% 50%; --accent: 300 100% 50%; }
+  [data-theme='pretty-in-pink'] { --background: 330 100% 95%; --foreground: 330 50% 20%; --primary: 330 100% 70%; --primary-foreground: 0 0% 100%; --secondary: 330 100% 90%; --accent: 330 100% 70%; }
+  [data-theme='morpheon-dark'] { --background: 240 10% 10%; --foreground: 240 10% 90%; --primary: 180 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 240 10% 15%; --accent: 180 100% 50%; }
+  [data-theme='midnight-monochrome'] { --background: 240 10% 5%; --foreground: 240 5% 70%; --primary: 240 10% 90%; --primary-foreground: 0 0% 0%; --secondary: 240 10% 10%; --accent: 240 10% 90%; }
+  [data-theme='slinky-elegant'] { --background: 0 0% 15%; --foreground: 0 0% 85%; --primary: 0 0% 70%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 20%; --accent: 0 0% 70%; }
+  [data-theme='magic-forest-shrooms'] { --background: 120 60% 10%; --foreground: 100 20% 80%; --primary: 40 100% 60%; --primary-foreground: 0 0% 0%; --secondary: 120 60% 15%; --accent: 40 100% 60%; }
+  [data-theme='gruvbox-slate'] { --background: 220 10% 20%; --foreground: 40 10% 80%; --primary: 30 80% 60%; --primary-foreground: 0 0% 0%; --secondary: 220 10% 25%; --accent: 30 80% 60%; }
+  .aurora { --background: 220 50% 10%; --foreground: 180 30% 90%; --primary: 150 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 200 50% 15%; --accent: 300 100% 70%; }
+  [data-theme='pink-pixel-hearts'] { --background: 330 100% 10%; --foreground: 330 30% 90%; --primary: 330 100% 70%; --primary-foreground: 0 0% 0%; --secondary: 330 100% 15%; --accent: 330 100% 70%; }
+  [data-theme='psychedelic-power'] { --background: 300 100% 10%; --foreground: 60 100% 90%; --primary: 180 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 300 100% 15%; --accent: 120 100% 50%; }
+  [data-theme='van-gogh-bouquet'] { --background: 210 40% 20%; --foreground: 40 30% 90%; --primary: 50 100% 60%; --primary-foreground: 0 0% 0%; --secondary: 210 40% 25%; --accent: 120 60% 50%; }
+  [data-theme='black-carbon-silver-metal'] { --background: 0 0% 5%; --foreground: 0 0% 80%; --primary: 0 0% 70%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 10%; --accent: 0 0% 70%; }
+  [data-theme='material-dark'] { --background: 220 15% 15%; --foreground: 220 10% 80%; --primary: 200 80% 60%; --primary-foreground: 0 0% 0%; --secondary: 220 15% 20%; --accent: 200 80% 60%; }
+  [data-theme='cosmic-dust-std'] { --background: 270 20% 10%; --foreground: 270 10% 80%; --primary: 300 80% 70%; --primary-foreground: 0 0% 0%; --secondary: 270 20% 15%; --accent: 300 80% 70%; }
+  [data-theme='purple-pink'] { --background: 280 50% 10%; --foreground: 320 50% 90%; --primary: 330 100% 70%; --primary-foreground: 0 0% 0%; --secondary: 280 50% 15%; --accent: 330 100% 70%; }
+  [data-theme='cardboard-day'] { --background: 30 40% 80%; --foreground: 30 60% 10%; --primary: 20 80% 40%; --primary-foreground: 0 0% 100%; --secondary: 30 40% 75%; --accent: 20 80% 40%; }
+  [data-theme='color-fusion'] { --background: 240 10% 95%; --foreground: 240 60% 10%; --primary: 0 80% 60%; --primary-foreground: 0 0% 100%; --secondary: 180 50% 60%; --accent: 300 70% 60%; }
+  [data-theme='mountain-lake'] { --background: 190 40% 90%; --foreground: 210 50% 15%; --primary: 180 70% 40%; --primary-foreground: 0 0% 100%; --secondary: 190 40% 85%; --accent: 180 70% 40%; }
+  [data-theme='catppuccin-macchiato'] { --background: 257 23% 15%; --foreground: 258 35% 88%; --primary: 317 63% 74%; --primary-foreground: 257 23% 15%; --secondary: 257 18% 20%; --accent: 137 52% 72%; }
+  .black { --background: 0 0% 0%; --foreground: 0 0% 100%; }
+  .orange { --background: 24 95% 53%; --foreground: 0 0% 0%; --primary: 39 100% 50%; --primary-foreground: 0 0% 0%; }
+  .pink { --background: 330 100% 95%; --foreground: 330 50% 20%; --primary: 330 100% 70%; --primary-foreground: 0 0% 100%; }
+  .blue { --background: 210 60% 15%; --foreground: 210 20% 90%; --primary: 210 100% 60%; --primary-foreground: 0 0% 100%; }
+  .brown { --background: 30 40% 30%; --foreground: 30 20% 90%; --primary: 30 60% 50%; --primary-foreground: 0 0% 100%; }
+  [data-theme='dark-grey'] { --background: 0 0% 15%; --foreground: 0 0% 85%; }
+  [data-theme='electric-blue'] { --background: 220 100% 10%; --foreground: 220 100% 90%; --primary: 220 100% 70%; --primary-foreground: 0 0% 0%; }
+  .gray { --background: 0 0% 50%; --foreground: 0 0% 0%; --primary: 0 0% 100%; --primary-foreground: 0 0% 0%; }
+  .green { --background: 120 60% 15%; --foreground: 120 20% 90%; --primary: 120 80% 50%; --primary-foreground: 0 0% 0%; }
+  [data-theme='light-lime'] { --background: 90 100% 90%; --foreground: 90 60% 10%; --primary: 90 100% 50%; --primary-foreground: 0 0% 0%; }
+  .mint { --background: 150 100% 95%; --foreground: 150 50% 15%; --primary: 150 80% 50%; --primary-foreground: 0 0% 0%; }
+  .navy { --background: 240 100% 10%; --foreground: 240 30% 80%; --primary: 240 100% 70%; --primary-foreground: 0 0% 100%; }
+  .slategray { --background: 210 13% 49%; --foreground: 0 0% 100%; --primary: 210 13% 80%; --primary-foreground: 0 0% 0%; }
+  .lightsteelblue { --background: 214 41% 79%; --foreground: 0 0% 0%; --primary: 214 41% 50%; --primary-foreground: 0 0% 100%; }
+  .powderblue { --background: 180 40% 80%; --foreground: 180 20% 20%; --primary: 180 50% 50%; --primary-foreground: 0 0% 100%; }
+  .teal { --background: 180 100% 15%; --foreground: 180 30% 80%; --primary: 180 80% 50%; --primary-foreground: 0 0% 0%; }
+  .aquamarine { --background: 150 100% 85%; --foreground: 150 50% 10%; --primary: 150 100% 50%; --primary-foreground: 0 0% 0%; }
+  .darkturquoise { --background: 181 100% 20%; --foreground: 181 30% 90%; --primary: 181 100% 50%; --primary-foreground: 0 0% 0%; }
+  .darkslategray { --background: 180 25% 15%; --foreground: 180 10% 80%; --primary: 180 25% 60%; --primary-foreground: 0 0% 0%; }
+  .olive { --background: 60 100% 25%; --foreground: 60 30% 90%; --primary: 60 100% 50%; --primary-foreground: 0 0% 0%; }
+  .darkolivegreen { --background: 82 39% 20%; --foreground: 82 20% 80%; --primary: 82 39% 50%; --primary-foreground: 0 0% 0%; }
+  .yellow { --background: 60 100% 50%; --foreground: 0 0% 0%; --primary: 50 100% 40%; --primary-foreground: 0 0% 100%; }
+  .lime { --background: 120 100% 50%; --foreground: 0 0% 0%; --primary: 100 100% 40%; --primary-foreground: 0 0% 0%; }
+  .magenta { --background: 300 100% 50%; --foreground: 0 0% 0%; --primary: 320 100% 60%; --primary-foreground: 0 0% 100%; }
+  .lightblue { --background: 195 53% 79%; --foreground: 0 0% 0%; --primary: 195 53% 50%; --primary-foreground: 0 0% 100%; }
+  .lavender { --background: 240 60% 90%; --foreground: 240 20% 20%; --primary: 240 70% 60%; --primary-foreground: 0 0% 100%; }
+  .aliceblue { --background: 208 100% 97%; --foreground: 210 30% 20%; --primary: 208 80% 60%; --primary-foreground: 0 0% 100%; }
+  .ghostwhite { --background: 240 100% 99%; --foreground: 240 10% 20%; --primary: 240 50% 60%; --primary-foreground: 0 0% 100%; }
+  .azure { --background: 180 100% 97%; --foreground: 180 20% 20%; --primary: 180 70% 60%; --primary-foreground: 0 0% 0%; }
+  .lightcyan { --background: 180 100% 94%; --foreground: 180 25% 15%; --primary: 180 80% 50%; --primary-foreground: 0 0% 0%; }
+  [data-theme='cyan-aqua'] { --background: 180 100% 50%; --foreground: 0 0% 0%; }
+  .turquoise { --background: 174 72% 56%; --foreground: 0 0% 0%; --primary: 174 72% 30%; --primary-foreground: 0 0% 100%; }
+  .mediumturquoise { --background: 178 60% 48%; --foreground: 0 0% 0%; --primary: 178 60% 25%; --primary-foreground: 0 0% 100%; }
+  .lightseagreen { --background: 177 70% 41%; --foreground: 0 0% 100%; --primary: 177 70% 20%; --primary-foreground: 0 0% 100%; }
+  .cadetblue { --background: 180 25% 53%; --foreground: 0 0% 100%; --primary: 180 25% 30%; --primary-foreground: 0 0% 100%; }
+  .darkcyan { --background: 180 100% 20%; --foreground: 180 20% 90%; --primary: 180 100% 50%; --primary-foreground: 0 0% 0%; }
+  .seagreen { --background: 146 50% 36%; --foreground: 0 0% 100%; --primary: 146 50% 20%; --primary-foreground: 0 0% 100%; }
+  .mediumaquamarine { --background: 157 56% 63%; --foreground: 0 0% 0%; --primary: 157 56% 35%; --primary-foreground: 0 0% 100%; }
+  [data-theme='mint-cream'] { --background: 150 100% 98%; --foreground: 150 30% 15%; --primary: 150 60% 50%; --primary-foreground: 0 0% 0%; }
+  .mediumseagreen { --background: 147 50% 47%; --foreground: 0 0% 100%; --primary: 147 50% 25%; --primary-foreground: 0 0% 100%; }
 }
 
 @layer base {
