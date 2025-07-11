@@ -19,14 +19,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeToggleButton } from './ThemeToggleButton';
 import ThemeSelectionModal from './ThemeSelectionModal';
+import CustomThemeModal from './CustomThemeModal';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -67,7 +68,6 @@ export function UserProfile() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <ThemeToggleButton />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -126,6 +126,15 @@ export function UserProfile() {
       <ThemeSelectionModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
+        onOpenCustomTheme={() => {
+            setIsThemeModalOpen(false);
+            setIsCustomThemeModalOpen(true);
+        }}
+      />
+      
+      <CustomThemeModal
+        isOpen={isCustomThemeModalOpen}
+        onClose={() => setIsCustomThemeModalOpen(false)}
       />
     </>
   );
