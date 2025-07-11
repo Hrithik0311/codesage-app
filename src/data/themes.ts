@@ -11,6 +11,12 @@ export interface ThemeSection {
 
 export const themeSections: ThemeSection[] = [
   {
+    title: 'Special',
+    themes: [
+      { name: "Liquid Glass", value: "liquid-glass" },
+    ],
+  },
+  {
     title: 'Core',
     themes: [
       { name: "Dark", value: "dark" },
