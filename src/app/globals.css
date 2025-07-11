@@ -237,28 +237,30 @@
 }
 
 /* Liquid Glass Theme Overrides */
-[data-theme='liquid-glass'] {
-  .card {
-    background-color: hsla(235, 15%, 50%, 0.1);
-    backdrop-filter: blur(15px);
-    border: 1px solid hsla(235, 15%, 95%, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  }
-  
-  .btn {
-    border-radius: 9999px; /* pill shape */
-    background-color: hsla(260, 100%, 80%, 0.15);
-    backdrop-filter: blur(10px);
-    border: 1px solid hsla(260, 100%, 95%, 0.3);
-    color: hsl(var(--primary-foreground));
-    transition: all 0.3s ease;
-  }
+[data-theme='liquid-glass'] .card {
+  background-color: hsla(235, 15%, 50%, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid hsla(235, 15%, 95%, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
 
-  .btn:hover {
-    box-shadow: 0 0 20px hsla(var(--primary), 0.5), 0 0 30px hsla(var(--accent), 0.3);
-    background-color: hsla(260, 100%, 80%, 0.25);
-    transform: translateY(-2px);
-  }
+[data-theme='liquid-glass'] .btn, 
+[data-theme='liquid-glass'] .button,
+[data-theme='liquid-glass'] [role='button'] {
+  border-radius: 9999px; /* pill shape */
+  background-color: hsla(260, 100%, 80%, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid hsla(260, 100%, 95%, 0.3);
+  color: hsl(var(--primary-foreground));
+  transition: all 0.3s ease;
+}
+
+[data-theme='liquid-glass'] .btn:hover,
+[data-theme='liquid-glass'] .button:hover,
+[data-theme='liquid-glass'] [role='button']:hover {
+  box-shadow: 0 0 20px hsla(var(--primary), 0.5), 0 0 30px hsla(var(--accent), 0.3);
+  background-color: hsla(260, 100%, 80%, 0.25);
+  transform: translateY(-2px);
 }
 
 
@@ -674,5 +676,6 @@
     
 
     
+
 
 
