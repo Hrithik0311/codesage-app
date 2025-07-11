@@ -32,15 +32,19 @@ const ThemeSelectionModal = ({ isOpen, onClose }) => {
                 )}
                 onClick={() => setTheme(item.value)}
                 style={{
-                  '--background': `hsl(var(--${item.value}-background, var(--background)))`,
-                  '--foreground': `hsl(var(--${item.value}-foreground, var(--foreground)))`,
-                  '--primary': `hsl(var(--${item.value}-primary, var(--primary)))`,
-                  '--primary-foreground': `hsl(var(--${item.value}-primary-foreground, var(--primary-foreground)))`,
+                  backgroundColor: `hsl(var(--${item.value}-background, var(--background)))`,
+                  color: `hsl(var(--${item.value}-foreground, var(--foreground)))`,
+                  borderColor: `hsl(var(--${item.value}-border, var(--border)))`,
                 } as React.CSSProperties}
-                data-theme={item.value}
               >
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                   {theme === item.value && <Check className="h-6 w-6 text-primary-foreground" />}
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: `hsl(var(--${item.value}-primary, var(--primary)))`,
+                    color: `hsl(var(--${item.value}-primary-foreground, var(--primary-foreground)))`,
+                  }}
+                >
+                   {theme === item.value && <Check className="h-6 w-6" />}
                 </div>
               </Button>
               <p className="text-sm font-medium text-center">{item.name}</p>
