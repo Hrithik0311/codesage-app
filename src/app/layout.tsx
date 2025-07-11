@@ -37,7 +37,7 @@ export default function RootLayout({
       </head>
       <body className={`${fontInter.variable} ${fontSpaceGrotesk.variable} font-body antialiased`}>
         <ThemeProvider
-          attribute="class"
+          attribute="data-theme"
           defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
