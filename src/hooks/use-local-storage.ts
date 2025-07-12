@@ -18,7 +18,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     }
   };
 
-  const [storedValue, setStoredValue] = useState<T>(getStoredValue);
+  const [storedValue, setStoredValue] = useState<T>(() => getStoredValue());
 
   const setValue = (value: T | ((val: T) => T)) => {
     if (typeof window === 'undefined') {
@@ -40,7 +40,11 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     
     const handleStorageChange = (e: StorageEvent) => {
         if (e.key === key && e.newValue !== null) {
-            setStoredValue(JSON.parse(e.newValue));
+            try {
+                setStoredValue(JSON.parse(e.newValue));
+            } catch (error) {
+                 console.warn(`Error parsing localStorage key “${key}” from storage event:`, error);
+            }
         }
     };
     window.addEventListener('storage', handleStorageChange);

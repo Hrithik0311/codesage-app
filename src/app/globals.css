@@ -197,10 +197,6 @@
     @apply bg-background text-foreground;
   }
 
-  body.liquid-glass-bg {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-  }
-  
   .gradient-text {
     @apply bg-clip-text text-transparent;
   }
@@ -689,6 +685,7 @@
     
 
     
+
 
 
 

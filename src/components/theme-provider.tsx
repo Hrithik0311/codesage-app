@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -8,15 +9,26 @@ function ThemeEffect() {
   const { theme } = useTheme();
 
   React.useEffect(() => {
-    // Find all potential body classes. In our case, only one.
-    const bodyClass = 'liquid-glass-bg';
+    const customThemeSettings = localStorage.getItem('custom-theme-settings');
+    let backgroundStart = '#0f0c29';
+    let backgroundEnd = '#24243e';
 
-    // Add or remove the class based on the current theme
-    if (theme === 'liquid-glass') {
-      document.body.classList.add(bodyClass);
-    } else {
-      document.body.classList.remove(bodyClass);
+    if (customThemeSettings) {
+        const settings = JSON.parse(customThemeSettings);
+        backgroundStart = settings.backgroundStart || backgroundStart;
+        backgroundEnd = settings.backgroundEnd || backgroundEnd;
     }
+
+    if (theme === 'liquid-glass') {
+      document.body.style.background = `linear-gradient(135deg, ${backgroundStart}, ${backgroundEnd})`;
+    } else {
+      document.body.style.background = '';
+    }
+
+    // Cleanup function to remove style when component unmounts or theme changes
+    return () => {
+        document.body.style.background = '';
+    };
   }, [theme]);
 
   return null;

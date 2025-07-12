@@ -20,7 +20,7 @@ import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette } from 'lucide-re
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
-import CustomThemeModal from './CustomThemeModal';
+import ThemeCustomizerModal from './ThemeCustomizerModal';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
@@ -132,7 +132,7 @@ export function UserProfile() {
         }}
       />
       
-      <CustomThemeModal
+      <ThemeCustomizerModal
         isOpen={isCustomThemeModalOpen}
         onClose={() => setIsCustomThemeModalOpen(false)}
       />
