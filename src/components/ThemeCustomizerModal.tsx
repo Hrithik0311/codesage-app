@@ -52,7 +52,14 @@ function hexToHsl(hex: string): string {
     return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolean; onClose: () => void; themeToEdit: 'custom' | 'liquid-glass' | null }) => {
+interface ThemeCustomizerModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    themeToEdit: 'custom' | 'liquid-glass' | null;
+    originalTheme: string | undefined;
+}
+
+const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: ThemeCustomizerModalProps) => {
     const { setTheme } = useTheme();
     
     const [savedSettings, setSavedSettings] = useLocalStorage<CustomThemeSettings>('custom-theme-settings', {
@@ -104,25 +111,28 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
     useEffect(() => {
         if (isOpen && themeToEdit) {
             applyPreviewStyles(currentSettings);
+            // Temporarily set the theme for preview purposes
+            setTheme(themeToEdit);
         }
         return () => {
              if (isOpen) {
                 removePreviewStyles();
              }
         }
-    }, [isOpen, currentSettings, themeToEdit]);
+    }, [isOpen, currentSettings, themeToEdit, setTheme]);
 
     const handleSave = () => {
         setSavedSettings(currentSettings);
         if (themeToEdit) {
-             // Now we officially set the theme
              setTheme(themeToEdit);
         }
         onClose();
     };
 
     const handleClose = () => {
-        // Since the `useEffect` cleanup will run, we just need to call onClose.
+        if (originalTheme) {
+            setTheme(originalTheme);
+        }
         onClose();
     };
     
@@ -132,52 +142,56 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
 
     if (!themeToEdit) return null;
 
-    const modalTitle = themeToEdit === 'custom' ? 'Customize Your Theme' : 'Customize Liquid Glass Tints';
-    const modalDescription = themeToEdit === 'custom'
-        ? 'Change the primary, accent, and background colors for your personalized theme.'
-        : 'Adjust the background gradient start and end colors for the Liquid Glass theme.';
     const isCustomTheme = themeToEdit === 'custom';
+
+    const CustomThemeEditor = (
+        <>
+            <div className="flex items-center justify-between">
+                <label htmlFor="primary-color" className="font-medium">Primary Color</label>
+                <input id="primary-color" type="color" value={currentSettings.primary} onChange={(e) => handleSettingChange('primary', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+            </div>
+            <div className="flex items-center justify-between">
+                <label htmlFor="accent-color" className="font-medium">Accent Color</label>
+                <input id="accent-color" type="color" value={currentSettings.accent} onChange={(e) => handleSettingChange('accent', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+            </div>
+            <div className="flex items-center justify-between">
+                <label htmlFor="bg-color" className="font-medium">Background Color</label>
+                <input id="bg-color" type="color" value={currentSettings.background} onChange={(e) => handleSettingChange('background', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+            </div>
+        </>
+    );
+
+    const LiquidGlassEditor = (
+        <>
+            <div className="flex items-center justify-between">
+                <label htmlFor="bg-start-color" className="font-medium">Gradient Start</label>
+                <input id="bg-start-color" type="color" value={currentSettings.backgroundStart} onChange={(e) => handleSettingChange('backgroundStart', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+            </div>
+            <div className="flex items-center justify-between">
+                <label htmlFor="bg-end-color" className="font-medium">Gradient End</label>
+                <input id="bg-end-color" type="color" value={currentSettings.backgroundEnd} onChange={(e) => handleSettingChange('backgroundEnd', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
+            </div>
+        </>
+    );
+
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title={modalTitle}
+            title={isCustomTheme ? 'Customize Your Theme' : 'Customize Liquid Glass Tints'}
             buttons={[
                 { text: 'Save', action: handleSave, isPrimary: true }
             ]}
         >
             <div className="space-y-8 py-4">
-                <p className="text-sm text-muted-foreground -mt-4">{modalDescription}</p>
+                <p className="text-sm text-muted-foreground -mt-4">
+                    {isCustomTheme
+                        ? 'Change the primary, accent, and background colors for your personalized theme.'
+                        : 'Adjust the background gradient start and end colors for the Liquid Glass theme.'}
+                </p>
 
-                {isCustomTheme ? (
-                    <>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="primary-color" className="font-medium">Primary Color</label>
-                            <input id="primary-color" type="color" value={currentSettings.primary} onChange={(e) => handleSettingChange('primary', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="accent-color" className="font-medium">Accent Color</label>
-                            <input id="accent-color" type="color" value={currentSettings.accent} onChange={(e) => handleSettingChange('accent', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
-                        </div>
-                         <div className="flex items-center justify-between">
-                            <label htmlFor="bg-color" className="font-medium">Background Color</label>
-                            <input id="bg-color" type="color" value={currentSettings.background} onChange={(e) => handleSettingChange('background', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="bg-start-color" className="font-medium">Gradient Start</label>
-                            <input id="bg-start-color" type="color" value={currentSettings.backgroundStart} onChange={(e) => handleSettingChange('backgroundStart', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="bg-end-color" className="font-medium">Gradient End</label>
-                            <input id="bg-end-color" type="color" value={currentSettings.backgroundEnd} onChange={(e) => handleSettingChange('backgroundEnd', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
-                        </div>
-                    </>
-                )}
-
+                {isCustomTheme ? CustomThemeEditor : LiquidGlassEditor}
             </div>
             
             <div className="mt-8 p-6 rounded-lg border" style={{
