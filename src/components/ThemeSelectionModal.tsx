@@ -20,7 +20,7 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
   
   const handleSetTheme = (newTheme: string) => {
     if (newTheme === 'custom' || newTheme === 'liquid-glass') {
-        onOpenCustomTheme(newTheme);
+        onOpenCustomTheme(newTheme as 'custom' | 'liquid-glass');
         return;
     }
     // When a standard theme is selected, remove any inline styles

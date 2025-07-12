@@ -30,7 +30,6 @@ export function UserProfile() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
-  const { setTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -57,7 +56,6 @@ export function UserProfile() {
   };
 
   const handleOpenCustomizer = (theme: 'custom' | 'liquid-glass') => {
-    setTheme(theme);
     setThemeToEdit(theme);
     setIsThemeModalOpen(false);
     setIsCustomThemeModalOpen(true);

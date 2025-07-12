@@ -53,7 +53,7 @@ function hexToHsl(hex: string): string {
 }
 
 const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolean; onClose: () => void; themeToEdit: 'custom' | 'liquid-glass' | null }) => {
-    const { theme, setTheme } = useTheme();
+    const { setTheme } = useTheme();
     
     const [savedSettings, setSavedSettings] = useLocalStorage<CustomThemeSettings>('custom-theme-settings', {
         primary: '#7c3aed',
@@ -71,54 +71,58 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
         }
     }, [isOpen, savedSettings]);
     
-    const applyPreview = (settings: CustomThemeSettings) => {
-        if (theme === 'custom') {
-            document.documentElement.style.setProperty('--custom-primary', hexToHsl(settings.primary));
-            document.documentElement.style.setProperty('--custom-accent', hexToHsl(settings.accent));
-            document.documentElement.style.setProperty('--custom-background', hexToHsl(settings.background));
+    const applyPreviewStyles = (settings: CustomThemeSettings) => {
+        const docStyle = document.documentElement.style;
+        const bodyStyle = document.body.style;
+
+        if (themeToEdit === 'custom') {
+            docStyle.setProperty('--custom-primary', hexToHsl(settings.primary));
+            docStyle.setProperty('--custom-accent', hexToHsl(settings.accent));
+            docStyle.setProperty('--custom-background', hexToHsl(settings.background));
             const foreground = getContrastingColor(settings.background);
-            document.documentElement.style.setProperty('--custom-foreground', hexToHsl(foreground));
-            document.documentElement.style.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
-        } else if (theme === 'liquid-glass') {
-            document.body.style.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
+            docStyle.setProperty('--custom-foreground', hexToHsl(foreground));
+            docStyle.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
+            docStyle.setProperty('background', `hsl(${hexToHsl(settings.background)})`);
+        } else if (themeToEdit === 'liquid-glass') {
+            bodyStyle.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
         }
     };
     
-    const removePreview = () => {
-        if (theme === 'custom') {
-             document.documentElement.style.removeProperty('--custom-primary');
-             document.documentElement.style.removeProperty('--custom-accent');
-             document.documentElement.style.removeProperty('--custom-background');
-             document.documentElement.style.removeProperty('--custom-foreground');
-             document.documentElement.style.removeProperty('--custom-primary-foreground');
-        }
-        document.body.style.background = '';
-        // Re-apply original theme settings
-        if (theme === 'liquid-glass') {
-            document.body.style.background = `linear-gradient(135deg, ${savedSettings.backgroundStart}, ${savedSettings.backgroundEnd})`;
-        }
+    const removePreviewStyles = () => {
+        const docStyle = document.documentElement.style;
+        const bodyStyle = document.body.style;
+
+        docStyle.removeProperty('--custom-primary');
+        docStyle.removeProperty('--custom-accent');
+        docStyle.removeProperty('--custom-background');
+        docStyle.removeProperty('--custom-foreground');
+        docStyle.removeProperty('--custom-primary-foreground');
+        docStyle.removeProperty('background');
+        bodyStyle.background = '';
     }
 
     useEffect(() => {
-        if (isOpen) {
-            applyPreview(currentSettings);
+        if (isOpen && themeToEdit) {
+            applyPreviewStyles(currentSettings);
         }
         return () => {
              if (isOpen) {
-                removePreview();
+                removePreviewStyles();
              }
         }
-    }, [isOpen, currentSettings, theme, savedSettings]);
+    }, [isOpen, currentSettings, themeToEdit]);
 
     const handleSave = () => {
         setSavedSettings(currentSettings);
         if (themeToEdit) {
+             // Now we officially set the theme
              setTheme(themeToEdit);
         }
         onClose();
     };
 
     const handleClose = () => {
+        // Since the `useEffect` cleanup will run, we just need to call onClose.
         onClose();
     };
     
@@ -132,6 +136,7 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
     const modalDescription = themeToEdit === 'custom'
         ? 'Change the primary, accent, and background colors for your personalized theme.'
         : 'Adjust the background gradient start and end colors for the Liquid Glass theme.';
+    const isCustomTheme = themeToEdit === 'custom';
 
     return (
         <Modal
@@ -145,7 +150,7 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
             <div className="space-y-8 py-4">
                 <p className="text-sm text-muted-foreground -mt-4">{modalDescription}</p>
 
-                {themeToEdit === 'custom' && (
+                {isCustomTheme ? (
                     <>
                         <div className="flex items-center justify-between">
                             <label htmlFor="primary-color" className="font-medium">Primary Color</label>
@@ -160,9 +165,7 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: { isOpen: boolea
                             <input id="bg-color" type="color" value={currentSettings.background} onChange={(e) => handleSettingChange('background', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
                         </div>
                     </>
-                )}
-
-                {themeToEdit === 'liquid-glass' && (
+                ) : (
                     <>
                         <div className="flex items-center justify-between">
                             <label htmlFor="bg-start-color" className="font-medium">Gradient Start</label>
