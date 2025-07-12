@@ -74,6 +74,7 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }) => {
                               theme === item.value && 'border-primary ring-2 ring-primary'
                             )}
                             onClick={() => handleSetTheme(item.value)}
+                            disabled={theme === 'custom' && item.value !== 'custom'}
                             style={{
                               '--primary-preview': `hsl(var(--${item.value}-primary, 0 0% 0%))`,
                               '--background-preview': `hsl(var(--${item.value}-background, 0 0% 100%))`,
