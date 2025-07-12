@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
+import { useTheme } from 'next-themes';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
@@ -28,6 +29,7 @@ export function UserProfile() {
   const { toast } = useToast();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
+  const { setTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -52,6 +54,12 @@ export function UserProfile() {
       description: 'Your Member ID has been copied.',
     });
   };
+
+  const handleOpenCustomizer = (themeToEdit: 'custom' | 'liquid-glass') => {
+    setTheme(themeToEdit);
+    setIsThemeModalOpen(false);
+    setIsCustomThemeModalOpen(true);
+  }
 
   if (loading) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
@@ -126,10 +134,7 @@ export function UserProfile() {
       <ThemeSelectionModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
-        onOpenCustomTheme={() => {
-            setIsThemeModalOpen(false);
-            setIsCustomThemeModalOpen(true);
-        }}
+        onOpenCustomTheme={handleOpenCustomizer}
       />
       
       <ThemeCustomizerModal
