@@ -20,7 +20,7 @@ import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette } from 'lucide-re
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
-import ThemeCustomizerModal from './ThemeCustomizerModal';
+import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
