@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 import AIChatWidget from '@/components/AIChatWidget';
+import { cn } from '@/lib/utils';
 
 const fontInter = FontInter({
   subsets: ['latin'],
@@ -35,8 +36,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${fontInter.variable} ${fontSpaceGrotesk.variable} font-body antialiased`}>
+      <body className={cn(
+          `${fontInter.variable} ${fontSpaceGrotesk.variable} font-body antialiased`,
+          "theme-provider-body"
+        )}
+      >
         <ThemeProvider
           attribute="data-theme"
           defaultTheme="dark"
