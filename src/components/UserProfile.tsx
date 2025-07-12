@@ -29,6 +29,7 @@ export function UserProfile() {
   const { toast } = useToast();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
+  const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
   const { setTheme } = useTheme();
 
   const handleLogout = async () => {
@@ -55,10 +56,16 @@ export function UserProfile() {
     });
   };
 
-  const handleOpenCustomizer = (themeToEdit: 'custom' | 'liquid-glass') => {
-    setTheme(themeToEdit);
+  const handleOpenCustomizer = (theme: 'custom' | 'liquid-glass') => {
+    setTheme(theme);
+    setThemeToEdit(theme);
     setIsThemeModalOpen(false);
     setIsCustomThemeModalOpen(true);
+  }
+  
+  const handleCloseCustomizer = () => {
+    setIsCustomThemeModalOpen(false);
+    setThemeToEdit(null);
   }
 
   if (loading) {
@@ -139,7 +146,8 @@ export function UserProfile() {
       
       <ThemeCustomizerModal
         isOpen={isCustomThemeModalOpen}
-        onClose={() => setIsCustomThemeModalOpen(false)}
+        onClose={handleCloseCustomizer}
+        themeToEdit={themeToEdit}
       />
     </>
   );
