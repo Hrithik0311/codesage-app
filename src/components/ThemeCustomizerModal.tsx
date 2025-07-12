@@ -90,6 +90,7 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
             docStyle.setProperty('--custom-foreground', hexToHsl(foreground));
             docStyle.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
             docStyle.setProperty('background', `hsl(${hexToHsl(settings.background)})`);
+            bodyStyle.background = '';
         } else if (themeToEdit === 'liquid-glass') {
             bodyStyle.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
         }
@@ -111,20 +112,22 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
     useEffect(() => {
         if (isOpen && themeToEdit) {
             applyPreviewStyles(currentSettings);
-            // Temporarily set the theme for preview purposes
-            setTheme(themeToEdit);
         }
         return () => {
              if (isOpen) {
                 removePreviewStyles();
              }
         }
-    }, [isOpen, currentSettings, themeToEdit, setTheme]);
+    }, [isOpen, currentSettings, themeToEdit]);
 
     const handleSave = () => {
         setSavedSettings(currentSettings);
         if (themeToEdit) {
-             setTheme(themeToEdit);
+            setTheme(themeToEdit); // This triggers the ThemeProvider effect
+            // Re-apply styles explicitly on save to handle the case where the theme name doesn't change
+            if (themeToEdit === 'liquid-glass') {
+                document.body.style.background = `linear-gradient(135deg, ${currentSettings.backgroundStart}, ${currentSettings.backgroundEnd})`;
+            }
         }
         onClose();
     };
@@ -142,10 +145,9 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
 
     if (!themeToEdit) return null;
 
-    const isCustomTheme = themeToEdit === 'custom';
-
     const CustomThemeEditor = (
         <>
+            <h3 className="font-headline text-lg font-semibold text-foreground border-b pb-2 mb-4">Custom Theme Colors</h3>
             <div className="flex items-center justify-between">
                 <label htmlFor="primary-color" className="font-medium">Primary Color</label>
                 <input id="primary-color" type="color" value={currentSettings.primary} onChange={(e) => handleSettingChange('primary', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
@@ -162,7 +164,8 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
     );
 
     const LiquidGlassEditor = (
-        <>
+         <>
+            <h3 className="font-headline text-lg font-semibold text-foreground border-b pb-2 mb-4">Liquid Glass Tints</h3>
             <div className="flex items-center justify-between">
                 <label htmlFor="bg-start-color" className="font-medium">Gradient Start</label>
                 <input id="bg-start-color" type="color" value={currentSettings.backgroundStart} onChange={(e) => handleSettingChange('backgroundStart', e.target.value)} className="w-24 h-10 border-none cursor-pointer bg-transparent rounded-md" />
@@ -174,24 +177,17 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
         </>
     );
 
-
     return (
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title={isCustomTheme ? 'Customize Your Theme' : 'Customize Liquid Glass Tints'}
+            title={`Customize: ${themeToEdit === 'custom' ? 'Custom Theme' : 'Liquid Glass'}`}
             buttons={[
                 { text: 'Save', action: handleSave, isPrimary: true }
             ]}
         >
             <div className="space-y-8 py-4">
-                <p className="text-sm text-muted-foreground -mt-4">
-                    {isCustomTheme
-                        ? 'Change the primary, accent, and background colors for your personalized theme.'
-                        : 'Adjust the background gradient start and end colors for the Liquid Glass theme.'}
-                </p>
-
-                {isCustomTheme ? CustomThemeEditor : LiquidGlassEditor}
+                {themeToEdit === 'custom' ? CustomThemeEditor : LiquidGlassEditor}
             </div>
             
             <div className="mt-8 p-6 rounded-lg border" style={{
