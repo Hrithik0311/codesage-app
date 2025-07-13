@@ -32,12 +32,6 @@ function ThemeEffect() {
     } else {
       document.body.style.background = '';
     }
-
-    // Cleanup function is not strictly needed if the effect re-runs on theme change,
-    // as it will overwrite the style anyway. But it's good practice.
-    return () => {
-        document.body.style.background = '';
-    };
   }, [theme]);
 
   return null;

@@ -89,7 +89,6 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
             const foreground = getContrastingColor(settings.background);
             docStyle.setProperty('--custom-foreground', hexToHsl(foreground));
             docStyle.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
-            docStyle.setProperty('background', `hsl(${hexToHsl(settings.background)})`);
             bodyStyle.background = `hsl(${hexToHsl(settings.background)})`;
         } else if (themeToEdit === 'liquid-glass') {
             bodyStyle.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
@@ -105,18 +104,12 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
         docStyle.removeProperty('--custom-background');
         docStyle.removeProperty('--custom-foreground');
         docStyle.removeProperty('--custom-primary-foreground');
-        docStyle.removeProperty('background');
         bodyStyle.background = '';
     }
 
     useEffect(() => {
         if (isOpen && themeToEdit) {
             applyPreviewStyles(currentSettings);
-        }
-        return () => {
-             if (isOpen) {
-                removePreviewStyles();
-             }
         }
     }, [isOpen, currentSettings, themeToEdit]);
 
@@ -136,12 +129,6 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
         removePreviewStyles();
         if (originalTheme) {
             setTheme(originalTheme);
-            if (originalTheme === 'liquid-glass') {
-                 const settings = JSON.parse(localStorage.getItem('custom-theme-settings') || '{}');
-                 const backgroundStart = settings.backgroundStart || '#0f0c29';
-                 const backgroundEnd = settings.backgroundEnd || '#24243e';
-                 document.body.style.background = `linear-gradient(135deg, ${backgroundStart}, ${backgroundEnd})`;
-            }
         }
         onClose();
     };
