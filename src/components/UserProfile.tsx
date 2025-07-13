@@ -30,6 +30,9 @@ export function UserProfile() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
+  const [originalTheme, setOriginalTheme] = useState<string | undefined>(undefined);
+
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -55,8 +58,9 @@ export function UserProfile() {
     });
   };
 
-  const handleOpenCustomizer = (theme: 'custom' | 'liquid-glass') => {
-    setThemeToEdit(theme);
+  const handleOpenCustomizer = (themeToEdit: 'custom' | 'liquid-glass') => {
+    setOriginalTheme(theme); 
+    setThemeToEdit(themeToEdit);
     setIsThemeModalOpen(false);
     setIsCustomThemeModalOpen(true);
   }
@@ -111,7 +115,7 @@ export function UserProfile() {
             
             <DropdownMenuItem onSelect={() => setIsThemeModalOpen(true)} className="cursor-pointer">
               <Palette className="mr-2 h-4 w-4" />
-              <span>Change Theme</span>
+              <span>Customization</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -146,6 +150,7 @@ export function UserProfile() {
         isOpen={isCustomThemeModalOpen}
         onClose={handleCloseCustomizer}
         themeToEdit={themeToEdit}
+        originalTheme={originalTheme}
       />
     </>
   );
