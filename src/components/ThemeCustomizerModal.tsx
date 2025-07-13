@@ -12,11 +12,14 @@ type CustomThemeSettings = {
     background: string;
     backgroundStart: string;
     backgroundEnd: string;
+    foreground: string; // For custom theme
+    primaryForeground: string; // For custom theme
+    liquidForeground: string; // For liquid glass theme
 };
 
 // Helper to calculate a contrasting foreground color
 function getContrastingColor(hex: string): string {
-    if (!hex) return '#FFFFFF';
+    if (!hex || hex.length < 7) return '#FFFFFF'; // Default to white for invalid input
     const r = parseInt(hex.substring(1, 3), 16);
     const g = parseInt(hex.substring(3, 5), 16);
     const b = parseInt(hex.substring(5, 7), 16);
@@ -56,9 +59,10 @@ interface ThemeCustomizerModalProps {
     isOpen: boolean;
     onClose: () => void;
     themeToEdit: 'custom' | 'liquid-glass' | null;
+    originalTheme: string | undefined;
 }
 
-const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: ThemeCustomizerModalProps) => {
+const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: ThemeCustomizerModalProps) => {
     const { setTheme } = useTheme();
     
     const [savedSettings, setSavedSettings] = useLocalStorage<CustomThemeSettings>('custom-theme-settings', {
@@ -67,6 +71,9 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: ThemeCustomizerM
         background: '#0a0a0a',
         backgroundStart: '#0f0c29',
         backgroundEnd: '#24243e',
+        foreground: '#FFFFFF',
+        primaryForeground: '#FFFFFF',
+        liquidForeground: '#FFFFFF',
     });
 
     const [currentSettings, setCurrentSettings] = useState(savedSettings);
@@ -76,31 +83,64 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: ThemeCustomizerM
             setCurrentSettings(savedSettings);
         }
     }, [isOpen, savedSettings]);
-    
-    const applyCustomThemeStyles = (settings: CustomThemeSettings) => {
-        const docStyle = document.documentElement.style;
-        docStyle.setProperty('--custom-primary', hexToHsl(settings.primary));
-        docStyle.setProperty('--custom-accent', hexToHsl(settings.accent));
-        docStyle.setProperty('--custom-background', hexToHsl(settings.background));
-        const foreground = getContrastingColor(settings.background);
-        docStyle.setProperty('--custom-foreground', hexToHsl(foreground));
-        docStyle.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
+
+    const applyPreviewStyles = (settings: CustomThemeSettings) => {
+        const previewEl = document.getElementById('theme-preview-box');
+        if (!previewEl) return;
+
+        if (themeToEdit === 'custom') {
+            previewEl.style.background = settings.background;
+            previewEl.style.color = settings.foreground;
+            const titleEl = previewEl.querySelector('h3');
+            const descEl = previewEl.querySelector('p');
+            if(titleEl) titleEl.style.color = settings.primary;
+            if(descEl) descEl.style.color = settings.accent;
+        } else if (themeToEdit === 'liquid-glass') {
+            previewEl.style.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
+            previewEl.style.color = settings.liquidForeground;
+        }
     };
+
+    useEffect(() => {
+        if (isOpen) {
+            applyPreviewStyles(currentSettings);
+        }
+    }, [currentSettings, isOpen, themeToEdit]);
 
     const handleSave = () => {
         setSavedSettings(currentSettings);
         if (themeToEdit) {
-            setTheme(themeToEdit); // This triggers the ThemeEffect in the provider
-            // For custom theme, we need to apply styles immediately as it's not handled by ThemeEffect
-            if (themeToEdit === 'custom') {
-                applyCustomThemeStyles(currentSettings);
-            }
+            // Re-apply the theme to trigger the provider's effect
+            setTheme('default'); // a temporary theme
+            setTimeout(() => setTheme(themeToEdit), 50);
         }
         onClose();
     };
+
+    const handleClose = () => {
+        if(originalTheme) {
+            setTheme(originalTheme);
+        }
+        onClose();
+    }
     
     const handleSettingChange = (key: keyof CustomThemeSettings, value: string) => {
-        setCurrentSettings(prev => ({...prev, [key]: value}));
+       setCurrentSettings(prev => {
+            const newSettings = { ...prev, [key]: value };
+            
+            // Auto-update contrasting colors
+            if (key === 'background') {
+                newSettings.foreground = getContrastingColor(value);
+            }
+            if (key === 'primary') {
+                newSettings.primaryForeground = getContrastingColor(value);
+            }
+            if (key === 'backgroundStart' || key === 'backgroundEnd') {
+                // For gradients, we can base it on the start color, or a mix. Let's use start for simplicity.
+                newSettings.liquidForeground = getContrastingColor(newSettings.backgroundStart);
+            }
+            return newSettings;
+        });
     };
 
     if (!themeToEdit) return null;
@@ -136,23 +176,11 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: ThemeCustomizerM
             </div>
         </>
     );
-    
-    const previewStyle: React.CSSProperties = themeToEdit === 'liquid-glass' 
-        ? { background: `linear-gradient(135deg, ${currentSettings.backgroundStart}, ${currentSettings.backgroundEnd})`, color: '#FFFFFF' }
-        : { background: currentSettings.background, color: getContrastingColor(currentSettings.background) };
-
-    const previewTitleStyle: React.CSSProperties = themeToEdit === 'custom'
-        ? { color: currentSettings.primary }
-        : {};
-
-    const previewDescStyle: React.CSSProperties = themeToEdit === 'custom'
-        ? { color: currentSettings.accent }
-        : {};
 
     return (
         <Modal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={`Customize: ${themeToEdit === 'custom' ? 'Custom Theme' : 'Liquid Glass'}`}
             buttons={[
                 { text: 'Save', action: handleSave, isPrimary: true }
@@ -162,10 +190,10 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit }: ThemeCustomizerM
                 {themeToEdit === 'custom' ? CustomThemeEditor : LiquidGlassEditor}
             </div>
             
-            <div className="mt-8 p-6 rounded-lg border" style={previewStyle}>
+            <div id="theme-preview-box" className="mt-8 p-6 rounded-lg border transition-all duration-300">
                  <div className="text-center">
-                    <h3 className="text-xl font-bold" style={previewTitleStyle}>Theme Preview</h3>
-                    <p className="mt-2" style={previewDescStyle}>This is how your theme looks.</p>
+                    <h3 className="text-xl font-bold transition-colors duration-300">Theme Preview</h3>
+                    <p className="mt-2 transition-colors duration-300">This is how your theme looks.</p>
                  </div>
             </div>
         </Modal>

@@ -147,35 +147,25 @@
   [data-theme='color-fusion'] { --background: 240 10% 95%; --foreground: 240 60% 10%; --primary: 0 80% 60%; --primary-foreground: 0 0% 100%; --secondary: 180 50% 60%; --accent: 300 70% 60%; --radius: 0.5rem; }
   [data-theme='mountain-lake'] { --background: 190 40% 90%; --foreground: 210 50% 15%; --primary: 180 70% 40%; --primary-foreground: 0 0% 100%; --secondary: 190 40% 85%; --accent: 180 70% 40%; --radius: 0.5rem; }
   [data-theme='catppuccin-macchiato'] { --background: 257 23% 15%; --foreground: 258 35% 88%; --primary: 317 63% 74%; --primary-foreground: 257 23% 15%; --secondary: 257 18% 20%; --accent: 137 52% 72%; --radius: 0.5rem; }
-  [data-theme='black'] { --background: 0 0% 0%; --foreground: 0 0% 100%; --radius: 0rem; }
-  [data-theme='orange'] { --background: 24 95% 53%; --foreground: 0 0% 0%; --primary: 39 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='pink'] { --background: 330 100% 95%; --foreground: 330 50% 20%; --primary: 330 100% 70%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
   [data-theme='blue'] { --background: 210 60% 15%; --foreground: 210 20% 90%; --primary: 210 100% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='brown'] { --background: 30 40% 30%; --foreground: 30 20% 90%; --primary: 30 60% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='dark-grey'] { --background: 0 0% 15%; --foreground: 0 0% 85%; --radius: 0.5rem; }
-  [data-theme='electric-blue'] { --background: 220 100% 10%; --foreground: 220 100% 90%; --primary: 220 100% 70%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='gray'] { --background: 0 0% 50%; --foreground: 0 0% 0%; --primary: 0 0% 100%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='green'] { --background: 120 60% 15%; --foreground: 120 20% 90%; --primary: 120 80% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='light-lime'] { --background: 90 100% 90%; --foreground: 90 60% 10%; --primary: 90 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='mint'] { --background: 150 100% 95%; --foreground: 150 50% 15%; --primary: 150 80% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='navy'] { --background: 240 100% 10%; --foreground: 240 30% 80%; --primary: 240 100% 70%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='slategray'] { --background: 210 13% 49%; --foreground: 0 0% 100%; --primary: 210 13% 80%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='lightsteelblue'] { --background: 214 41% 79%; --foreground: 0 0% 0%; --primary: 214 41% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='powderblue'] { --background: 180 40% 80%; --foreground: 180 20% 20%; --primary: 180 50% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='orange'] { --background: 24 95% 53%; --foreground: 0 0% 0%; --primary: 39 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='yellow'] { --background: 60 100% 50%; --foreground: 0 0% 0%; --primary: 50 100% 40%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='lime'] { --background: 120 100% 50%; --foreground: 0 0% 0%; --primary: 100 100% 40%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='teal'] { --background: 180 100% 15%; --foreground: 180 30% 80%; --primary: 180 80% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='magenta'] { --background: 300 100% 50%; --foreground: 0 0% 0%; --primary: 320 100% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='brown'] { --background: 30 40% 30%; --foreground: 30 20% 90%; --primary: 30 60% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='olive'] { --background: 60 100% 25%; --foreground: 60 30% 90%; --primary: 60 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='navy'] { --background: 240 100% 10%; --foreground: 240 30% 80%; --primary: 240 100% 70%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='electric-blue'] { --background: 220 100% 10%; --foreground: 220 100% 90%; --primary: 220 100% 70%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='powderblue'] { --background: 180 40% 80%; --foreground: 180 20% 20%; --primary: 180 50% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
   [data-theme='aquamarine'] { --background: 150 100% 85%; --foreground: 150 50% 10%; --primary: 150 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='darkturquoise'] { --background: 181 100% 20%; --foreground: 181 30% 90%; --primary: 181 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='darkslategray'] { --background: 180 25% 15%; --foreground: 180 10% 80%; --primary: 180 25% 60%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='olive'] { --background: 60 100% 25%; --foreground: 60 30% 90%; --primary: 60 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='darkolivegreen'] { --background: 82 39% 20%; --foreground: 82 20% 80%; --primary: 82 39% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='yellow'] { --background: 60 100% 50%; --foreground: 0 0% 0%; --primary: 50 100% 40%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='lime'] { --background: 120 100% 50%; --foreground: 0 0% 0%; --primary: 100 100% 40%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
-  [data-theme='magenta'] { --background: 300 100% 50%; --foreground: 0 0% 0%; --primary: 320 100% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
   [data-theme='lightblue'] { --background: 195 53% 79%; --foreground: 0 0% 0%; --primary: 195 53% 50%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
   [data-theme='lavender'] { --background: 240 60% 90%; --foreground: 240 20% 20%; --primary: 240 70% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='aliceblue'] { --background: 208 100% 97%; --foreground: 210 30% 20%; --primary: 208 80% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='ghostwhite'] { --background: 240 100% 99%; --foreground: 240 10% 20%; --primary: 240 50% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-  [data-theme='azure'] { --background: 180 100% 97%; --foreground: 180 20% 20%; --primary: 180 70% 60%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='lightcyan'] { --background: 180 100% 94%; --foreground: 180 25% 15%; --primary: 180 80% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='cyan-aqua'] { --background: 180 100% 50%; --foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='turquoise'] { --background: 174 72% 56%; --foreground: 0 0% 0%; --primary: 174 72% 30%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
@@ -187,81 +177,14 @@
   [data-theme='mediumaquamarine'] { --background: 157 56% 63%; --foreground: 0 0% 0%; --primary: 157 56% 35%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
   [data-theme='mint-cream'] { --background: 150 100% 98%; --foreground: 150 30% 15%; --primary: 150 60% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
   [data-theme='mediumseagreen'] { --background: 147 50% 47%; --foreground: 0 0% 100%; --primary: 147 50% 25%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
-
-  /* Variables for theme previews */
-  :root {
-    --dark-primary: 278 100% 25%; --dark-background: 240 5% 4%; --dark-foreground: 0 0% 98%; --dark-border: 240 5% 16%; --dark-primary-foreground: 0 0% 100%;
-    --light-primary: 222.2 47.4% 11.2%; --light-background: 0 0% 100%; --light-foreground: 222.2 84% 4.9%; --light-border: 214.3 31.8% 91.4%; --light-primary-foreground: 210 40% 98%;
-    --mono-primary: 0 0% 100%; --mono-background: 0 0% 10%; --mono-foreground: 0 0% 80%; --mono-border: 0 0% 20%; --mono-primary-foreground: 0 0% 0%;
-    --just-black-primary: 180 100% 50%; --just-black-background: 0 0% 0%; --just-black-foreground: 0 0% 100%; --just-black-border: 0 0% 10%; --just-black-primary-foreground: 0 0% 0%;
-    --black-white-primary: 0 0% 100%; --black-white-background: 0 0% 0%; --black-white-foreground: 0 0% 100%; --black-white-border: 0 0% 15%; --black-white-primary-foreground: 0 0% 0%;
-    --slate-primary: 210 60% 60%; --slate-background: 220 15% 20%; --slate-foreground: 220 10% 85%; --slate-border: 220 15% 25%; --slate-primary-foreground: 0 0% 0%;
-    --oceanic-primary: 170 80% 60%; --oceanic-background: 200 50% 10%; --oceanic-foreground: 180 30% 90%; --oceanic-border: 200 50% 15%; --oceanic-primary-foreground: 0 0% 0%;
-    --ultra-violet-primary: 280 100% 70%; --ultra-violet-background: 270 50% 10%; --ultra-violet-foreground: 270 30% 90%; --ultra-violet-border: 270 50% 15%; --ultra-violet-primary-foreground: 0 0% 0%;
-    --classic-blue-primary: 210 100% 60%; --classic-blue-background: 210 60% 15%; --classic-blue-foreground: 210 20% 90%; --classic-blue-border: 210 60% 20%; --classic-blue-primary-foreground: 0 0% 100%;
-    --banana-primary: 40 100% 50%; --banana-background: 50 100% 80%; --banana-foreground: 50 100% 10%; --banana-border: 50 100% 75%; --banana-primary-foreground: 0 0% 100%;
-    --honeysuckle-primary: 340 100% 60%; --honeysuckle-background: 340 80% 90%; --honeysuckle-foreground: 340 60% 20%; --honeysuckle-border: 340 80% 85%; --honeysuckle-primary-foreground: 0 0% 100%;
-    --rose-primary: 350 90% 60%; --rose-background: 350 100% 95%; --rose-foreground: 350 50% 20%; --rose-border: 350 100% 90%; --rose-primary-foreground: 0 0% 100%;
-    --serenity-primary: 210 80% 60%; --serenity-background: 210 60% 90%; --serenity-foreground: 210 40% 20%; --serenity-border: 210 60% 85%; --serenity-primary-foreground: 0 0% 100%;
-    --sea-foam-primary: 150 70% 50%; --sea-foam-background: 150 50% 90%; --sea-foam-foreground: 150 40% 15%; --sea-foam-border: 150 50% 85%; --sea-foam-primary-foreground: 0 0% 0%;
-    --marsala-primary: 0 60% 40%; --marsala-background: 0 20% 90%; --marsala-foreground: 0 40% 20%; --marsala-border: 0 20% 85%; --marsala-primary-foreground: 0 0% 100%;
-    --high-contrast-colorful-primary: 60 100% 50%; --high-contrast-colorful-background: 0 0% 0%; --high-contrast-colorful-foreground: 0 0% 100%; --high-contrast-colorful-border: 180 100% 50%; --high-contrast-colorful-primary-foreground: 0 0% 0%;
-    --pretty-in-pink-primary: 330 100% 70%; --pretty-in-pink-background: 330 100% 95%; --pretty-in-pink-foreground: 330 50% 20%; --pretty-in-pink-border: 330 100% 90%; --pretty-in-pink-primary-foreground: 0 0% 100%;
-    --morpheon-dark-primary: 180 100% 50%; --morpheon-dark-background: 240 10% 10%; --morpheon-dark-foreground: 240 10% 90%; --morpheon-dark-border: 240 10% 15%; --morpheon-dark-primary-foreground: 0 0% 0%;
-    --midnight-monochrome-primary: 240 10% 90%; --midnight-monochrome-background: 240 10% 5%; --midnight-monochrome-foreground: 240 5% 70%; --midnight-monochrome-border: 240 10% 10%; --midnight-monochrome-primary-foreground: 0 0% 0%;
-    --slinky-elegant-primary: 0 0% 70%; --slinky-elegant-background: 0 0% 15%; --slinky-elegant-foreground: 0 0% 85%; --slinky-elegant-border: 0 0% 20%; --slinky-elegant-primary-foreground: 0 0% 0%;
-    --magic-forest-shrooms-primary: 40 100% 60%; --magic-forest-shrooms-background: 120 60% 10%; --magic-forest-shrooms-foreground: 100 20% 80%; --magic-forest-shrooms-border: 120 60% 15%; --magic-forest-shrooms-primary-foreground: 0 0% 0%;
-    --gruvbox-slate-primary: 30 80% 60%; --gruvbox-slate-background: 220 10% 20%; --gruvbox-slate-foreground: 40 10% 80%; --gruvbox-slate-border: 220 10% 25%; --gruvbox-slate-primary-foreground: 0 0% 0%;
-    --aurora-primary: 150 100% 50%; --aurora-background: 220 50% 10%; --aurora-foreground: 180 30% 90%; --aurora-border: 200 50% 15%; --aurora-primary-foreground: 0 0% 0%;
-    --pink-pixel-hearts-primary: 330 100% 70%; --pink-pixel-hearts-background: 330 100% 10%; --pink-pixel-hearts-foreground: 330 30% 90%; --pink-pixel-hearts-border: 330 100% 15%; --pink-pixel-hearts-primary-foreground: 0 0% 0%;
-    --psychedelic-power-primary: 180 100% 50%; --psychedelic-power-background: 300 100% 10%; --psychedelic-power-foreground: 60 100% 90%; --psychedelic-power-border: 300 100% 15%; --psychedelic-power-primary-foreground: 0 0% 0%;
-    --van-gogh-bouquet-primary: 50 100% 60%; --van-gogh-bouquet-background: 210 40% 20%; --van-gogh-bouquet-foreground: 40 30% 90%; --van-gogh-bouquet-border: 210 40% 25%; --van-gogh-bouquet-primary-foreground: 0 0% 0%;
-    --black-carbon-silver-metal-primary: 0 0% 70%; --black-carbon-silver-metal-background: 0 0% 5%; --black-carbon-silver-metal-foreground: 0 0% 80%; --black-carbon-silver-metal-border: 0 0% 10%; --black-carbon-silver-metal-primary-foreground: 0 0% 0%;
-    --material-dark-primary: 200 80% 60%; --material-dark-background: 220 15% 15%; --material-dark-foreground: 220 10% 80%; --material-dark-border: 220 15% 20%; --material-dark-primary-foreground: 0 0% 0%;
-    --cosmic-dust-std-primary: 300 80% 70%; --cosmic-dust-std-background: 270 20% 10%; --cosmic-dust-std-foreground: 270 10% 80%; --cosmic-dust-std-border: 270 20% 15%; --cosmic-dust-std-primary-foreground: 0 0% 0%;
-    --purple-pink-primary: 330 100% 70%; --purple-pink-background: 280 50% 10%; --purple-pink-foreground: 320 50% 90%; --purple-pink-border: 280 50% 15%; --purple-pink-primary-foreground: 0 0% 0%;
-    --cardboard-day-primary: 20 80% 40%; --cardboard-day-background: 30 40% 80%; --cardboard-day-foreground: 30 60% 10%; --cardboard-day-border: 30 40% 75%; --cardboard-day-primary-foreground: 0 0% 100%;
-    --color-fusion-primary: 0 80% 60%; --color-fusion-background: 240 10% 95%; --color-fusion-foreground: 240 60% 10%; --color-fusion-border: 180 50% 60%; --color-fusion-primary-foreground: 0 0% 100%;
-    --mountain-lake-primary: 180 70% 40%; --mountain-lake-background: 190 40% 90%; --mountain-lake-foreground: 210 50% 15%; --mountain-lake-border: 190 40% 85%; --mountain-lake-primary-foreground: 0 0% 100%;
-    --catppuccin-macchiato-primary: 317 63% 74%; --catppuccin-macchiato-background: 257 23% 15%; --catppuccin-macchiato-foreground: 258 35% 88%; --catppuccin-macchiato-border: 257 18% 20%; --catppuccin-macchiato-primary-foreground: 257 23% 15%;
-    --pink-primary: 330 100% 70%; --pink-background: 330 100% 95%; --pink-foreground: 330 50% 20%; --pink-border: 330 100% 90%; --pink-primary-foreground: 0 0% 100%;
-    --blue-primary: 210 100% 60%; --blue-background: 210 60% 15%; --blue-foreground: 210 20% 90%; --blue-border: 210 60% 20%; --blue-primary-foreground: 0 0% 100%;
-    --green-primary: 120 80% 50%; --green-background: 120 60% 15%; --green-foreground: 120 20% 90%; --green-border: 120 60% 20%; --green-primary-foreground: 0 0% 0%;
-    --orange-primary: 39 100% 50%; --orange-background: 24 95% 53%; --orange-foreground: 0 0% 0%; --orange-border: 24 95% 45%; --orange-primary-foreground: 0 0% 0%;
-    --yellow-primary: 50 100% 40%; --yellow-background: 60 100% 50%; --yellow-foreground: 0 0% 0%; --yellow-border: 60 100% 40%; --yellow-primary-foreground: 0 0% 100%;
-    --lime-primary: 100 100% 40%; --lime-background: 120 100% 50%; --lime-foreground: 0 0% 0%; --lime-border: 120 100% 40%; --lime-primary-foreground: 0 0% 0%;
-    --teal-primary: 180 80% 50%; --teal-background: 180 100% 15%; --teal-foreground: 180 30% 80%; --teal-border: 180 100% 20%; --teal-primary-foreground: 0 0% 0%;
-    --magenta-primary: 320 100% 60%; --magenta-background: 300 100% 50%; --magenta-foreground: 0 0% 0%; --magenta-border: 300 100% 40%; --magenta-primary-foreground: 0 0% 100%;
-    --brown-primary: 30 60% 50%; --brown-background: 30 40% 30%; --brown-foreground: 30 20% 90%; --brown-border: 30 40% 25%; --brown-primary-foreground: 0 0% 100%;
-    --olive-primary: 60 100% 50%; --olive-background: 60 100% 25%; --olive-foreground: 60 30% 90%; --olive-border: 60 100% 20%; --olive-primary-foreground: 0 0% 0%;
-    --navy-primary: 240 100% 70%; --navy-background: 240 100% 10%; --navy-foreground: 240 30% 80%; --navy-border: 240 100% 15%; --navy-primary-foreground: 0 0% 100%;
-    --electric-blue-primary: 220 100% 70%; --electric-blue-background: 220 100% 10%; --electric-blue-foreground: 220 100% 90%; --electric-blue-border: 220 100% 15%; --electric-blue-primary-foreground: 0 0% 0%;
-    --powderblue-primary: 180 50% 50%; --powderblue-background: 180 40% 80%; --powderblue-foreground: 180 20% 20%; --powderblue-border: 180 40% 75%; --powderblue-primary-foreground: 0 0% 100%;
-    --aquamarine-primary: 150 100% 50%; --aquamarine-background: 150 100% 85%; --aquamarine-foreground: 150 50% 10%; --aquamarine-border: 150 100% 80%; --aquamarine-primary-foreground: 0 0% 0%;
-    --darkturquoise-primary: 181 100% 50%; --darkturquoise-background: 181 100% 20%; --darkturquoise-foreground: 181 30% 90%; --darkturquoise-border: 181 100% 25%; --darkturquoise-primary-foreground: 0 0% 0%;
-    --darkslategray-primary: 180 25% 60%; --darkslategray-background: 180 25% 15%; --darkslategray-foreground: 180 10% 80%; --darkslategray-border: 180 25% 20%; --darkslategray-primary-foreground: 0 0% 0%;
-    --darkolivegreen-primary: 82 39% 50%; --darkolivegreen-background: 82 39% 20%; --darkolivegreen-foreground: 82 20% 80%; --darkolivegreen-border: 82 39% 25%; --darkolivegreen-primary-foreground: 0 0% 0%;
-    --lightblue-primary: 195 53% 50%; --lightblue-background: 195 53% 79%; --lightblue-foreground: 0 0% 0%; --lightblue-border: 195 53% 70%; --lightblue-primary-foreground: 0 0% 100%;
-    --lavender-primary: 240 70% 60%; --lavender-background: 240 60% 90%; --lavender-foreground: 240 20% 20%; --lavender-border: 240 60% 85%; --lavender-primary-foreground: 0 0% 100%;
-    --lightcyan-primary: 180 80% 50%; --lightcyan-background: 180 100% 94%; --lightcyan-foreground: 180 25% 15%; --lightcyan-border: 180 100% 90%; --lightcyan-primary-foreground: 0 0% 0%;
-    --cyan-aqua-background: 180 100% 50%; --cyan-aqua-foreground: 0 0% 0%; --cyan-aqua-primary: 180 100% 30%; --cyan-aqua-border: 180 100% 40%; --cyan-aqua-primary-foreground: 0 0% 100%;
-    --turquoise-primary: 174 72% 30%; --turquoise-background: 174 72% 56%; --turquoise-foreground: 0 0% 0%; --turquoise-border: 174 72% 45%; --turquoise-primary-foreground: 0 0% 100%;
-    --mediumturquoise-primary: 178 60% 25%; --mediumturquoise-background: 178 60% 48%; --mediumturquoise-foreground: 0 0% 0%; --mediumturquoise-border: 178 60% 40%; --mediumturquoise-primary-foreground: 0 0% 100%;
-    --lightseagreen-primary: 177 70% 20%; --lightseagreen-background: 177 70% 41%; --lightseagreen-foreground: 0 0% 100%; --lightseagreen-border: 177 70% 30%; --lightseagreen-primary-foreground: 0 0% 100%;
-    --cadetblue-primary: 180 25% 30%; --cadetblue-background: 180 25% 53%; --cadetblue-foreground: 0 0% 100%; --cadetblue-border: 180 25% 45%; --cadetblue-primary-foreground: 0 0% 100%;
-    --darkcyan-primary: 180 100% 50%; --darkcyan-background: 180 100% 20%; --darkcyan-foreground: 180 20% 90%; --darkcyan-border: 180 100% 25%; --darkcyan-primary-foreground: 0 0% 0%;
-    --seagreen-primary: 146 50% 20%; --seagreen-background: 146 50% 36%; --seagreen-foreground: 0 0% 100%; --seagreen-border: 146 50% 30%; --seagreen-primary-foreground: 0 0% 100%;
-    --mediumaquamarine-primary: 157 56% 35%; --mediumaquamarine-background: 157 56% 63%; --mediumaquamarine-foreground: 0 0% 0%; --mediumaquamarine-border: 157 56% 55%; --mediumaquamarine-primary-foreground: 0 0% 100%;
-    --mint-cream-primary: 150 60% 50%; --mint-cream-background: 150 100% 98%; --mint-cream-foreground: 150 30% 15%; --mint-cream-border: 150 100% 95%; --mint-cream-primary-foreground: 0 0% 0%;
-    --mediumseagreen-primary: 147 50% 25%; --mediumseagreen-background: 147 50% 47%; --mediumseagreen-foreground: 0 0% 100%; --mediumseagreen-border: 147 50% 40%; --mediumseagreen-primary-foreground: 0 0% 100%;
-    --light-lime-primary: 90 100% 50%; --light-lime-background: 90 100% 90%; --light-lime-foreground: 90 60% 10%; --light-lime-border: 90 100% 85%; --light-lime-primary-foreground: 0 0% 0%;
-    --mint-primary: 150 80% 50%; --mint-background: 150 100% 95%; --mint-foreground: 150 50% 15%; --mint-border: 150 100% 90%; --mint-primary-foreground: 0 0% 0%;
-    --aliceblue-primary: 208 80% 60%; --aliceblue-background: 208 100% 97%; --aliceblue-foreground: 210 30% 20%; --aliceblue-border: 208 100% 95%; --aliceblue-primary-foreground: 0 0% 100%;
-    --ghostwhite-primary: 240 50% 60%; --ghostwhite-background: 240 100% 99%; --ghostwhite-foreground: 240 10% 20%; --ghostwhite-border: 240 100% 97%; --ghostwhite-primary-foreground: 0 0% 100%;
-    --azure-primary: 180 70% 60%; --azure-background: 180 100% 97%; --azure-foreground: 180 20% 20%; --azure-border: 180 100% 95%; --azure-primary-foreground: 0 0% 0%;
-    --dark-grey-primary: 0 0% 60%; --dark-grey-background: 0 0% 15%; --dark-grey-foreground: 0 0% 85%; --dark-grey-border: 0 0% 25%; --dark-grey-primary-foreground: 0 0% 0%;
-    --gray-primary: 0 0% 100%; --gray-background: 0 0% 50%; --gray-foreground: 0 0% 0%; --gray-border: 0 0% 60%; --gray-primary-foreground: 0 0% 0%;
-  }
+  [data-theme='light-lime'] { --background: 90 100% 90%; --foreground: 90 60% 10%; --primary: 90 100% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='mint'] { --background: 150 100% 95%; --foreground: 150 50% 15%; --primary: 150 80% 50%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='aliceblue'] { --background: 208 100% 97%; --foreground: 210 30% 20%; --primary: 208 80% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='ghostwhite'] { --background: 240 100% 99%; --foreground: 240 10% 20%; --primary: 240 50% 60%; --primary-foreground: 0 0% 100%; --radius: 0.5rem; }
+  [data-theme='azure'] { --background: 180 100% 97%; --foreground: 180 20% 20%; --primary: 180 70% 60%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='dark-grey'] { --background: 0 0% 15%; --foreground: 0 0% 85%; --radius: 0.5rem; }
+  [data-theme='gray'] { --background: 0 0% 50%; --foreground: 0 0% 0%; --primary: 0 0% 100%; --primary-foreground: 0 0% 0%; --radius: 0.5rem; }
+  [data-theme='black'] { --background: 0 0% 0%; --foreground: 0 0% 100%; --radius: 0rem; }
 }
 
 @layer base {
@@ -315,38 +238,6 @@
     transform: translateX(-50%);
   }
 }
-
-/* Liquid Glass Theme Overrides */
-[data-theme='liquid-glass'] .card {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05),
-              0 8px 32px rgba(0, 0, 0, 0.3);
-  border-radius: 20px;
-}
-
-[data-theme='liquid-glass'] .button,
-[data-theme='liquid-glass'] [role='button'] {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.2),
-              0 4px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-[data-theme='liquid-glass'] .button:hover,
-[data-theme='liquid-glass'] [role='button']:hover {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 15px rgba(173, 216, 230, 0.6),
-              0 4px 30px rgba(0, 0, 0, 0.3);
-}
-
 
 /* Chat Client Specific Styles */
 .cs-chat-container {
