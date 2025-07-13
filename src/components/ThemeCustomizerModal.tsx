@@ -90,7 +90,7 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
             docStyle.setProperty('--custom-foreground', hexToHsl(foreground));
             docStyle.setProperty('--custom-primary-foreground', hexToHsl(getContrastingColor(settings.primary)));
             docStyle.setProperty('background', `hsl(${hexToHsl(settings.background)})`);
-            bodyStyle.background = '';
+            bodyStyle.background = `hsl(${hexToHsl(settings.background)})`;
         } else if (themeToEdit === 'liquid-glass') {
             bodyStyle.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
         }
@@ -123,8 +123,8 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
     const handleSave = () => {
         setSavedSettings(currentSettings);
         if (themeToEdit) {
-            setTheme(themeToEdit); // This triggers the ThemeProvider effect
-            // Re-apply styles explicitly on save to handle the case where the theme name doesn't change
+            setTheme(themeToEdit);
+            // Explicitly re-apply styles on save to handle the case where the theme name doesn't change
             if (themeToEdit === 'liquid-glass') {
                 document.body.style.background = `linear-gradient(135deg, ${currentSettings.backgroundStart}, ${currentSettings.backgroundEnd})`;
             }
@@ -133,8 +133,15 @@ const ThemeCustomizerModal = ({ isOpen, onClose, themeToEdit, originalTheme }: T
     };
 
     const handleClose = () => {
+        removePreviewStyles();
         if (originalTheme) {
             setTheme(originalTheme);
+            if (originalTheme === 'liquid-glass') {
+                 const settings = JSON.parse(localStorage.getItem('custom-theme-settings') || '{}');
+                 const backgroundStart = settings.backgroundStart || '#0f0c29';
+                 const backgroundEnd = settings.backgroundEnd || '#24243e';
+                 document.body.style.background = `linear-gradient(135deg, ${backgroundStart}, ${backgroundEnd})`;
+            }
         }
         onClose();
     };

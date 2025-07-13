@@ -9,14 +9,22 @@ function ThemeEffect() {
   const { theme } = useTheme();
 
   React.useEffect(() => {
-    const customThemeSettings = localStorage.getItem('custom-theme-settings');
-    let backgroundStart = '#0f0c29';
-    let backgroundEnd = '#24243e';
-
-    if (customThemeSettings) {
-        const settings = JSON.parse(customThemeSettings);
-        backgroundStart = settings.backgroundStart || backgroundStart;
-        backgroundEnd = settings.backgroundEnd || backgroundEnd;
+    let backgroundStart: string, backgroundEnd: string;
+    
+    try {
+        const customThemeSettings = localStorage.getItem('custom-theme-settings');
+        if (customThemeSettings) {
+            const settings = JSON.parse(customThemeSettings);
+            backgroundStart = settings.backgroundStart || '#0f0c29';
+            backgroundEnd = settings.backgroundEnd || '#24243e';
+        } else {
+            backgroundStart = '#0f0c29';
+            backgroundEnd = '#24243e';
+        }
+    } catch (e) {
+        backgroundStart = '#0f0c29';
+        backgroundEnd = '#24243e';
+        console.warn("Could not parse custom theme settings from localStorage.", e);
     }
 
     if (theme === 'liquid-glass') {
@@ -25,7 +33,8 @@ function ThemeEffect() {
       document.body.style.background = '';
     }
 
-    // Cleanup function to remove style when component unmounts or theme changes
+    // Cleanup function is not strictly needed if the effect re-runs on theme change,
+    // as it will overwrite the style anyway. But it's good practice.
     return () => {
         document.body.style.background = '';
     };
