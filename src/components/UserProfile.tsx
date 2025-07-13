@@ -27,11 +27,9 @@ export function UserProfile() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { theme } = useTheme();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
-  const [originalTheme, setOriginalTheme] = useState<string | undefined>(undefined);
 
   const handleLogout = async () => {
     try {
@@ -57,9 +55,8 @@ export function UserProfile() {
     });
   };
 
-  const handleOpenCustomizer = (themeToEdit: 'custom' | 'liquid-glass') => {
-    setOriginalTheme(theme); // Save the current theme before opening the modal
-    setThemeToEdit(themeToEdit);
+  const handleOpenCustomizer = (theme: 'custom' | 'liquid-glass') => {
+    setThemeToEdit(theme);
     setIsThemeModalOpen(false);
     setIsCustomThemeModalOpen(true);
   }
@@ -67,7 +64,6 @@ export function UserProfile() {
   const handleCloseCustomizer = () => {
     setIsCustomThemeModalOpen(false);
     setThemeToEdit(null);
-    setOriginalTheme(undefined); // Clear the original theme
   }
 
   if (loading) {
@@ -150,7 +146,6 @@ export function UserProfile() {
         isOpen={isCustomThemeModalOpen}
         onClose={handleCloseCustomizer}
         themeToEdit={themeToEdit}
-        originalTheme={originalTheme}
       />
     </>
   );

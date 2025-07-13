@@ -30,6 +30,7 @@ function ThemeEffect() {
     if (theme === 'liquid-glass') {
       document.body.style.background = `linear-gradient(135deg, ${backgroundStart}, ${backgroundEnd})`;
     } else {
+      // Clear the background style when switching to any other theme
       document.body.style.background = '';
     }
   }, [theme]);
