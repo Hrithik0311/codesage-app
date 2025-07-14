@@ -42,7 +42,7 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
             <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground',
+                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground rounded-lg',
                   isActive && 'border-ring ring-2 ring-ring'
                 )}
                 onClick={() => handleSetTheme(item.value)}
