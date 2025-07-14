@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import CollaborationClient from './CollaborationClient';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Team Collaboration Hub - CodeSage',
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function CollaborationPage() {
   return (
     <main className="relative z-10">
-      <CollaborationClient />
+      <Suspense fallback={<div className="flex min-h-screen w-full items-center justify-center bg-background"><div className="loading-spinner"></div></div>}>
+        <CollaborationClient />
+      </Suspense>
     </main>
   );
 }

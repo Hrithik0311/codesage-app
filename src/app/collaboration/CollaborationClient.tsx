@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -97,6 +98,7 @@ export default function CollaborationClient() {
     const { toast } = useToast();
     const { user, loading } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const [team, setTeam] = useState<any | null>(null);
     const [isLoadingTeam, setIsLoadingTeam] = useState(true);
@@ -183,8 +185,14 @@ export default function CollaborationClient() {
               const teamDataRef = dbRef(database, `teams/${teamCode}`);
               teamDataUnsubscribe = onValue(teamDataRef, (teamSnapshot) => {
                   if (!isMounted) return;
-                  if (teamSnapshot.exists()) setTeam({ id: teamCode, ...teamSnapshot.val() });
-                  else setTeam(null);
+                  if (teamSnapshot.exists()) {
+                    setTeam({ id: teamCode, ...teamSnapshot.val() });
+                    if (searchParams.get('action') === 'settings') {
+                        setIsSettingsOpen(true);
+                    }
+                  } else {
+                    setTeam(null);
+                  }
                   setIsLoadingTeam(false);
               }, (error) => {
                   console.error("Error fetching team data:", error);
@@ -201,7 +209,7 @@ export default function CollaborationClient() {
           setIsLoadingTeam(false);
       });
       return () => { isMounted = false; teamDataUnsubscribe(); };
-    }, [user, loading, router, database, toast]);
+    }, [user, loading, router, database, toast, searchParams]);
 
     useEffect(() => {
         if (team && isSettingsOpen) {

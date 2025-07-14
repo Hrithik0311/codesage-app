@@ -45,7 +45,7 @@ export default function SettingsClient() {
   const { user, loading, resetAllProgress, deleteAccountData } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [teamInfo, setTeamInfo] = useState<{name: string, id: string} | null>(null);
+  const [teamInfo, setTeamInfo] = useState<{name: string, id: string, creatorUid: string} | null>(null);
 
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
@@ -71,10 +71,11 @@ export default function SettingsClient() {
         get(teamCodeRef).then((snapshot) => {
             if (snapshot.exists()) {
                 const teamCode = snapshot.val();
-                const teamNameRef = dbRef(database, `teams/${teamCode}/name`);
-                get(teamNameRef).then((nameSnapshot) => {
-                    if(nameSnapshot.exists()){
-                        setTeamInfo({ id: teamCode, name: nameSnapshot.val() });
+                const teamDataRef = dbRef(database, `teams/${teamCode}`);
+                get(teamDataRef).then((teamSnapshot) => {
+                    if(teamSnapshot.exists()){
+                        const teamData = teamSnapshot.val();
+                        setTeamInfo({ id: teamCode, name: teamData.name, creatorUid: teamData.creatorUid });
                     }
                 });
             }
@@ -151,6 +152,8 @@ export default function SettingsClient() {
     );
   }
 
+  const isTeamCreator = user?.uid === teamInfo?.creatorUid;
+
   return (
     <>
       <div className="min-h-screen flex flex-col text-foreground">
@@ -222,10 +225,15 @@ export default function SettingsClient() {
                     <CardContent>
                         <p>You are a member of <span className="font-bold text-accent">{teamInfo.name}</span>.</p>
                     </CardContent>
-                    <CardFooter className="border-t px-6 py-4">
+                    <CardFooter className="border-t px-6 py-4 flex justify-between items-center">
                        <Button asChild>
                            <Link href="/collaboration">Go to Team Hub <ArrowRight className="ml-2 h-4 w-4" /></Link>
                        </Button>
+                       {isTeamCreator && (
+                            <Button asChild variant="outline">
+                                <Link href="/collaboration?action=settings">Manage Team</Link>
+                            </Button>
+                       )}
                     </CardFooter>
                 </Card>
               )}
