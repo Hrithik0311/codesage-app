@@ -384,6 +384,20 @@ export default function CollaborationClient() {
         setIsJoinTeamOpen(false);
         joinForm.reset();
         toast({ title: 'Success!', description: `You have joined the team: ${teamData.name}` });
+
+        // Notify team creator
+        if (!isAlreadyMember && teamData.creatorUid) {
+            const creatorRef = dbRef(database, `users/${teamData.creatorUid}/email`);
+            const creatorSnapshot = await get(creatorRef);
+            if (creatorSnapshot.exists()) {
+                const creatorEmail = creatorSnapshot.val();
+                sendNotificationEmail({
+                    to: creatorEmail,
+                    subject: `New Member: ${memberName} joined your team!`,
+                    body: `<h1>New Team Member</h1><p>${memberName} has just joined your team, '${teamData.name}'.</p>`
+                }).catch(e => console.error("Failed to send notification email to creator:", e));
+            }
+        }
     };
     
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
@@ -509,6 +523,23 @@ export default function CollaborationClient() {
         toast({ title: "Event Added!" });
         setIsAddEventDialogOpen(false);
         eventForm.reset();
+
+        // Notify all team members
+        const allMemberEmails: string[] = Object.values(team.roles)
+            .flatMap((roleMembers: any) => Object.values(roleMembers).map((member: any) => member.email))
+            .filter(Boolean); // Filter out any null/undefined emails
+        
+        for (const email of allMemberEmails) {
+            sendNotificationEmail({
+                to: email,
+                subject: `New Team Event: ${newEvent.title}`,
+                body: `<h1>New Event Added to ${team.name}'s Calendar</h1>
+                       <p>A new event has been added:</p>
+                       <p><b>Title:</b> ${newEvent.title}</p>
+                       <p><b>Date:</b> ${format(date, 'PPP')}</p>
+                       <p><b>Description:</b> ${newEvent.description || 'N/A'}</p>`
+            }).catch(e => console.error(`Failed to send event notification to ${email}:`, e));
+        }
     };
 
     const handleDeleteEvent = async (eventId: string) => {

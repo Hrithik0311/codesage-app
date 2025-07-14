@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
 const shareGroupSchema = z.object({
   groupName: z.string().min(1, 'Group name is required.'),
@@ -94,6 +95,23 @@ function IDEContent() {
         setIsSaveModalOpen(true);
     };
 
+    const notifyTeamCreator = async (teamCode: string, title: string, body: string) => {
+        const teamRef = dbRef(database, `teams/${teamCode}/creatorUid`);
+        const creatorUidSnapshot = await get(teamRef);
+        if (creatorUidSnapshot.exists()) {
+            const creatorUid = creatorUidSnapshot.val();
+            const creatorEmailRef = dbRef(database, `users/${creatorUid}/email`);
+            const creatorEmailSnapshot = await get(creatorEmailRef);
+            if (creatorEmailSnapshot.exists()) {
+                sendNotificationEmail({
+                    to: creatorEmailSnapshot.val(),
+                    subject: title,
+                    body: body,
+                }).catch(e => console.error("Failed to send share notification:", e));
+            }
+        }
+    };
+    
     const handleConfirmSave = async () => {
         if (!shareMessage.trim()) {
             toast({ title: "Message required", description: "Please enter a message for your share.", variant: "destructive" });
@@ -125,6 +143,14 @@ function IDEContent() {
         toast({ title: "Success!", description: "Successfully shared the code snippet." });
         setIsSaveModalOpen(false);
         setShareMessage('');
+
+        // Notify creator
+        notifyTeamCreator(
+            teamCode, 
+            `New Code Snippet from ${user.displayName || user.email}`,
+            `<h1>New Code Snippet Shared</h1><p>${user.displayName || user.email} shared a new code snippet with the message: "${shareMessage}". You can view it in the Collaboration Hub.</p>`
+        );
+
         router.replace('/collaboration');
     };
 
@@ -246,6 +272,14 @@ function IDEContent() {
             });
 
             toast({ title: 'Success!', description: `Successfully shared the "${values.groupName}" group.` });
+            
+             // Notify creator
+            notifyTeamCreator(
+                teamCode, 
+                `New File Group from ${user.displayName || user.email}`,
+                `<h1>New File Group Shared</h1><p>${user.displayName || user.email} shared a new file group named "${values.groupName}". You can view it in the Collaboration Hub.</p>`
+            );
+
             closeGroupShareDialog();
             router.replace('/collaboration');
         } catch (error) {
