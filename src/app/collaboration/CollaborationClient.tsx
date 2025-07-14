@@ -36,6 +36,7 @@ import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
+import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
 // --- Planner & Calendar Types ---
 type Id = string;
@@ -47,6 +48,7 @@ const memberSchema = z.object({
     name: z.string().min(1, "Member name is required."),
     id: z.string().min(1, "Member ID is required."),
     role: z.string().min(1, "Role is required."),
+    email: z.string().email("Please enter a valid email."),
     _isNew: z.boolean().optional(),
 });
 
@@ -165,7 +167,7 @@ export default function CollaborationClient() {
     // --- Effects ---
     useEffect(() => {
         if(isCreateTeamOpen && user && memberFields.length === 0) {
-            appendMember({ name: user.displayName || user.email?.split('@')[0] || '', id: user.uid, role: 'Captain' });
+            appendMember({ name: user.displayName || '', id: user.uid, role: 'Captain', email: user.email || '' });
         }
     }, [isCreateTeamOpen, user, memberFields, appendMember]);
 
@@ -216,7 +218,7 @@ export default function CollaborationClient() {
             const membersForForm: any[] = [];
             for (const role in team.roles) {
                 for (const id in team.roles[role]) {
-                    membersForForm.push({ id, name: team.roles[role][id], role, _isNew: false });
+                    membersForForm.push({ id, name: team.roles[role][id].name, email: team.roles[role][id].email, role, _isNew: false });
                 }
             }
             settingsForm.reset({ teamName: team.name, pin: team.pin, members: membersForForm });
@@ -320,10 +322,10 @@ export default function CollaborationClient() {
         const teamRef = dbRef(database, 'teams/' + values.teamCode);
         const snapshot = await get(teamRef);
         if (snapshot.exists()) { createForm.setError("teamCode", { type: "manual", message: "This team code is already taken." }); return; }
-        const rolesData: { [key: string]: { [uid: string]: string } } = {};
+        const rolesData: { [key: string]: { [uid: string]: {name: string, email: string} } } = {};
         values.members.forEach(member => {
             if (!rolesData[member.role]) rolesData[member.role] = {};
-            rolesData[member.role][member.id] = member.name;
+            rolesData[member.role][member.id] = { name: member.name, email: member.email };
         });
         const announcementsChatRef = push(dbRef(database, 'chats'));
         const announcementsChatId = announcementsChatRef.key;
@@ -336,10 +338,23 @@ export default function CollaborationClient() {
             userUpdates[`/users/${member.id}/teamCode`] = values.teamCode;
             userUpdates[`/users/${member.id}/chats/${announcementsChatId}`] = true;
             userUpdates[`/users/${member.id}/name`] = member.name;
+            userUpdates[`/users/${member.id}/email`] = member.email;
         });
         await update(dbRef(database), userUpdates);
         setTeam({ id: values.teamCode, ...newTeam });
         setIsCreateTeamOpen(false);
+
+        // Send welcome emails
+        for (const member of values.members) {
+            if (member.email) {
+                sendNotificationEmail({
+                    to: member.email,
+                    subject: `Welcome to the team: ${values.teamName}!`,
+                    body: `<h1>Welcome!</h1><p>You have been added to the team '${values.teamName}' on CodeSage. You can log in and start collaborating now.</p>`
+                }).catch(e => console.error("Failed to send welcome email:", e));
+            }
+        }
+
         createForm.reset();
         toast({ title: 'Success!', description: 'Your team has been created.' });
     };
@@ -354,11 +369,15 @@ export default function CollaborationClient() {
         if (teamData.pin !== values.pin) { joinForm.setError("pin", { type: "manual", message: "The PIN for this team is incorrect." }); return; }
         const newMemberId = user.uid;
         const isAlreadyMember = Object.values(teamData.roles || {}).some(roleMembers => newMemberId in (roleMembers as object));
-        const memberName = user.displayName || user.email?.split('@')[0] || 'New Member';
+        const memberName = user.displayName || 'New Member';
+        const memberEmail = user.email || '';
+
         const updates: { [key: string]: any } = {};
         if (isAlreadyMember) { toast({ title: "Already a member", description: "You are already a member of this team." });
-        } else { updates[`teams/${values.teamCode}/roles/Member/${newMemberId}`] = memberName; }
+        } else { updates[`teams/${values.teamCode}/roles/Member/${newMemberId}`] = {name: memberName, email: memberEmail}; }
+        
         updates[`/users/${user.uid}/name`] = memberName;
+        updates[`/users/${user.uid}/email`] = memberEmail;
         updates[`/users/${user.uid}/teamCode`] = values.teamCode;
         if (teamData.announcementsChatId) { updates[`/users/${user.uid}/chats/${teamData.announcementsChatId}`] = true; }
         await update(dbRef(database), updates);
@@ -373,12 +392,13 @@ export default function CollaborationClient() {
         if (user.uid === team.creatorUid) {
             const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
             const newMemberIds = new Set(values.members.map(m => m.id));
-            const newRoles: { [key: string]: { [uid: string]: string } } = {};
+            const newRoles: { [key: string]: { [uid: string]: {name: string, email: string} } } = {};
             values.members.forEach(member => {
                 if (!member.id) return;
                 if (!newRoles[member.role]) newRoles[member.role] = {};
-                newRoles[member.role][member.id] = member.name;
+                newRoles[member.role][member.id] = {name: member.name, email: member.email};
                 updates[`/users/${member.id}/name`] = member.name;
+                updates[`/users/${member.id}/email`] = member.email;
                 if (!originalMemberIds.has(member.id) && member._isNew) {
                     updates[`/users/${member.id}/teamCode`] = team.id;
                     if (team.announcementsChatId) updates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
@@ -534,15 +554,16 @@ export default function CollaborationClient() {
                                             <FormLabel>Team Members</FormLabel>
                                             <div className="space-y-3 mt-2">
                                                 {memberFields.map((field, index) => (
-                                                    <div key={field.id} className="flex items-end gap-2 p-3 border rounded-md">
-                                                        <FormField control={createForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Member Name</FormLabel><FormControl><Input placeholder="e.g., Alex Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={createForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[2]"><FormLabel className="text-xs">Member ID</FormLabel><FormControl><Input placeholder="Paste Member ID here" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                        <FormField control={createForm.control} name={`members.${index}.role`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Role</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_2fr_1fr_auto] items-end gap-2 p-3 border rounded-md">
+                                                        <FormField control={createForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Member Name</FormLabel><FormControl><Input placeholder="e.g., Alex Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`members.${index}.email`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Email</FormLabel><FormControl><Input placeholder="alex@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`members.${index}.role`} render={({ field }) => (<FormItem><FormLabel className="text-xs">Role</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                                        <FormField control={createForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
                                                         <Button type="button" variant="destructive" size="icon" onClick={() => removeMember(index)} disabled={memberFields.length <= 1}><Trash2 className="h-4 w-4" /></Button>
                                                     </div>
                                                 ))}
                                             </div>
-                                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => appendMember({ name: "", id: "", role: "Member" })}><PlusCircle className="mr-2 h-4 w-4" /> Add Member</Button>
+                                            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => appendMember({ name: "", id: uuidv4(), email: "", role: "Member" })}><PlusCircle className="mr-2 h-4 w-4" /> Add Member</Button>
                                         </div>
                                         <DialogFooter className="pt-4 sticky bottom-0 bg-background/90 py-3 -mx-4 px-4"><Button type="submit" disabled={createForm.formState.isSubmitting}>{createForm.formState.isSubmitting ? 'Creating...' : 'Create Team'}</Button></DialogFooter>
                                     </form>
@@ -607,13 +628,13 @@ export default function CollaborationClient() {
                                                         return (
                                                         <div key={field.id} className="flex items-end gap-3 p-3 border rounded-md">
                                                             <FormField control={settingsForm.control} name={`members.${index}.name`} render={({ field }) => (<FormItem className="flex-grow"><FormLabel className="text-xs">Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                            <FormField control={settingsForm.control} name={`members.${index}.id`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">ID</FormLabel><FormControl><Input {...field} readOnly={!isNewMember} placeholder={isNewMember ? "Paste new Member ID" : ""} /></FormControl><FormMessage /></FormItem>)} />
+                                                            <FormField control={settingsForm.control} name={`members.${index}.email`} render={({ field }) => (<FormItem className="flex-grow-[1.5]"><FormLabel className="text-xs">Email</FormLabel><FormControl><Input {...field} readOnly={!isNewMember} placeholder={isNewMember ? "new.member@example.com" : ""} /></FormControl><FormMessage /></FormItem>)} />
                                                             <FormField control={settingsForm.control} name={`members.${index}.role`} render={({ field }) => (<FormItem className="w-[150px]"><FormLabel className="text-xs">Role</FormLabel><FormControl><Input placeholder="e.g., Programmer" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                                             <Button type="button" variant="destructive" size="icon" onClick={() => removeSettingsMember(index)} disabled={field.id === team.creatorUid}><Trash2 className="h-4 w-4" /></Button>
                                                         </div>
                                                     )})}
                                                 </div>
-                                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: "", role: "Member", _isNew: true })}><PlusCircle className="mr-2 h-4 w-4" /> Add Member</Button>
+                                                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => appendSettingsMember({ name: "", id: uuidv4(), email: "", role: "Member", _isNew: true })}><PlusCircle className="mr-2 h-4 w-4" /> Add Member</Button>
                                             </TabsContent>
                                         </Tabs>
                                         <DialogFooter className="mt-6"><Button type="submit" disabled={settingsForm.formState.isSubmitting}>{settingsForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}</Button></DialogFooter>
@@ -670,15 +691,15 @@ export default function CollaborationClient() {
                                 <CardHeader><CardTitle className="flex items-center gap-2"><Users /> Team Members</CardTitle><CardDescription>Your current team workspace.</CardDescription></CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {team.roles && Object.entries(team.roles).map(([roleName, members]: [string, { [uid: string]: string }]) => (
+                                        {team.roles && Object.entries(team.roles).map(([roleName, members]: [string, { [uid: string]: {name: string, email: string} }]) => (
                                             <div key={roleName}>
                                                 <h4 className="font-semibold text-muted-foreground mb-3 px-1">{roleName}</h4>
                                                 <div className="space-y-4">
-                                                    {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberName]) => (
+                                                    {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberData]) => (
                                                         <div key={memberId} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3">
-                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberName.substring(0, 2)}</AvatarFallback></Avatar>
-                                                                <div className="flex flex-col"><p className="font-semibold text-foreground">{memberName}</p><p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>{user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}</div>
+                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberData.name.substring(0, 2)}</AvatarFallback></Avatar>
+                                                                <div className="flex flex-col"><p className="font-semibold text-foreground">{memberData.name}</p><p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>{user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}</div>
                                                             </div><StatusBadge status={memberStatuses[memberId]?.state} />
                                                         </div>
                                                     )) : (<p className="text-sm text-muted-foreground px-2">No members in this role yet.</p>)}
