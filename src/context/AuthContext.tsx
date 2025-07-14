@@ -17,9 +17,10 @@ interface AuthContextType {
   updateLessonProgress: (lessonId: string, score: number) => void;
   resetAllProgress: () => void;
   resetCourseProgress: (lessonIds: string[]) => void;
+  deleteAccountData: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {} });
 
 // Create a single source of truth for all lesson data
 const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
@@ -170,7 +171,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress };
+  const deleteAccountData = async () => {
+      if (user && database) {
+        const userRootRef = dbRef(database, `users/${user.uid}`);
+        await remove(userRootRef);
+        
+        const userStatusRef = dbRef(database, `status/${user.uid}`);
+        await remove(userStatusRef);
+        
+        // TODO: Also remove user from any teams they are in
+      }
+  };
+
+  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

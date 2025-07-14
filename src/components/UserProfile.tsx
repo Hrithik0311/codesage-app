@@ -78,10 +78,8 @@ export function UserProfile() {
   }
   
   const openGeneralSettings = () => {
-      toast({
-        title: "Coming Soon!",
-        description: "General settings will be available in a future update."
-      });
+      setIsCustomizationHubOpen(false);
+      router.push('/settings');
   }
 
   if (loading) {
