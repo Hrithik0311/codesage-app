@@ -42,11 +42,11 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
             <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground rounded-lg',
+                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground rounded-lg theme-swatch',
                   isActive && 'border-ring ring-2 ring-ring'
                 )}
                 onClick={() => handleSetTheme(item.value)}
-                data-theme={isSpecial ? theme : item.value}
+                data-theme={item.value}
             >
                 {isSpecial ? (
                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-primary via-accent to-secondary text-primary-foreground">

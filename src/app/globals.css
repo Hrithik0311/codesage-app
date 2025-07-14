@@ -35,7 +35,13 @@
     --radius: 0.5rem;
   }
   
-  [data-theme='custom'] {
+  .theme-swatch[data-theme='custom'],
+  [data-theme='custom']:not(.theme-swatch) {
+    --custom-primary: var(--custom-primary);
+    --custom-accent: var(--custom-accent);
+    --custom-background: var(--custom-background);
+    --custom-foreground: var(--custom-foreground);
+    --custom-primary-foreground: var(--custom-primary-foreground);
     --background: var(--custom-background);
     --foreground: var(--custom-foreground);
     --card: var(--custom-background);
@@ -93,7 +99,8 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
   }
-  [data-theme='liquid-glass'] {
+  .theme-swatch[data-theme='liquid-glass'],
+  body[data-theme='liquid-glass'] {
     --background: 235 20% 10%;
     --foreground: 0 0% 100%;
     --card: 255 255% 255% / 0.1;
@@ -131,8 +138,8 @@
   [data-theme='high-contrast-colorful'] { --background: 0 0% 0%; --foreground: 0 0% 100%; --primary: 60 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 180 100% 50%; --accent: 300 100% 50%; --radius: 0.5rem; }
   [data-theme='pretty-in-pink'] { --background: 330 100% 95%; --foreground: 330 50% 20%; --primary: 330 100% 70%; --primary-foreground: 0 0% 100%; --secondary: 330 100% 90%; --accent: 330 100% 70%; --radius: 0.5rem; }
   [data-theme='morpheon-dark'] { --background: 240 10% 10%; --foreground: 240 10% 90%; --primary: 180 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 240 10% 15%; --accent: 180 100% 50%; --radius: 0.5rem; }
-  [data-theme='midnight-monochrome'] { --background: 240 10% 5%; --foreground: 240 5% 70%; --primary: 240 10% 90%; --primary-foreground: 0 0% 0%; --secondary: 240 10% 10%; --accent: 240 10% 90%; --radius: 0rem; }
-  [data-theme='slinky-elegant'] { --background: 0 0% 15%; --foreground: 0 0% 85%; --primary: 0 0% 70%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 20%; --accent: 0 0% 70%; --radius: 0.5rem; }
+  [data-theme='midnight-monochrome'] { --background: 240 10% 5%; --foreground: 240 5% 70%; --primary: 240 10% 90%; --primary-foreground: 0 0% 0%; --secondary: 240 10% 10%; --accent: 240 10% 50%; --radius: 0rem; }
+  [data-theme='slinky-elegant'] { --background: 0 0% 15%; --foreground: 0 0% 85%; --primary: 0 0% 70%; --primary-foreground: 0 0% 0%; --secondary: 0 0% 20%; --accent: 0 0% 50%; --radius: 0.5rem; }
   [data-theme='magic-forest-shrooms'] { --background: 120 60% 10%; --foreground: 100 20% 80%; --primary: 40 100% 60%; --primary-foreground: 0 0% 0%; --secondary: 120 60% 15%; --accent: 40 100% 60%; --radius: 0.5rem; }
   [data-theme='gruvbox-slate'] { --background: 220 10% 20%; --foreground: 40 10% 80%; --primary: 30 80% 60%; --primary-foreground: 0 0% 0%; --secondary: 220 10% 25%; --accent: 30 80% 60%; --radius: 0.5rem; }
   [data-theme='aurora'] { --background: 220 50% 10%; --foreground: 180 30% 90%; --primary: 150 100% 50%; --primary-foreground: 0 0% 0%; --secondary: 200 50% 15%; --accent: 300 100% 70%; --radius: 0.5rem; }
@@ -665,3 +672,4 @@
 
 
     
+
