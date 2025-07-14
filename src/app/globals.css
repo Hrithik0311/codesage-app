@@ -99,8 +99,7 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
   }
-  .theme-swatch[data-theme='liquid-glass'],
-  body[data-theme='liquid-glass'] {
+  [data-theme='liquid-glass'] {
     --background: 235 20% 10%;
     --foreground: 0 0% 100%;
     --card: 255 255% 255% / 0.1;
@@ -243,6 +242,18 @@
     bottom: 6px;
     left: 50%;
     transform: translateX(-50%);
+  }
+
+  /* Fix for theme swatches */
+  .theme-swatch-preview {
+    border-radius: var(--radius) !important;
+  }
+  [data-theme='mono'].theme-swatch-preview:hover,
+  [data-theme='just-black'].theme-swatch-preview:hover,
+  [data-theme='black-white'].theme-swatch-preview:hover,
+  [data-theme='black-carbon-silver-metal'].theme-swatch-preview:hover,
+  [data-theme='midnight-monochrome'].theme-swatch-preview:hover {
+    background-color: hsl(var(--accent));
   }
 }
 
@@ -672,4 +683,5 @@
 
 
     
+
 

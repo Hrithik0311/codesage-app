@@ -23,13 +23,6 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
         onOpenCustomTheme(newTheme as 'custom' | 'liquid-glass');
         return;
     }
-    // When a standard theme is selected, remove any inline styles
-    // that the custom theme modal might have set.
-    document.documentElement.style.removeProperty('--custom-primary');
-    document.documentElement.style.removeProperty('--custom-accent');
-    document.documentElement.style.removeProperty('--custom-background');
-    document.documentElement.style.removeProperty('--custom-foreground');
-    document.documentElement.style.removeProperty('--custom-primary-foreground');
     setTheme(newTheme);
   }
 
@@ -42,7 +35,7 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
             <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground rounded-lg theme-swatch',
+                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground theme-swatch-preview rounded-lg',
                   isActive && 'border-ring ring-2 ring-ring'
                 )}
                 onClick={() => handleSetTheme(item.value)}
