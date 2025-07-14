@@ -42,7 +42,7 @@ const profileSchema = z.object({
 });
 
 export default function SettingsClient() {
-  const { user, loading, resetAllProgress, deleteAccountData } = useAuth();
+  const { user, loading, resetAllProgress, deleteAccountData, notificationSettings, updateNotificationSettings } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [teamInfo, setTeamInfo] = useState<{name: string, id: string, creatorUid: string} | null>(null);
@@ -264,14 +264,22 @@ export default function SettingsClient() {
                               <Label htmlFor="in-app-notifications" className="font-semibold text-foreground">In-App Notifications</Label>
                               <p className="text-sm text-muted-foreground">Receive notifications within the app.</p>
                           </div>
-                          <Switch id="in-app-notifications" defaultChecked />
+                          <Switch 
+                            id="in-app-notifications" 
+                            checked={notificationSettings.inApp}
+                            onCheckedChange={(checked) => updateNotificationSettings({ inApp: checked })}
+                          />
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-lg border border-border/50">
                            <div>
                               <Label htmlFor="email-notifications" className="font-semibold text-foreground">Email Notifications</Label>
                               <p className="text-sm text-muted-foreground">Receive important updates via email.</p>
                           </div>
-                          <Switch id="email-notifications" disabled />
+                          <Switch 
+                            id="email-notifications"
+                            checked={notificationSettings.email}
+                            onCheckedChange={(checked) => updateNotificationSettings({ email: checked })}
+                          />
                       </div>
                   </CardContent>
                    <CardFooter className="border-t px-6 py-4">

@@ -18,6 +18,11 @@ interface Notification {
     read: boolean;
 }
 
+interface NotificationSettings {
+    email: boolean;
+    inApp: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -29,9 +34,11 @@ interface AuthContextType {
   deleteAccountData: () => Promise<void>;
   notifications: Notification[];
   markNotificationsAsRead: () => void;
+  notificationSettings: NotificationSettings;
+  updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {}, notifications: [], markNotificationsAsRead: () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {}, notifications: [], markNotificationsAsRead: () => {}, notificationSettings: { email: false, inApp: true }, updateNotificationSettings: () => {} });
 
 // Create a single source of truth for all lesson data
 const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
@@ -43,6 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [lessonProgress, setLessonProgress] = useState(new Map<string, number>());
   const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: false, inApp: true });
 
 
   // Effect to handle basic auth state changes
@@ -64,6 +72,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Effect to handle user presence, name sync, and data fetching
   useEffect(() => {
+    let connectedSub = () => {};
+    let lessonsSub = () => {};
+    let settingsSub = () => {};
+
     if (user && database) {
         // Sync user's display name to the database
         if (user.displayName) {
@@ -90,7 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }, 300000); // 5 minutes
         };
 
-        const connectedSub = onValue(connectedRef, (snap) => {
+        connectedSub = onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
                 onDisconnect(userStatusDatabaseRef).set({
                     state: 'offline',
@@ -105,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         
         const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
-        const lessonsSub = onValue(lessonsRef, (snapshot) => {
+        lessonsSub = onValue(lessonsRef, (snapshot) => {
             const data: Record<string, number> = snapshot.val() || {};
             const newLessonProgress = new Map(Object.entries(data));
             setLessonProgress(newLessonProgress);
@@ -137,6 +149,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setPassedLessonIds(newPassedLessonIds);
         });
 
+        const settingsRef = dbRef(database, `users/${user.uid}/notificationSettings`);
+        settingsSub = onValue(settingsRef, (snapshot) => {
+            const data: NotificationSettings = snapshot.val();
+            if (data) {
+                setNotificationSettings(data);
+            } else {
+                // If no settings exist in DB, set default ones.
+                set(settingsRef, { email: false, inApp: true });
+            }
+        });
+
         // Mock notifications for demonstration
         setNotifications([
           { id: '1', title: 'New Team Share', description: 'Alice shared "Autonomous.java"', link: '/collaboration', timestamp: Date.now() - 1000 * 60 * 5, read: false },
@@ -148,6 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => {
             connectedSub();
             lessonsSub();
+            settingsSub();
             window.removeEventListener('mousemove', resetIdleTimer);
             window.removeEventListener('keydown', resetIdleTimer);
             window.removeEventListener('scroll', resetIdleTimer);
@@ -168,6 +192,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const lessonRef = dbRef(database, `users/${user.uid}/lessonProgress/${lessonId}`);
         set(lessonRef, score);
     }
+  };
+  
+  const updateNotificationSettings = (settings: Partial<NotificationSettings>) => {
+      if (user && database) {
+        const settingsRef = dbRef(database, `users/${user.uid}/notificationSettings`);
+        update(settingsRef, settings); // Use update to change specific fields
+      }
   };
 
   const resetAllProgress = () => {
@@ -207,7 +238,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // In a real app, you would also update the database here.
   }
 
-  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData, notifications, markNotificationsAsRead };
+  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData, notifications, markNotificationsAsRead, notificationSettings, updateNotificationSettings };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
