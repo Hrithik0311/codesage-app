@@ -13,10 +13,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette } from 'lucide-react';
+import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
@@ -113,10 +117,24 @@ export function UserProfile() {
               </Link>
             </DropdownMenuItem>
             
-            <DropdownMenuItem onSelect={() => setIsThemeModalOpen(true)} className="cursor-pointer">
-              <Palette className="mr-2 h-4 w-4" />
-              <span>Customization</span>
-            </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <Palette className="mr-2 h-4 w-4" />
+                <span>Customization</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onSelect={() => setIsThemeModalOpen(true)} className="cursor-pointer">
+                    <Palette className="mr-2 h-4 w-4" />
+                    <span>Theme</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => toast({ title: 'Coming Soon!', description: 'General settings will be available in a future update.' })} className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>General Settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
 
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="font-normal !py-0 !px-2">
