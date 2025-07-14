@@ -47,12 +47,9 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
                 )}
                 onClick={() => handleSetTheme(item.value)}
                 style={isSpecial ? {} : {
-                  '--primary-preview': `hsl(var(--${item.value}-primary, 0 0% 0%))`,
-                  '--background-preview': `hsl(var(--${item.value}-background, 0 0% 100%))`,
-                  '--border-preview': `hsl(var(--${item.value}-border, 0 0% 80%))`,
-                  '--primary-foreground-preview': `hsl(var(--${item.value}-primary-foreground, 0 0% 100%))`,
-                  backgroundColor: `var(--background-preview)`,
-                  borderColor: `var(--border-preview)`,
+                  backgroundColor: `hsl(var(--${item.value}-primary, 0 0% 0%))`,
+                  color: `hsl(var(--${item.value}-primary-foreground, 0 0% 100%))`,
+                  '--tw-ring-color': `hsl(var(--${item.value}-primary, 0 0% 0%))`
                 } as React.CSSProperties}
             >
                 {isSpecial ? (
@@ -60,15 +57,7 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
                         <Palette className="h-6 w-6" />
                     </div>
                 ) : (
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{
-                        backgroundColor: `var(--primary-preview)`,
-                        color: `var(--primary-foreground-preview)`,
-                      }}
-                    >
-                       {isActive && <Check className="h-6 w-6" />}
-                    </div>
+                    isActive && <Check className="h-8 w-8 text-white" />
                 )}
             </Button>
             <p className="text-sm font-medium text-center">{item.name}</p>
