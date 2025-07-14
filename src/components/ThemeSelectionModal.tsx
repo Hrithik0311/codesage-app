@@ -42,22 +42,18 @@ const ThemeSelectionModal = ({ isOpen, onClose, onOpenCustomTheme }: { isOpen: b
             <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-20 border-2 flex items-center justify-center relative',
-                  isActive && 'border-primary ring-2 ring-primary'
+                  'w-full h-20 border-2 flex items-center justify-center relative bg-primary text-primary-foreground',
+                  isActive && 'border-ring ring-2 ring-ring'
                 )}
                 onClick={() => handleSetTheme(item.value)}
-                style={isSpecial ? {} : {
-                  backgroundColor: `hsl(var(--${item.value}-primary, 0 0% 0%))`,
-                  color: `hsl(var(--${item.value}-primary-foreground, 0 0% 100%))`,
-                  '--tw-ring-color': `hsl(var(--${item.value}-primary, 0 0% 0%))`
-                } as React.CSSProperties}
+                data-theme={isSpecial ? theme : item.value}
             >
                 {isSpecial ? (
                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-primary via-accent to-secondary text-primary-foreground">
                         <Palette className="h-6 w-6" />
                     </div>
                 ) : (
-                    isActive && <Check className="h-8 w-8 text-white" />
+                    isActive && <Check className="h-8 w-8 text-primary-foreground" />
                 )}
             </Button>
             <p className="text-sm font-medium text-center">{item.name}</p>
