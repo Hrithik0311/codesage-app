@@ -129,7 +129,7 @@ export function UserProfile() {
             
             <DropdownMenuItem onSelect={() => setIsCustomizationHubOpen(true)} className="cursor-pointer">
                 <Palette className="mr-2 h-4 w-4" />
-                <span>Customization</span>
+                <span>Settings &amp; Personalization</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -157,7 +157,7 @@ export function UserProfile() {
       <Modal
         isOpen={isCustomizationHubOpen}
         onClose={() => setIsCustomizationHubOpen(false)}
-        title="Customization"
+        title="Settings & Personalization"
         className="max-w-md"
       >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
@@ -166,7 +166,7 @@ export function UserProfile() {
                 className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
               >
                   <Palette size={32} className="text-accent" />
-                  <h3 className="font-semibold text-foreground">Themes</h3>
+                  <h3 className="font-semibold text-foreground">Personalize</h3>
                   <p className="text-sm text-muted-foreground">Change the look and feel of the app.</p>
               </div>
                <div
@@ -174,7 +174,7 @@ export function UserProfile() {
                 className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
               >
                   <Settings size={32} className="text-accent" />
-                  <h3 className="font-semibold text-foreground">General</h3>
+                  <h3 className="font-semibold text-foreground">Settings</h3>
                   <p className="text-sm text-muted-foreground">App-wide settings and preferences.</p>
               </div>
           </div>
