@@ -403,10 +403,13 @@ export default function CollaborationClient() {
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
         if (!user || !database || !team) return;
         const updates: { [key: string]: any } = {};
+        const allMemberEmails: string[] = [];
+        
         if (user.uid === team.creatorUid) {
             const originalMemberIds = new Set(Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers)));
             const newMemberIds = new Set(values.members.map(m => m.id));
             const newRoles: { [key: string]: { [uid: string]: {name: string, email: string} } } = {};
+            
             values.members.forEach(member => {
                 if (!member.id) return;
                 if (!newRoles[member.role]) newRoles[member.role] = {};
@@ -417,21 +420,38 @@ export default function CollaborationClient() {
                     updates[`/users/${member.id}/teamCode`] = team.id;
                     if (team.announcementsChatId) updates[`/users/${member.id}/chats/${team.announcementsChatId}`] = true;
                 }
+                if (member.email) allMemberEmails.push(member.email);
             });
+            
             originalMemberIds.forEach(id => {
                 if (!newMemberIds.has(id)) {
                     updates[`/users/${id}/teamCode`] = null;
                     if (team.announcementsChatId) updates[`/users/${id}/chats/${team.announcementsChatId}`] = null;
                 }
             });
+
             updates[`/teams/${team.id}/name`] = values.teamName;
             updates[`/teams/${team.id}/pin`] = values.pin;
             updates[`/teams/${team.id}/roles`] = newRoles;
-        } else { toast({ variant: 'destructive', title: 'Error', description: 'Only the team creator can modify team settings.' }); return; }
+        } else { 
+            toast({ variant: 'destructive', title: 'Error', description: 'Only the team creator can modify team settings.' }); 
+            return; 
+        }
+
         try {
             await update(dbRef(database), updates);
             toast({ title: 'Success!', description: 'Team settings have been updated.' });
             setIsSettingsOpen(false);
+
+            // Notify all current team members
+            for (const email of allMemberEmails) {
+                sendNotificationEmail({
+                    to: email,
+                    subject: `Team Update: ${values.teamName}`,
+                    body: `<h1>Team Settings Updated</h1><p>The settings for your team, '${values.teamName}', have been updated by the team captain. You can view the changes in the Collaboration Hub.</p>`
+                }).catch(e => console.error(`Failed to send settings update to ${email}:`, e));
+            }
+
         } catch (error) {
             console.error("Error updating team settings:", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not save team settings.' });
