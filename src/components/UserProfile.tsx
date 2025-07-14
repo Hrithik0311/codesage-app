@@ -13,10 +13,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
+import Modal from './Modal';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
@@ -35,6 +32,7 @@ export function UserProfile() {
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
   const [originalTheme, setOriginalTheme] = useState<string | undefined>(undefined);
+  const [isCustomizationHubOpen, setIsCustomizationHubOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
@@ -72,6 +70,18 @@ export function UserProfile() {
   const handleCloseCustomizer = () => {
     setIsCustomThemeModalOpen(false);
     setThemeToEdit(null);
+  }
+  
+  const openThemeSelector = () => {
+      setIsCustomizationHubOpen(false);
+      setIsThemeModalOpen(true);
+  }
+  
+  const openGeneralSettings = () => {
+      toast({
+        title: "Coming Soon!",
+        description: "General settings will be available in a future update."
+      });
   }
 
   if (loading) {
@@ -117,24 +127,10 @@ export function UserProfile() {
               </Link>
             </DropdownMenuItem>
             
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
+            <DropdownMenuItem onSelect={() => setIsCustomizationHubOpen(true)} className="cursor-pointer">
                 <Palette className="mr-2 h-4 w-4" />
                 <span>Customization</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onSelect={() => setIsThemeModalOpen(true)} className="cursor-pointer">
-                    <Palette className="mr-2 h-4 w-4" />
-                    <span>Theme</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => toast({ title: 'Coming Soon!', description: 'General settings will be available in a future update.' })} className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>General Settings</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            </DropdownMenuItem>
 
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="font-normal !py-0 !px-2">
@@ -157,6 +153,32 @@ export function UserProfile() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      <Modal
+        isOpen={isCustomizationHubOpen}
+        onClose={() => setIsCustomizationHubOpen(false)}
+        title="Customization"
+        className="max-w-md"
+      >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div
+                onClick={openThemeSelector}
+                className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
+              >
+                  <Palette size={32} className="text-accent" />
+                  <h3 className="font-semibold text-foreground">Themes</h3>
+                  <p className="text-sm text-muted-foreground">Change the look and feel of the app.</p>
+              </div>
+               <div
+                onClick={openGeneralSettings}
+                className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
+              >
+                  <Settings size={32} className="text-accent" />
+                  <h3 className="font-semibold text-foreground">General</h3>
+                  <p className="text-sm text-muted-foreground">App-wide settings and preferences.</p>
+              </div>
+          </div>
+      </Modal>
 
       <ThemeSelectionModal
         isOpen={isThemeModalOpen}
