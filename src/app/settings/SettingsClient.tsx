@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, User, Trash2, RotateCcw, Palette, Users, ArrowRight } from 'lucide-react';
+import { ShieldCheck, User, Trash2, RotateCcw, Palette, Users, ArrowRight, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 import { useForm } from 'react-hook-form';
@@ -33,6 +33,8 @@ import { ref as dbRef, get } from 'firebase/database';
 import ThemeSelectionModal from '@/components/ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 const profileSchema = z.object({
@@ -241,6 +243,34 @@ export default function SettingsClient() {
                           Change Theme
                       </Button>
                   </CardFooter>
+              </Card>
+
+               <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-3"><Bell /> Notifications</CardTitle>
+                      <CardDescription>Manage how you receive notifications.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                      <div className="flex items-center justify-between p-4 rounded-lg border border-border/50">
+                          <div>
+                              <Label htmlFor="in-app-notifications" className="font-semibold text-foreground">In-App Notifications</Label>
+                              <p className="text-sm text-muted-foreground">Receive notifications within the app.</p>
+                          </div>
+                          <Switch id="in-app-notifications" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-lg border border-border/50">
+                           <div>
+                              <Label htmlFor="email-notifications" className="font-semibold text-foreground">Email Notifications</Label>
+                              <p className="text-sm text-muted-foreground">Receive important updates via email.</p>
+                          </div>
+                          <Switch id="email-notifications" disabled />
+                      </div>
+                  </CardContent>
+                   <CardFooter className="border-t px-6 py-4">
+                       <Button asChild>
+                           <Link href="/notifications">View All Notifications <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                       </Button>
+                    </CardFooter>
               </Card>
 
               <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-destructive/50 border">

@@ -13,15 +13,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette, Settings } from 'lucide-react';
+import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette, Settings, Sun, Moon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
+import { NotificationBell } from './NotificationBell';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
@@ -85,6 +90,7 @@ export function UserProfile() {
   return (
     <>
       <div className="flex items-center gap-2">
+        <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">

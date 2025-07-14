@@ -9,6 +9,15 @@ import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 
+interface Notification {
+    id: string;
+    title: string;
+    description: string;
+    link: string;
+    timestamp: number;
+    read: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -18,9 +27,11 @@ interface AuthContextType {
   resetAllProgress: () => void;
   resetCourseProgress: (lessonIds: string[]) => void;
   deleteAccountData: () => Promise<void>;
+  notifications: Notification[];
+  markNotificationsAsRead: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {}, notifications: [], markNotificationsAsRead: () => {} });
 
 // Create a single source of truth for all lesson data
 const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
@@ -31,6 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [lessonProgress, setLessonProgress] = useState(new Map<string, number>());
   const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
 
   // Effect to handle basic auth state changes
@@ -125,6 +137,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setPassedLessonIds(newPassedLessonIds);
         });
 
+        // Mock notifications for demonstration
+        setNotifications([
+          { id: '1', title: 'New Team Share', description: 'Alice shared "Autonomous.java"', link: '/collaboration', timestamp: Date.now() - 1000 * 60 * 5, read: false },
+          { id: '2', title: 'Lesson Complete!', description: 'You passed the "Mecanum Drive" lesson.', link: '/learning', timestamp: Date.now() - 1000 * 60 * 60 * 2, read: true },
+        ]);
+
 
         // This is the cleanup function for THIS effect.
         return () => {
@@ -141,6 +159,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setLessonProgress(new Map());
         setPassedLessonIds(new Set());
+        setNotifications([]);
       }
   }, [user]);
 
@@ -183,7 +202,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
   };
 
-  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData };
+  const markNotificationsAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    // In a real app, you would also update the database here.
+  }
+
+  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData, notifications, markNotificationsAsRead };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
