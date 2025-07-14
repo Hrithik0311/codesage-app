@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
-import Modal from './Modal';
 
 export function UserProfile() {
   const { user, loading } = useAuth();
@@ -32,7 +31,6 @@ export function UserProfile() {
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
   const [originalTheme, setOriginalTheme] = useState<string | undefined>(undefined);
-  const [isCustomizationHubOpen, setIsCustomizationHubOpen] = useState(false);
 
   const { theme, setTheme } = useTheme();
 
@@ -72,16 +70,6 @@ export function UserProfile() {
     setThemeToEdit(null);
   }
   
-  const openThemeSelector = () => {
-      setIsCustomizationHubOpen(false);
-      setIsThemeModalOpen(true);
-  }
-  
-  const openGeneralSettings = () => {
-      setIsCustomizationHubOpen(false);
-      router.push('/settings');
-  }
-
   if (loading) {
     return <Skeleton className="h-10 w-10 rounded-full" />;
   }
@@ -124,10 +112,15 @@ export function UserProfile() {
                 <span>Dashboard</span>
               </Link>
             </DropdownMenuItem>
-            
-            <DropdownMenuItem onSelect={() => setIsCustomizationHubOpen(true)} className="cursor-pointer">
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsThemeModalOpen(true)} className="cursor-pointer">
                 <Palette className="mr-2 h-4 w-4" />
-                <span>Settings &amp; Personalization</span>
+                <span>Change Theme</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -152,32 +145,6 @@ export function UserProfile() {
         </DropdownMenu>
       </div>
       
-      <Modal
-        isOpen={isCustomizationHubOpen}
-        onClose={() => setIsCustomizationHubOpen(false)}
-        title="Settings & Personalization"
-        className="max-w-md"
-      >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div
-                onClick={openThemeSelector}
-                className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
-              >
-                  <Palette size={32} className="text-accent" />
-                  <h3 className="font-semibold text-foreground">Personalize</h3>
-                  <p className="text-sm text-muted-foreground">Change the look and feel of the app.</p>
-              </div>
-               <div
-                onClick={openGeneralSettings}
-                className="p-6 border rounded-lg hover:bg-muted/50 cursor-pointer flex flex-col items-center justify-center text-center gap-3 transition-all"
-              >
-                  <Settings size={32} className="text-accent" />
-                  <h3 className="font-semibold text-foreground">Settings</h3>
-                  <p className="text-sm text-muted-foreground">App-wide settings and preferences.</p>
-              </div>
-          </div>
-      </Modal>
-
       <ThemeSelectionModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
