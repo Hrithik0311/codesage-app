@@ -98,7 +98,8 @@ export default function SettingsClient() {
               to: user.email,
               subject: 'Your CodeSage Profile Has Been Updated',
               body: `<h1>Profile Updated</h1><p>Hi ${values.displayName},</p><p>This is a confirmation that your display name on CodeSage has been successfully changed.</p>`
-          }).catch(e => console.error("Failed to send profile update email:", e));
+          }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
+            .catch(e => console.error("Failed to send profile update email:", e));
       }
       // Force a reload of the user object in the auth context, if not automatically updated
       router.refresh(); 
@@ -154,10 +155,10 @@ export default function SettingsClient() {
       to: user.email,
       subject: "CodeSage Test Notification",
       body: "<h1>This is a test!</h1><p>If you received this, your email notifications are working correctly.</p>"
-    }).then(() => {
+    }).then((res) => {
       toast({
         title: "Test Email Sent!",
-        description: `A test email has been sent to ${user.email}.`
+        description: res.status
       });
     }).catch(e => {
       console.error("Failed to send test email:", e);

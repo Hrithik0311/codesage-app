@@ -107,7 +107,8 @@ function IDEContent() {
                     to: creatorEmailSnapshot.val(),
                     subject: title,
                     body: body,
-                }).catch(e => console.error("Failed to send share notification:", e));
+                }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
+                  .catch(e => console.error("Failed to send share notification:", e));
             }
         }
     };

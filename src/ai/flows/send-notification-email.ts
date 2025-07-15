@@ -49,6 +49,6 @@ const sendNotificationEmailFlow = ai.defineFlow(
     
     // You can view this log in the terminal where you ran `npm run genkit:watch`.
 
-    return { status: 'Email sent successfully (simulated).' };
+    return { status: `Email sent to ${input.to} with subject "${input.subject}"` };
   }
 );
