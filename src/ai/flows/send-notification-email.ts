@@ -7,7 +7,7 @@
  * - sendNotificationEmail - A function that handles sending an email.
  * - EmailInput - The input type for the sendNotificationEmail function.
  */
-
+import 'dotenv/config'; // Make sure this is at the top
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
