@@ -15,6 +15,7 @@ const EmailInputSchema = z.object({
   to: z.string().email().describe('The recipient\'s email address.'),
   subject: z.string().describe('The subject line of the email.'),
   body: z.string().describe('The HTML body of the email.'),
+  includeSettingsFooter: z.boolean().optional().default(true).describe('Whether to include the standard settings management footer in the email.'),
 });
 export type EmailInput = z.infer<typeof EmailInputSchema>;
 
@@ -45,6 +46,12 @@ const sendNotificationEmailFlow = ai.defineFlow(
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
     const apiUrl = `${baseUrl}/api/send-email`;
 
+    let emailBody = input.body;
+    if (input.includeSettingsFooter) {
+        const footer = `<hr><p style="font-size: 12px; color: #888;">You are receiving this email because you have notifications enabled for this action. You can manage your notification preferences in your <a href="${baseUrl}/settings">CodeSage Settings</a>.</p>`;
+        emailBody += footer;
+    }
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -54,7 +61,7 @@ const sendNotificationEmailFlow = ai.defineFlow(
         body: JSON.stringify({
           to: input.to,
           subject: input.subject,
-          html: input.body,
+          html: emailBody,
         }),
       });
 

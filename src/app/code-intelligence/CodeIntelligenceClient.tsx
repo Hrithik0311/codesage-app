@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
+import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
@@ -97,7 +98,7 @@ export default function CodeIntelligenceClient() {
     const [analysisResults, setAnalysisResults] = useState<Omit<CodeAnalysisOutput, 'refactoredCode'> | null>(null);
     const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
     const { toast } = useToast();
-    const { user, loading } = useAuth();
+    const { user, loading, notificationSettings } = useAuth();
     const router = useRouter();
     const [teamCode, setTeamCode] = useState<string | null>(null);
 
@@ -141,18 +142,28 @@ export default function CodeIntelligenceClient() {
                 programmingLanguage: language,
             });
             
-            if (teamCode && user && database) {
-                const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
-                push(activitiesRef, {
-                    type: 'analysis',
-                    userId: user.uid,
-                    userName: user.displayName || user.email,
-                    details: {
-                        fileName: `a ${language} snippet`,
-                    },
-                    timestamp: serverTimestamp(),
-                });
+            if (user && database) {
+                if (teamCode) {
+                    const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+                    push(activitiesRef, {
+                        type: 'analysis',
+                        userId: user.uid,
+                        userName: user.displayName || user.email,
+                        details: {
+                            fileName: `a ${language} snippet`,
+                        },
+                        timestamp: serverTimestamp(),
+                    });
+                }
+                if (notificationSettings.email && user.email) {
+                    sendNotificationEmail({
+                        to: user.email,
+                        subject: 'CodeSage Analysis Complete',
+                        body: `<h1>Analysis Report</h1><p>Your recent AI-powered code analysis is complete. You can view the full results and refactored code on the <a href="${process.env.NEXT_PUBLIC_URL || 'http://localhost:9002'}/code-intelligence">Code Intelligence page</a>.</p>`
+                    }).catch(e => console.error("Failed to send analysis email:", e));
+                }
             }
+
 
             const { refactoredCode, ...analysis } = results;
 

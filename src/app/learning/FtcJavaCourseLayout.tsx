@@ -14,6 +14,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { useToast } from '@/hooks/use-toast';
 import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
+import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
@@ -26,7 +27,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isInitialLessonSet, setIsInitialLessonSet] = useState(false);
-  const { user, loading, updateLessonProgress, passedLessonIds } = useAuth();
+  const { user, loading, updateLessonProgress, passedLessonIds, notificationSettings } = useAuth();
   const { toast } = useToast();
   const [teamCode, setTeamCode] = useState<string | null>(null);
   
@@ -124,20 +125,31 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
         isPassed = scoreToStore >= PASS_THRESHOLD;
     }
 
-    if (isPassed) {
-       if (!wasAlreadyPassed && teamCode && user && database) {
-            const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
-            push(activitiesRef, {
-                type: 'lesson_completion',
-                userId: user.uid,
-                userName: user.displayName || user.email,
-                details: {
-                    lessonTitle: lesson.title,
-                },
-                timestamp: serverTimestamp(),
-            });
+    if (isPassed && !wasAlreadyPassed) {
+        if (user && database) {
+            if (teamCode) {
+                const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+                push(activitiesRef, {
+                    type: 'lesson_completion',
+                    userId: user.uid,
+                    userName: user.displayName || user.email,
+                    details: {
+                        lessonTitle: lesson.title,
+                    },
+                    timestamp: serverTimestamp(),
+                });
+            }
+            if (notificationSettings.email && user.email) {
+                 sendNotificationEmail({
+                    to: user.email,
+                    subject: `Lesson Complete: ${lesson.title}`,
+                    body: `<h1>Progress Update!</h1><p>Congratulations! You have successfully completed the lesson: <strong>${lesson.title}</strong>.</p><p>Keep up the great work!</p>`
+                }).catch(e => console.error("Failed to send lesson completion email:", e));
+            }
        }
+    }
 
+    if (isPassed) {
        if (lesson.isFinalTestForCourse && nextCoursePath) {
             toast({
                 title: "Course Complete!",

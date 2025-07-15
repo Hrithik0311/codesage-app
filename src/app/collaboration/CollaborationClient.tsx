@@ -351,8 +351,7 @@ export default function CollaborationClient() {
                     to: member.email,
                     subject: `Welcome to the team: ${values.teamName}!`,
                     body: `<h1>Welcome!</h1><p>You have been added to the team '${values.teamName}' on CodeSage. You can log in and start collaborating now.</p>`
-                }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-                  .catch(e => console.error("Failed to send welcome email:", e));
+                }).catch(e => console.error("Failed to send welcome email:", e));
             }
         }
 
@@ -396,8 +395,7 @@ export default function CollaborationClient() {
                     to: creatorEmail,
                     subject: `New Member: ${memberName} joined your team!`,
                     body: `<h1>New Team Member</h1><p>${memberName} has just joined your team, '${teamData.name}'.</p>`
-                }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-                  .catch(e => console.error("Failed to send notification email to creator:", e));
+                }).catch(e => console.error("Failed to send notification email to creator:", e));
             }
         }
     };
@@ -451,8 +449,7 @@ export default function CollaborationClient() {
                     to: email,
                     subject: `Team Update: ${values.teamName}`,
                     body: `<h1>Team Settings Updated</h1><p>The settings for your team, '${values.teamName}', have been updated by the team captain. You can view the changes in the Collaboration Hub.</p>`
-                }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-                  .catch(e => console.error(`Failed to send settings update to ${email}:`, e));
+                }).catch(e => console.error(`Failed to send settings update to ${email}:`, e));
             }
 
         } catch (error) {
@@ -561,8 +558,7 @@ export default function CollaborationClient() {
                        <p><b>Title:</b> ${newEvent.title}</p>
                        <p><b>Date:</b> ${format(date, 'PPP')}</p>
                        <p><b>Description:</b> ${newEvent.description || 'N/A'}</p>`
-            }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-              .catch(e => console.error(`Failed to send event notification to ${email}:`, e));
+            }).catch(e => console.error(`Failed to send event notification to ${email}:`, e));
         }
     };
 

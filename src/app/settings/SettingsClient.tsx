@@ -98,8 +98,7 @@ export default function SettingsClient() {
               to: user.email,
               subject: 'Your CodeSage Profile Has Been Updated',
               body: `<h1>Profile Updated</h1><p>Hi ${values.displayName},</p><p>This is a confirmation that your display name on CodeSage has been successfully changed.</p>`
-          }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-            .catch(e => console.error("Failed to send profile update email:", e));
+          }).catch(e => console.error("Failed to send profile update email:", e));
       }
       // Force a reload of the user object in the auth context, if not automatically updated
       router.refresh(); 

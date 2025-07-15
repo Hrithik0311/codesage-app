@@ -100,15 +100,17 @@ function IDEContent() {
         const creatorUidSnapshot = await get(teamRef);
         if (creatorUidSnapshot.exists()) {
             const creatorUid = creatorUidSnapshot.val();
-            const creatorEmailRef = dbRef(database, `users/${creatorUid}/email`);
-            const creatorEmailSnapshot = await get(creatorEmailRef);
-            if (creatorEmailSnapshot.exists()) {
-                sendNotificationEmail({
-                    to: creatorEmailSnapshot.val(),
-                    subject: title,
-                    body: body,
-                }).then(res => toast({ title: 'Notification Sent!', description: res.status }))
-                  .catch(e => console.error("Failed to send share notification:", e));
+            const creatorRef = dbRef(database, `users/${creatorUid}`);
+            const creatorSnapshot = await get(creatorRef);
+             if (creatorSnapshot.exists()) {
+                const creatorData = creatorSnapshot.val();
+                if (creatorData.notificationSettings?.email && creatorData.email) {
+                    sendNotificationEmail({
+                        to: creatorData.email,
+                        subject: title,
+                        body: body,
+                    }).catch(e => console.error("Failed to send share notification:", e));
+                }
             }
         }
     };

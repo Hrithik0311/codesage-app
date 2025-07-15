@@ -38,6 +38,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email.' }),
@@ -53,6 +54,7 @@ const signUpSchema = z.object({
 export default function AuthClient() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
 
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -66,9 +68,19 @@ export default function AuthClient() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push('/dashboard');
+        if (isJustLoggedIn) {
+            if (user.email) {
+                sendNotificationEmail({
+                    to: user.email,
+                    subject: 'Successful Login to CodeSage',
+                    body: `<h1>Login Alert</h1><p>We detected a new login to your CodeSage account. If this was not you, please secure your account.</p>`
+                }).catch(e => console.error("Failed to send login email:", e));
+            }
+            setIsJustLoggedIn(false);
+        }
+        router.push('/dashboard');
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isJustLoggedIn]);
 
   const handleAuthError = (error: any) => {
     console.error('Auth Error:', error);
@@ -96,6 +108,7 @@ export default function AuthClient() {
     if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
+      setIsJustLoggedIn(true);
     } catch (err) {
       handleAuthError(err);
     }
@@ -106,6 +119,7 @@ export default function AuthClient() {
     try {
       const userCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
       await updateProfile(userCred.user, { displayName: values.displayName });
+      setIsJustLoggedIn(true);
     } catch (err) {
       handleAuthError(err);
     }
@@ -117,6 +131,7 @@ export default function AuthClient() {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log('Google sign-in successful:', result.user);
+      setIsJustLoggedIn(true);
     } catch (err: any) {
       handleAuthError(err);
     }
