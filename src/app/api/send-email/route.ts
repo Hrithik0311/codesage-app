@@ -2,13 +2,9 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Initialize Resend with the API key from environment variables.
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   const { to, subject, html } = await request.json();
 
-  // Check if the Resend API key is available. If not, the constructor above would have already thrown an error.
   if (!process.env.RESEND_API_KEY) {
     console.error('Resend API key is not set in the environment.');
     return NextResponse.json(
@@ -16,6 +12,9 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  // Initialize Resend inside the handler to ensure the key is checked first.
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   try {
     const { data, error } = await resend.emails.send({
