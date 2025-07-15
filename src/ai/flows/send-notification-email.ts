@@ -42,7 +42,7 @@ const sendNotificationEmailFlow = ai.defineFlow(
     
     // Determine the base URL for the API call.
     // In a production environment, this should be your public URL.
-    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
     const apiUrl = `${baseUrl}/api/send-email`;
 
     try {
