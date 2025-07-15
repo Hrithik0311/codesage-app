@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview A flow for sending notification emails.
+ * @fileOverview A flow for sending notification emails via an API endpoint.
  *
  * - sendNotificationEmail - A function that handles sending an email.
  * - EmailInput - The input type for the sendNotificationEmail function.
@@ -21,6 +21,7 @@ export type EmailInput = z.infer<typeof EmailInputSchema>;
 // This is a placeholder output. In a real scenario, this might return a status.
 const EmailOutputSchema = z.object({
   status: z.string(),
+  success: z.boolean(),
 });
 export type EmailOutput = z.infer<typeof EmailOutputSchema>;
 
@@ -36,19 +37,39 @@ const sendNotificationEmailFlow = ai.defineFlow(
     outputSchema: EmailOutputSchema,
   },
   async (input) => {
-    // In a real-world application, this is where you would integrate with an
-    // email sending service like SendGrid, Mailgun, or AWS SES.
-    // For this prototype, we will just log the action to the console
-    // to simulate that an email has been sent.
+    // This flow will call our own API endpoint to send the email.
+    // This abstracts the email logic and keeps Genkit focused on orchestration.
     
-    console.log('***********************************');
-    console.log('*** SIMULATING EMAIL NOTIFICATION ***');
-    console.log(`Recipient: ${input.to}`);
-    console.log(`Subject: ${input.subject}`);
-    console.log('***********************************');
-    
-    // You can view this log in the terminal where you ran `npm run genkit:watch`.
+    // Determine the base URL for the API call.
+    // In a production environment, this should be your public URL.
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    const apiUrl = `${baseUrl}/api/send-email`;
 
-    return { status: `Email sent to ${input.to} with subject "${input.subject}"` };
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: input.to,
+          subject: input.subject,
+          html: input.body,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+
+      console.log(`Email API call successful for ${input.to}`);
+      return { status: `Email sent to ${input.to}`, success: true };
+
+    } catch (error: any) {
+      console.error('Error in sendNotificationEmailFlow:', error);
+      return { status: `Failed to send email: ${error.message}`, success: false };
+    }
   }
 );
