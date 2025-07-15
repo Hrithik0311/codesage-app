@@ -1,37 +1,38 @@
 
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+// Initialize Resend with the API key from environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   const { to, subject, html } = await request.json();
 
-  // Check if environment variables are set
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('Email credentials are not set in .env file.');
+  // Check if the Resend API key is set
+  if (!process.env.RESEND_API_KEY) {
+    console.error('Resend API key is not set in .env file.');
     return NextResponse.json(
       { success: false, error: 'Server is not configured for sending emails.' },
       { status: 500 }
     );
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Use your Gmail App Password here
-    },
-  });
-
-  const mailOptions = {
-    from: `"CodeSage" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true }, { status: 200 });
+    const { data, error } = await resend.emails.send({
+      from: 'CodeSage <onboarding@resend.dev>', // You will need to use a verified domain in production
+      to: [to],
+      subject,
+      html,
+    });
+
+    if (error) {
+      console.error('Resend API Error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    
+    console.log('Resend success response:', data);
+    return NextResponse.json({ success: true, data }, { status: 200 });
+
   } catch (error: any) {
     console.error('Email sending error:', error);
     return NextResponse.json(
