@@ -139,6 +139,35 @@ export default function SettingsClient() {
         });
     }
   };
+  
+  const handleSendTestEmail = () => {
+    if (!user || !user.email) {
+      toast({
+        title: "Cannot Send Email",
+        description: "Your account does not have an email address associated with it.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    sendNotificationEmail({
+      to: user.email,
+      subject: "CodeSage Test Notification",
+      body: "<h1>This is a test!</h1><p>If you received this, your email notifications are working correctly.</p>"
+    }).then(() => {
+      toast({
+        title: "Test Email Sent!",
+        description: `A test email has been sent to ${user.email}.`
+      });
+    }).catch(e => {
+      console.error("Failed to send test email:", e);
+      toast({
+        title: "Failed to Send",
+        description: "There was an error sending the test email.",
+        variant: "destructive"
+      });
+    });
+  };
 
   const handleOpenCustomizer = (themeToEdit: 'custom' | 'liquid-glass') => {
     setOriginalTheme(theme);
@@ -291,9 +320,12 @@ export default function SettingsClient() {
                           />
                       </div>
                   </CardContent>
-                   <CardFooter className="border-t px-6 py-4">
+                   <CardFooter className="border-t px-6 py-4 flex justify-between items-center">
                        <Button asChild>
                            <Link href="/notifications">View All Notifications <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                       </Button>
+                       <Button variant="outline" onClick={handleSendTestEmail}>
+                           Send Test Email
                        </Button>
                     </CardFooter>
               </Card>
