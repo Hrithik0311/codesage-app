@@ -19,16 +19,15 @@ let auth: Auth | null = null;
 let database: Database | null = null;
 
 // This check prevents Firebase from being initialized on the server.
-if (typeof window !== "undefined") {
-    if (firebaseConfig.apiKey) {
-        if (getApps().length === 0) {
-          app = initializeApp(firebaseConfig);
-        } else {
-          app = getApp();
-        }
-        auth = getAuth(app);
-        database = getDatabase(app);
-    }
+// It will only run in the browser environment.
+if (typeof window !== "undefined" && firebaseConfig.apiKey) {
+  if (getApps().length === 0) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getAuth(app);
+  database = getDatabase(app);
 }
 
 export { app, auth, database };
