@@ -39,6 +39,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
+import { useToast } from '@/hooks/use-toast';
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email.' }),
@@ -55,6 +56,7 @@ export default function AuthClient() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
+  const { toast } = useToast();
 
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -84,24 +86,39 @@ export default function AuthClient() {
 
   const handleAuthError = (error: any) => {
     console.error('Auth Error:', error);
-    let msg = 'Unexpected error. Try again.';
+    let title = 'Authentication Error';
+    let description = 'An unexpected error occurred. Please try again.';
+
     switch (error.code) {
       case 'auth/email-already-in-use':
-        msg = 'Email already in use.';
+        title = 'Sign-Up Failed';
+        description = 'This email address is already in use. Please try logging in.';
         break;
       case 'auth/wrong-password':
       case 'auth/user-not-found':
       case 'auth/invalid-credential':
-        msg = 'Invalid email or password.';
+        title = 'Login Failed';
+        description = 'The email or password you entered is incorrect.';
         break;
       case 'auth/popup-closed-by-user':
-        msg = 'Google sign-in popup was closed.';
+        title = 'Sign-In Cancelled';
+        description = 'You closed the Google sign-in window before completing the process.';
         break;
       case 'auth/unauthorized-domain':
-        msg = 'This domain is not authorized in Firebase.';
+        title = 'Configuration Error';
+        description = 'This domain is not authorized for Google sign-in in the Firebase console.';
+        break;
+      case 'auth/too-many-requests':
+        title = 'Too Many Attempts';
+        description = 'Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.';
         break;
     }
-    alert(msg);
+    
+    toast({
+      variant: 'destructive',
+      title: title,
+      description: description,
+    });
   };
 
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
