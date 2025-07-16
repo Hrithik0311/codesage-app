@@ -14,14 +14,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
+const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-const auth = getAuth(app);
-const database = getDatabase(app);
+const auth: Auth = getAuth(app);
+const database: Database = getDatabase(app);
 
 export { app, auth, database };
