@@ -252,33 +252,6 @@ export default function AuthClient() {
     );
   }
 
-  // This check is a safeguard, but the config error should now be resolved.
-  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
-    return (
-      <Card className="w-full max-w-md bg-destructive/10 border-destructive">
-        <CardHeader>
-          <CardTitle className="text-destructive-foreground text-center">Firebase Not Configured</CardTitle>
-          <CardDescription className="text-destructive-foreground/80 text-center">
-            The connection to Firebase could not be established.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-destructive-foreground/90 text-sm">
-          <p>Please ensure your environment variables are set correctly in a <strong>.env.local</strong> file for local development or in your hosting provider's settings for deployment.</p>
-          <pre className="mt-2 p-2 bg-black/30 rounded-md text-xs overflow-x-auto">
-            <code>
-              NEXT_PUBLIC_FIREBASE_API_KEY=...<br/>
-              NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...<br/>
-              NEXT_PUBLIC_FIREBASE_PROJECT_ID=...<br/>
-              NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...<br/>
-              NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...<br/>
-              NEXT_PUBLIC_FIREBASE_APP_ID=...<br/>
-            </code>
-          </pre>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (user) return null;
 
   return (

@@ -13,12 +13,10 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-function getFirebaseServices() {
-    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const database = getDatabase(app);
+const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const database: Database = getDatabase(app);
+
+export function getFirebaseServices() {
     return { app, auth, database };
 }
-
-// Export the function so components can call it.
-export { getFirebaseServices };
