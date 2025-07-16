@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, MessageSquare, Loader } from 'lucide-react';
+import { Bot, Send, X, MessageSquare, Loader, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { answerSiteQuestion } from '@/ai/flows/site-q-and-a';
+import { answerFirstRoboticsQuestion, type FirstRoboticsQuestionInput } from '@/ai/flows/first-robotics-q-and-a';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Message {
   key: string;
@@ -20,16 +26,19 @@ interface Message {
   senderName: string;
 }
 
+type Subject = 'FTC' | 'FRC' | 'FLL';
+
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const { user } = useAuth();
   const [input, setInput] = useState('');
   const [isReplying, setIsReplying] = useState(false);
+  const [subject, setSubject] = useState<Subject>('FTC');
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       key: 'initial-message',
-      text: "Hello! I'm CodeSage AI, your personal assistant. How can I help you analyze code, generate tests, or answer your questions today?",
+      text: "Hello! I'm CodeSage AI, your robotics assistant. Select a program (FTC, FRC, FLL) and ask me anything!",
       sender: 'ai',
       senderName: 'CodeSage AI'
     }
@@ -64,7 +73,10 @@ export default function AIChatWidget() {
     setIsReplying(true);
 
     try {
-      const result = await answerSiteQuestion({ question: currentInput });
+      const result = await answerFirstRoboticsQuestion({
+        question: currentInput,
+        subject: subject
+      });
       const aiResponse: Message = {
         key: `ai-${Date.now()}`,
         text: result.answer,
@@ -153,19 +165,33 @@ export default function AIChatWidget() {
                     </div>
                   </ScrollArea>
                 </CardContent>
-                <CardFooter className="p-4 border-t border-border/40">
-                  <form onSubmit={handleSendMessage} className="w-full relative">
-                    <Input
-                      placeholder="Ask me anything..."
-                      className="h-10 pr-12"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      disabled={isReplying}
-                    />
-                    <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!input.trim() || isReplying}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
+                <CardFooter className="p-2 border-t border-border/40 flex flex-col items-start gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="ml-2">
+                          {subject}
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onSelect={() => setSubject('FTC')}>FTC</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setSubject('FRC')}>FRC</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setSubject('FLL')}>FLL</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <form onSubmit={handleSendMessage} className="w-full relative">
+                      <Input
+                        placeholder="Ask about your selected program..."
+                        className="h-10 pr-12"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        disabled={isReplying}
+                      />
+                      <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8" disabled={!input.trim() || isReplying}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </form>
                 </CardFooter>
               </Card>
             </motion.div>
