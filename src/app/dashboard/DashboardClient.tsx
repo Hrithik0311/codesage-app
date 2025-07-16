@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight, Lightbulb } from 'lucide-react';
+import { ShieldCheck, BookOpen, Search, Users, Trophy, GitCommit, BarChart, ArrowRight, Lightbulb, Bot } from 'lucide-react';
 import Link from 'next/link';
 import { UserProfile } from '@/components/UserProfile';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
@@ -17,6 +17,9 @@ import { database } from '@/lib/firebase';
 import { ref as dbRef, get, query, limitToLast, onValue, orderByChild } from 'firebase/database';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { answerSiteQuestion } from '@/ai/flows/site-q-and-a';
+import { useToast } from '@/hooks/use-toast';
 
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
@@ -101,6 +104,63 @@ const ActivityItem = ({ activity }) => {
                 {timestamp ? formatDistanceToNowStrict(new Date(timestamp), { addSuffix: true }) : 'just now'}
             </span>
         </li>
+    );
+};
+
+const SiteQnaCard = () => {
+    const [question, setQuestion] = useState('');
+    const [isAsking, setIsAsking] = useState(false);
+    const [answer, setAnswer] = useState('');
+    const { toast } = useToast();
+
+    const handleAskQuestion = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!question.trim()) return;
+
+        setIsAsking(true);
+        setAnswer('');
+        try {
+            const result = await answerSiteQuestion({ question });
+            setAnswer(result.answer);
+        } catch (error) {
+            console.error("Site Q&A error:", error);
+            toast({
+                title: 'Error',
+                description: 'Could not get an answer. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsAsking(false);
+        }
+    };
+
+    return (
+        <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                    <Bot /> Ask CodeSage
+                </CardTitle>
+                <CardDescription>Have a question about the site? Ask our AI assistant.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleAskQuestion} className="space-y-4">
+                    <Input
+                        placeholder="e.g., How many beginner lessons are there?"
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        disabled={isAsking}
+                    />
+                    <Button type="submit" disabled={isAsking || !question.trim()} className="w-full">
+                        {isAsking ? 'Thinking...' : 'Ask Question'}
+                    </Button>
+                </form>
+                {answer && (
+                    <div className="mt-6 p-4 bg-muted/50 border border-border/50 rounded-lg">
+                        <p className="text-sm text-foreground">{answer}</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 };
 
@@ -244,6 +304,9 @@ export default function DashboardClient() {
                                 </ul>
                             </CardContent>
                         </Card>
+                    </section>
+                    <section>
+                        <SiteQnaCard />
                     </section>
                 </div>
 
