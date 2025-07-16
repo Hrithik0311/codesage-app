@@ -85,7 +85,6 @@ export default function AuthClient() {
   }, [user, authLoading, router, isJustLoggedIn]);
 
   const handleAuthError = (error: any) => {
-    console.error('Auth Error:', error);
     let title = 'Authentication Error';
     let description = 'An unexpected error occurred. Please try again.';
 
@@ -112,6 +111,8 @@ export default function AuthClient() {
         title = 'Too Many Attempts';
         description = 'Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.';
         break;
+      default:
+        console.error('Unhandled Auth Error:', error);
     }
     
     toast({
@@ -147,7 +148,6 @@ export default function AuthClient() {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      console.log('Google sign-in successful:', result.user);
       setIsJustLoggedIn(true);
     } catch (err: any) {
       handleAuthError(err);
