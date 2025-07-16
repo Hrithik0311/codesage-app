@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { answerFirstRoboticsQuestion, type FirstRoboticsQuestionInput } from '@/ai/flows/first-robotics-q-and-a';
+import { answerFirstRoboticsQuestion } from '@/ai/flows/first-robotics-q-and-a';
+import { answerSiteQuestion } from '@/ai/flows/site-q-and-a';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -26,7 +27,7 @@ interface Message {
   senderName: string;
 }
 
-type Subject = 'FTC' | 'FRC' | 'FLL';
+type Subject = 'FTC' | 'FRC' | 'FLL' | 'CodeSage Website';
 
 export default function AIChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +39,7 @@ export default function AIChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       key: 'initial-message',
-      text: "Hello! I'm CodeSage AI, your robotics assistant. Select a program (FTC, FRC, FLL) and ask me anything!",
+      text: "Hello! I'm CodeSage AI. Select a subject and ask me a question!",
       sender: 'ai',
       senderName: 'CodeSage AI'
     }
@@ -73,10 +74,16 @@ export default function AIChatWidget() {
     setIsReplying(true);
 
     try {
-      const result = await answerFirstRoboticsQuestion({
-        question: currentInput,
-        subject: subject
-      });
+      let result;
+      if (subject === 'CodeSage Website') {
+        result = await answerSiteQuestion({ question: currentInput });
+      } else {
+        result = await answerFirstRoboticsQuestion({
+          question: currentInput,
+          subject: subject
+        });
+      }
+
       const aiResponse: Message = {
         key: `ai-${Date.now()}`,
         text: result.answer,
@@ -102,6 +109,13 @@ export default function AIChatWidget() {
       setIsReplying(false);
     }
   };
+
+  const getPlaceholder = () => {
+    if (subject === 'CodeSage Website') {
+        return 'Ask about lessons, features, etc...';
+    }
+    return 'Ask about your selected program...';
+  }
 
   return (
     <>
@@ -177,12 +191,13 @@ export default function AIChatWidget() {
                         <DropdownMenuItem onSelect={() => setSubject('FTC')}>FTC</DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setSubject('FRC')}>FRC</DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => setSubject('FLL')}>FLL</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setSubject('CodeSage Website')}>CodeSage Website</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
 
                     <form onSubmit={handleSendMessage} className="w-full relative">
                       <Input
-                        placeholder="Ask about your selected program..."
+                        placeholder={getPlaceholder()}
                         className="h-10 pr-12"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
