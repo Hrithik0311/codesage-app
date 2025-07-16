@@ -10,7 +10,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -40,6 +40,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 import { useToast } from '@/hooks/use-toast';
+
+const { auth } = getFirebaseServices();
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email.' }),
@@ -123,7 +125,6 @@ export default function AuthClient() {
   };
 
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
-    if (!auth) return;
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       setIsJustLoggedIn(true);
@@ -133,7 +134,6 @@ export default function AuthClient() {
   };
 
   const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
-    if (!auth) return;
     try {
       const userCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
       await updateProfile(userCred.user, { displayName: values.displayName });
@@ -144,7 +144,6 @@ export default function AuthClient() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -253,7 +252,8 @@ export default function AuthClient() {
     );
   }
 
-  if (!auth) {
+  // This check is a safeguard, but the config error should now be resolved.
+  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
     return (
       <Card className="w-full max-w-md bg-destructive/10 border-destructive">
         <CardHeader>
@@ -263,8 +263,7 @@ export default function AuthClient() {
           </CardDescription>
         </CardHeader>
         <CardContent className="text-destructive-foreground/90 text-sm">
-          <p>Please ensure your environment variables are set correctly in a <strong>.env.local</strong> file.</p>
-          <p className="mt-2">You need to add the following variables:</p>
+          <p>Please ensure your environment variables are set correctly in a <strong>.env.local</strong> file for local development or in your hosting provider's settings for deployment.</p>
           <pre className="mt-2 p-2 bg-black/30 rounded-md text-xs overflow-x-auto">
             <code>
               NEXT_PUBLIC_FIREBASE_API_KEY=...<br/>

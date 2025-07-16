@@ -13,32 +13,12 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// This function checks if all necessary config values are present.
-const areConfigValuesPresent = () => {
-    return (
-        firebaseConfig.apiKey &&
-        firebaseConfig.authDomain &&
-        firebaseConfig.projectId &&
-        firebaseConfig.storageBucket &&
-        firebaseConfig.messagingSenderId &&
-        firebaseConfig.appId
-    );
-};
-
-let app: FirebaseApp;
-let auth: Auth;
-let database: Database;
-
-// Only initialize if the config values are actually present.
-// This prevents errors on the server during build if env vars aren't loaded yet.
-if (areConfigValuesPresent()) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    database = getDatabase(app);
-} else {
-    console.warn("Firebase configuration is missing or incomplete. Firebase services will not be available.");
-    // Assign null or mock objects if needed, though client-side checks should prevent their use.
+function getFirebaseServices() {
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);
+    return { app, auth, database };
 }
 
-
-export { app, auth, database };
+// Export the function so components can call it.
+export { getFirebaseServices };
