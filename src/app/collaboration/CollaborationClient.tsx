@@ -24,7 +24,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { database } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild, remove } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -37,6 +37,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
+
+const { database } = getFirebaseServices();
 
 // --- Planner & Calendar Types ---
 type Id = string;

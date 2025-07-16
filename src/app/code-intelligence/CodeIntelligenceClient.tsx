@@ -15,9 +15,11 @@ import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-comple
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
-import { database } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
+
+const { database } = getFirebaseServices();
 
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 

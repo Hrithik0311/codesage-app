@@ -9,6 +9,8 @@ import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 
+const { auth, database } = getFirebaseServices();
+
 interface Notification {
     id: string;
     title: string;
@@ -37,8 +39,6 @@ interface AuthContextType {
   notificationSettings: NotificationSettings;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
 }
-
-const { auth, database } = getFirebaseServices();
 
 const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {}, notifications: [], markNotificationsAsRead: () => {}, notificationSettings: { email: false, inApp: true }, updateNotificationSettings: () => {} });
 

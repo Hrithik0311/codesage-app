@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { database } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
+
+const { database } = getFirebaseServices();
 
 const shareGroupSchema = z.object({
   groupName: z.string().min(1, 'Group name is required.'),

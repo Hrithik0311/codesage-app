@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { database } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, get } from 'firebase/database';
 import ThemeSelectionModal from '@/components/ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
@@ -37,6 +37,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
+const { database } = getFirebaseServices();
 
 const profileSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50, { message: 'Name cannot exceed 50 characters.' }),

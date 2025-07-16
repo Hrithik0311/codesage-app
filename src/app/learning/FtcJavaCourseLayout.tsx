@@ -12,9 +12,11 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { useToast } from '@/hooks/use-toast';
-import { database } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
+
+const { database } = getFirebaseServices();
 
 interface FtcJavaCourseLayoutProps {
   lessons: Lesson[];
