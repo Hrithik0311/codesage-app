@@ -37,8 +37,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
-const { database } = getFirebaseServices();
-
 const profileSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50, { message: 'Name cannot exceed 50 characters.' }),
 });
@@ -69,6 +67,7 @@ export default function SettingsClient() {
     if (user) {
         form.reset({ displayName: user.displayName || '' });
         // Fetch team info
+        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         get(teamCodeRef).then((snapshot) => {
             if (snapshot.exists()) {

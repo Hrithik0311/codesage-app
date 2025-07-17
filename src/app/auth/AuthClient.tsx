@@ -41,8 +41,6 @@ import { z } from 'zod';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 import { useToast } from '@/hooks/use-toast';
 
-const { auth } = getFirebaseServices();
-
 const signInSchema = z.object({
   email: z.string().email({ message: 'Enter a valid email.' }),
   password: z.string().min(1, { message: 'Password required.' }),
@@ -59,6 +57,7 @@ export default function AuthClient() {
   const { user, loading: authLoading } = useAuth();
   const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
   const { toast } = useToast();
+  const { auth } = getFirebaseServices();
 
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),

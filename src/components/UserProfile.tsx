@@ -28,8 +28,6 @@ import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
 import { NotificationBell } from './NotificationBell';
 
-const { auth } = getFirebaseServices();
-
 export function UserProfile() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -43,6 +41,7 @@ export function UserProfile() {
 
   const handleLogout = async () => {
     try {
+      const { auth } = getFirebaseServices();
       await auth.signOut();
       window.location.href = '/';
     } catch (error) {

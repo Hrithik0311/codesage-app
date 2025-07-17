@@ -19,8 +19,6 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
-const { database } = getFirebaseServices();
-
 const shareGroupSchema = z.object({
   groupName: z.string().min(1, 'Group name is required.'),
   files: z.array(z.custom<File>()).min(1, { message: 'Please select at least one file.' }),
@@ -52,7 +50,8 @@ function IDEContent() {
     useEffect(() => {
         const shareId = searchParams.get('shareId');
         const fileName = searchParams.get('fileName');
-        if (shareId && user && database) {
+        if (shareId && user) {
+            const { database } = getFirebaseServices();
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if(snapshot.exists()) {
@@ -83,7 +82,7 @@ function IDEContent() {
                 }
             });
         }
-    }, [searchParams, user, database, toast]);
+    }, [searchParams, user, toast]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(code).then(() => {
@@ -98,6 +97,7 @@ function IDEContent() {
     };
 
     const notifyTeamCreator = async (teamCode: string, title: string, body: string) => {
+        const { database } = getFirebaseServices();
         const teamRef = dbRef(database, `teams/${teamCode}/creatorUid`);
         const creatorUidSnapshot = await get(teamRef);
         if (creatorUidSnapshot.exists()) {
@@ -122,11 +122,12 @@ function IDEContent() {
             toast({ title: "Message required", description: "Please enter a message for your share.", variant: "destructive" });
             return;
         }
-        if (!user || !database) {
+        if (!user) {
              toast({ title: "Authentication Error", description: "You must be logged in to save.", variant: "destructive" });
              return;
         }
 
+        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
@@ -163,10 +164,11 @@ function IDEContent() {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
-        if (!user || !database) {
+        if (!user) {
             toast({ title: "Authentication Error", description: "You must be logged in to share files.", variant: "destructive" });
             return;
         }
+        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
@@ -238,8 +240,9 @@ function IDEContent() {
     };
 
     const handleShareGroup = async (values: z.infer<typeof shareGroupSchema>) => {
-        if (!user || !database) return;
+        if (!user) return;
         
+        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {

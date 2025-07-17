@@ -19,8 +19,6 @@ import { getFirebaseServices } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
-const { database } = getFirebaseServices();
-
 const sampleCode = `package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -108,7 +106,8 @@ export default function CodeIntelligenceClient() {
         if (!loading && !user) {
             router.push('/auth');
         }
-        if (user && database) {
+        if (user) {
+            const { database } = getFirebaseServices();
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if (snapshot.exists()) {
@@ -144,7 +143,8 @@ export default function CodeIntelligenceClient() {
                 programmingLanguage: language,
             });
             
-            if (user && database) {
+            if (user) {
+                const { database } = getFirebaseServices();
                 if (teamCode) {
                     const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                     push(activitiesRef, {

@@ -18,8 +18,6 @@ import { ref as dbRef, get, query, limitToLast, onValue, orderByChild } from 'fi
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const { database } = getFirebaseServices();
-
 const FeatureCard = ({ href, icon: Icon, title, description, buttonText }) => (
   <Link href={href} passHref>
     <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 h-full flex flex-col group hover:border-accent/70 hover:-translate-y-1 transition-all duration-300">
@@ -120,8 +118,9 @@ export default function DashboardClient() {
   }, [user, loading, router]);
   
   useEffect(() => {
-      if (user && database) {
+      if (user) {
           setIsActivitiesLoading(true);
+          const { database } = getFirebaseServices();
           const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
           get(teamCodeRef).then((snapshot) => {
               if (snapshot.exists()) {
