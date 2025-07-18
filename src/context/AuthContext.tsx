@@ -11,30 +11,26 @@ import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 
 // --- Firebase Initialization ---
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  ...(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && {
-    databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
-  })
+  apiKey: "AIzaSyANXI_daofPZ9TOwAEBKsV0xAc3RzPi0KU",
+  authDomain: "work-ftc.firebaseapp.com",
+  databaseURL: "https://work-ftc-default-rtdb.firebaseio.com",
+  projectId: "work-ftc",
+  storageBucket: "work-ftc.appspot.com",
+  messagingSenderId: "899528797860",
+  appId: "1:899528797860:web:68a1a471d44192738d4031",
+  measurementId: "G-9L13PTJ89L"
 };
-
-const allFirebaseKeysProvided =
-  !!firebaseConfig.apiKey &&
-  !!firebaseConfig.authDomain &&
-  !!firebaseConfig.projectId;
 
 let app: FirebaseApp;
 let auth: Auth;
 let database: Database;
 
-if (allFirebaseKeysProvided) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    database = getDatabase(app);
+try {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  database = getDatabase(app);
+} catch (error) {
+  console.error("Firebase initialization error:", error);
 }
 // --- End Firebase Initialization ---
 
@@ -100,8 +96,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: false, inApp: true });
 
+  const firebaseReady = !!app;
+
   useEffect(() => {
-    if (!allFirebaseKeysProvided) {
+    if (!firebaseReady) {
         setLoading(false);
         return;
     }
@@ -110,14 +108,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [firebaseReady]);
 
   useEffect(() => {
     let connectedSub = () => {};
     let lessonsSub = () => {};
     let settingsSub = () => {};
 
-    if (user && allFirebaseKeysProvided) {
+    if (user && firebaseReady) {
         if (user.displayName) {
           const userNameRef = dbRef(database, `users/${user.uid}/name`);
           set(userNameRef, user.displayName);
@@ -219,51 +217,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPassedLessonIds(new Set());
         setNotifications([]);
       }
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const updateLessonProgress = useCallback((lessonId: string, score: number) => {
-    if (user && allFirebaseKeysProvided) {
+    if (user && firebaseReady) {
         const lessonRef = dbRef(database, `users/${user.uid}/lessonProgress/${lessonId}`);
         set(lessonRef, score);
     }
-  }, [user]);
+  }, [user, firebaseReady]);
   
   const updateNotificationSettings = useCallback((settings: Partial<NotificationSettings>) => {
-      if (user && allFirebaseKeysProvided) {
+      if (user && firebaseReady) {
         const settingsRef = dbRef(database, `users/${user.uid}/notificationSettings`);
         update(settingsRef, settings);
       }
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const resetAllProgress = useCallback(() => {
-    if (user && allFirebaseKeysProvided) {
+    if (user && firebaseReady) {
       const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
       remove(lessonsRef).then(() => {
         setLessonProgress(new Map());
         setPassedLessonIds(new Set());
       });
     }
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const resetCourseProgress = useCallback((lessonIdsToRemove: string[]) => {
-    if (user && allFirebaseKeysProvided) {
+    if (user && firebaseReady) {
         const updates: { [key: string]: null } = {};
         lessonIdsToRemove.forEach(id => {
             updates[`/users/${user.uid}/lessonProgress/${id}`] = null;
         });
         update(dbRef(database), updates);
     }
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const deleteAccountData = useCallback(async () => {
-      if (user && allFirebaseKeysProvided) {
+      if (user && firebaseReady) {
         const userRootRef = dbRef(database, `users/${user.uid}`);
         await remove(userRootRef);
         
         const userStatusRef = dbRef(database, `status/${user.uid}`);
         await remove(userStatusRef);
       }
-  }, [user]);
+  }, [user, firebaseReady]);
 
   const markNotificationsAsRead = useCallback(() => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -282,9 +280,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       markNotificationsAsRead, 
       notificationSettings, 
       updateNotificationSettings,
-      auth: allFirebaseKeysProvided ? auth : null,
-      database: allFirebaseKeysProvided ? database : null,
-      firebaseReady: allFirebaseKeysProvided
+      auth: firebaseReady ? auth : null,
+      database: firebaseReady ? database : null,
+      firebaseReady: firebaseReady
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
