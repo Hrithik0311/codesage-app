@@ -9,14 +9,16 @@ export const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  // This is a new line to handle the database URL, which is good practice.
-  databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+  // Conditionally add databaseURL to prevent errors if projectId is missing
+  ...(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && {
+    databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+  })
 };
 
 export const allFirebaseKeysProvided =
-  firebaseConfig.apiKey &&
-  firebaseConfig.authDomain &&
-  firebaseConfig.projectId &&
-  firebaseConfig.storageBucket &&
-  firebaseConfig.messagingSenderId &&
-  firebaseConfig.appId;
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId &&
+  !!firebaseConfig.storageBucket &&
+  !!firebaseConfig.messagingSenderId &&
+  !!firebaseConfig.appId;

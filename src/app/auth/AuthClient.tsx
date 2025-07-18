@@ -58,7 +58,15 @@ export default function AuthClient() {
   const { user, loading: authLoading } = useAuth();
   const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
   const { toast } = useToast();
-  const { auth } = getFirebaseServices();
+  
+  // Defer initialization until the component has mounted to ensure env vars are loaded.
+  const [auth, setAuth] = useState<any>(null);
+  useEffect(() => {
+    if (allFirebaseKeysProvided) {
+      setAuth(getFirebaseServices().auth);
+    }
+  }, []);
+
 
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -111,6 +119,20 @@ export default function AuthClient() {
         </Card>
       </div>
     );
+  }
+  
+  if (!auth) {
+      return (
+            <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                <CardHeader className="text-center">
+                <CardTitle className="font-headline text-2xl">Initializing Services</CardTitle>
+                <CardDescription>Please wait...</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center p-8">
+                <div className="loading-spinner"></div>
+                </CardContent>
+            </Card>
+      );
   }
 
   const handleAuthError = (error: any) => {
