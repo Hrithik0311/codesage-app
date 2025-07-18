@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   type Auth,
+  type User,
 } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,46 +69,41 @@ export default function AuthClient() {
     defaultValues: { displayName: '', email: '', password: '' },
   });
 
-  useEffect(() => {
-    if (!authLoading && user) {
-        if (isJustLoggedIn) {
-            if (user.email) {
-                sendNotificationEmail({
-                    to: user.email,
-                    subject: 'Successful Login to CodeSage',
-                    body: `<h1>Login Alert</h1><p>We detected a new login to your CodeSage account. If this was not you, please secure your account.</p>`
-                }).catch(e => console.error("Failed to send login email:", e));
-            }
-            setIsJustLoggedIn(false);
-        }
-        router.push('/dashboard');
+  const handleSuccessfulLogin = async (loggedInUser: User) => {
+    if (loggedInUser.email) {
+      try {
+        await sendNotificationEmail({
+          to: loggedInUser.email,
+          subject: 'Successful Login to CodeSage',
+          body: `<h1>Login Alert</h1><p>We detected a new login to your CodeSage account. If this was not you, please secure your account.</p>`
+        });
+      } catch (e) {
+        console.error("Failed to send login email:", e);
+      }
     }
-  }, [user, authLoading, router, isJustLoggedIn]);
+    router.push('/dashboard');
+  };
 
-  if (!firebaseReady && !authLoading) {
+  useEffect(() => {
+    if (!authLoading && user && isJustLoggedIn) {
+      handleSuccessfulLogin(user);
+      setIsJustLoggedIn(false); // Reset the flag
+    } else if (!authLoading && user && !isJustLoggedIn) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, isJustLoggedIn, router]);
+
+  if (authLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-destructive/10 border-destructive text-destructive-foreground">
-          <CardHeader>
-            <CardTitle>Firebase Not Configured</CardTitle>
-            <CardDescription className="text-destructive-foreground/80">
-              The connection to Firebase could not be established.
-              Please ensure your environment variables are set correctly.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm font-mono">
-            <p>You need to add the following variables:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>NEXT_PUBLIC_FIREBASE_API_KEY=...</li>
-              <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...</li>
-              <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID=...</li>
-              <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...</li>
-              <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...</li>
-              <li>NEXT_PUBLIC_FIREBASE_APP_ID=...</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+        <CardHeader className="text-center">
+          <CardTitle className="font-headline text-2xl">Checking Session</CardTitle>
+          <CardDescription>Please wait...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center p-8">
+          <div className="loading-spinner"></div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -266,20 +262,6 @@ export default function AuthClient() {
     </Form>
   );
   
-  if (authLoading) {
-    return (
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-        <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl">Checking Session</CardTitle>
-          <CardDescription>Please wait...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center p-8">
-          <div className="loading-spinner"></div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (user) return null;
 
   return (
