@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,7 +30,7 @@ function IDEContent() {
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [isShareGroupModalOpen, setIsShareGroupModalOpen] = useState(false);
     const [shareMessage, setShareMessage] = useState('');
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, database } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +49,7 @@ function IDEContent() {
     useEffect(() => {
         const shareId = searchParams.get('shareId');
         const fileName = searchParams.get('fileName');
-        if (shareId && user) {
+        if (shareId && user && database) {
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if(snapshot.exists()) {
@@ -81,7 +80,7 @@ function IDEContent() {
                 }
             });
         }
-    }, [searchParams, user, toast]);
+    }, [searchParams, user, toast, database]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(code).then(() => {
@@ -96,6 +95,7 @@ function IDEContent() {
     };
 
     const notifyTeamCreator = async (teamCode: string, title: string, body: string) => {
+        if (!database) return;
         const teamRef = dbRef(database, `teams/${teamCode}/creatorUid`);
         const creatorUidSnapshot = await get(teamRef);
         if (creatorUidSnapshot.exists()) {
@@ -120,7 +120,7 @@ function IDEContent() {
             toast({ title: "Message required", description: "Please enter a message for your share.", variant: "destructive" });
             return;
         }
-        if (!user) {
+        if (!user || !database) {
              toast({ title: "Authentication Error", description: "You must be logged in to save.", variant: "destructive" });
              return;
         }
@@ -161,7 +161,7 @@ function IDEContent() {
         const files = event.target.files;
         if (!files || files.length === 0) return;
 
-        if (!user) {
+        if (!user || !database) {
             toast({ title: "Authentication Error", description: "You must be logged in to share files.", variant: "destructive" });
             return;
         }
@@ -236,7 +236,7 @@ function IDEContent() {
     };
 
     const handleShareGroup = async (values: z.infer<typeof shareGroupSchema>) => {
-        if (!user) return;
+        if (!user || !database) return;
         
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);

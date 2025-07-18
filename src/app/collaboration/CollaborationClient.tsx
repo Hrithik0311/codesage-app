@@ -24,7 +24,6 @@ import { UserProfile } from '@/components/UserProfile';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild, remove } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -98,7 +97,7 @@ const StatusBadge = ({ status }: { status?: string }) => {
 // --- Collaboration Hub Main Component ---
 export default function CollaborationClient() {
     const { toast } = useToast();
-    const { user, loading } = useAuth();
+    const { user, loading, database } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -174,7 +173,7 @@ export default function CollaborationClient() {
     useEffect(() => {
       let teamDataUnsubscribe: () => void = () => {};
       let isMounted = true;
-      if (loading || !user) {
+      if (loading || !user || !database) {
           if (!loading) setIsLoadingTeam(false);
           return;
       }
@@ -211,7 +210,7 @@ export default function CollaborationClient() {
           setIsLoadingTeam(false);
       });
       return () => { isMounted = false; teamDataUnsubscribe(); };
-    }, [user, loading, router, toast, searchParams]);
+    }, [user, loading, router, toast, searchParams, database]);
 
     useEffect(() => {
         if (team && isSettingsOpen) {
@@ -226,7 +225,7 @@ export default function CollaborationClient() {
     }, [team, isSettingsOpen, settingsForm]);
 
     useEffect(() => {
-        if (!team) return;
+        if (!team || !database) return;
         const allMemberIds = Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers));
         if (allMemberIds.length === 0) return;
         const statusRef = dbRef(database, 'status');
@@ -237,10 +236,10 @@ export default function CollaborationClient() {
             setMemberStatuses(teamStatuses);
         });
         return () => unsubscribe();
-    }, [team]);
+    }, [team, database]);
     
     useEffect(() => {
-        if (!team) return;
+        if (!team || !database) return;
         setIsLoadingShares(true);
         const sharesRef = dbRef(database, `teams/${team.id}/shares`);
         const sharesQuery = query(sharesRef, orderByChild('timestamp'), limitToLast(15));
@@ -251,10 +250,10 @@ export default function CollaborationClient() {
             setIsLoadingShares(false);
         });
         return () => unsubscribe();
-    }, [team]);
+    }, [team, database]);
 
     useEffect(() => {
-        if (!team) { setIsLoadingPlanner(true); return; };
+        if (!team || !database) { setIsLoadingPlanner(true); return; };
         const plannerRef = dbRef(database, `teams/${team.id}/planner`);
         const initializePlanner = () => {
             const defaultColumns = [ { id: 'col-1', title: 'To Do' }, { id: 'col-2', title: 'In Progress' }, { id: 'col-3', title: 'Done' } ];
@@ -270,10 +269,10 @@ export default function CollaborationClient() {
             setIsLoadingPlanner(false);
         });
         return () => unsubscribe();
-    }, [team]);
+    }, [team, database]);
 
     useEffect(() => {
-        if (!team) { setIsEventsLoading(true); return; };
+        if (!team || !database) { setIsEventsLoading(true); return; };
         const eventsRef = dbRef(database, `teams/${team.id}/calendarEvents`);
         const unsubscribe = onValue(eventsRef, (snapshot) => {
             const eventsData: CalendarEvent[] = [];
@@ -284,10 +283,10 @@ export default function CollaborationClient() {
             setIsEventsLoading(false);
         });
         return () => unsubscribe();
-    }, [team]);
+    }, [team, database]);
     
     useEffect(() => {
-        if (!team || !team.announcementsChatId) {
+        if (!team || !team.announcementsChatId || !database) {
             setIsLoadingMessages(false);
             return;
         };
@@ -307,7 +306,7 @@ export default function CollaborationClient() {
     
         return () => unsubscribe();
     
-    }, [team]);
+    }, [team, database]);
     
     useEffect(() => {
         if (chatContentRef.current) {
@@ -318,7 +317,7 @@ export default function CollaborationClient() {
 
     // --- Team Management Functions ---
     const handleCreateTeam = async (values: z.infer<typeof createTeamSchema>) => {
-        if (!user) return;
+        if (!user || !database) return;
         const teamRef = dbRef(database, 'teams/' + values.teamCode);
         const snapshot = await get(teamRef);
         if (snapshot.exists()) { createForm.setError("teamCode", { type: "manual", message: "This team code is already taken." }); return; }
@@ -360,7 +359,7 @@ export default function CollaborationClient() {
     };
 
     const handleJoinTeam = async (values: z.infer<typeof joinTeamSchema>) => {
-        if (!user) return;
+        if (!user || !database) return;
         const teamRef = dbRef(database, 'teams/' + values.teamCode);
         const snapshot = await get(teamRef);
         if (!snapshot.exists()) { joinForm.setError("teamCode", { type: "manual", message: "This team code does not exist." }); return; }
@@ -401,7 +400,7 @@ export default function CollaborationClient() {
     };
     
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
-        if (!user || !team) return;
+        if (!user || !team || !database) return;
         const updates: { [key: string]: any } = {};
         const allMemberEmails: string[] = [];
         
@@ -461,7 +460,7 @@ export default function CollaborationClient() {
     // --- Chat Functions ---
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim() || !user || !team || !team.announcementsChatId || isSending) return;
+        if (!newMessage.trim() || !user || !team || !team.announcementsChatId || isSending || !database) return;
         
         setIsSending(true);
         const textToSend = newMessage;
@@ -493,12 +492,12 @@ export default function CollaborationClient() {
     // --- Planner Functions ---
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
     function createTask(columnId: Id) {
-        if (!team) return;
+        if (!team || !database) return;
         const newTask: Task = { id: uuidv4(), columnId, content: `Task ${tasks.length + 1}` };
         set(dbRef(database, `teams/${team.id}/planner/tasks/${newTask.id}`), newTask);
     }
     function createNewColumn() {
-        if (!team) return;
+        if (!team || !database) return;
         const columnToAdd: Column = { id: uuidv4(), title: `Column ${columns.length + 1}` };
         set(dbRef(database, `teams/${team.id}/planner/columns/${columnToAdd.id}`), columnToAdd);
     }
@@ -509,7 +508,7 @@ export default function CollaborationClient() {
         setActiveColumn(null);
         setActiveTask(null);
         const { active, over } = event;
-        if (!over || active.id === over.id || !team) return;
+        if (!over || active.id === over.id || !team || !database) return;
         const activeTask = tasks.find(t => t.id === active.id);
         if (activeTask && activeTask.columnId !== over.id) {
             set(dbRef(database, `teams/${team.id}/planner/tasks/${active.id}/columnId`), over.id);
@@ -530,7 +529,7 @@ export default function CollaborationClient() {
     const calendarModifierStyles = { hasEvent: { 'position': 'relative', 'overflow': 'visible' } };
 
     const handleAddEvent = async (values: z.infer<typeof eventSchema>) => {
-        if (!user || !team || !date) return;
+        if (!user || !team || !date || !database) return;
         const newEventRef = push(dbRef(database, `teams/${team.id}/calendarEvents`));
         const newEvent = {
             date: format(date, 'yyyy-MM-dd'),
@@ -563,7 +562,7 @@ export default function CollaborationClient() {
     };
 
     const handleDeleteEvent = async (eventId: string) => {
-        if (!team) return;
+        if (!team || !database) return;
         const eventRef = dbRef(database, `teams/${team.id}/calendarEvents/${eventId}`);
         await remove(eventRef);
         toast({ title: "Event Deleted" });
