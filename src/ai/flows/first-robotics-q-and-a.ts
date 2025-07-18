@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -28,6 +29,7 @@ export async function answerFirstRoboticsQuestion(input: FirstRoboticsQuestionIn
 
 const prompt = ai.definePrompt({
   name: 'firstRoboticsQuestionPrompt',
+  model: 'googleai/gemini-1.5-flash-preview',
   input: {schema: FirstRoboticsQuestionInputSchema},
   output: {schema: FirstRoboticsQuestionOutputSchema},
   prompt: `You are an expert AI assistant specializing in the FIRST Robotics Competition. Your knowledge covers all programs: FLL (FIRST LEGO League), FTC (FIRST Tech Challenge), and FRC (FIRST Robotics Competition).

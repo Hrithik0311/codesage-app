@@ -38,6 +38,7 @@ export async function codeAnalysis(input: CodeAnalysisInput): Promise<CodeAnalys
 
 const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
+  model: 'googleai/gemini-1.5-flash-preview',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
   prompt: `You are an expert AI programming tutor and automated refactoring tool specializing in FIRST Tech Challenge (FTC) Java code.

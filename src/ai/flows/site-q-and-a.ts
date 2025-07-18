@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -44,6 +45,7 @@ const advancedLessonTitles = ftcJavaLessonsAdvanced.map(l => l.title);
 
 const prompt = ai.definePrompt({
   name: 'siteQuestionPrompt',
+  model: 'googleai/gemini-1.5-flash-preview',
   input: {schema: z.object({
       question: z.string(),
       totalLessons: z.number(),

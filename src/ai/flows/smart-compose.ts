@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -27,6 +28,7 @@ export async function smartCompose(input: SmartComposeInput): Promise<SmartCompo
 
 const prompt = ai.definePrompt({
   name: 'smartComposePrompt',
+  model: 'googleai/gemini-1.5-flash-preview',
   input: {schema: SmartComposeInputSchema},
   output: {schema: SmartComposeOutputSchema},
   prompt: `You are a helpful assistant that provides smart-compose suggestions.
