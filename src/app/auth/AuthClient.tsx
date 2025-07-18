@@ -11,6 +11,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { getFirebaseServices } from '@/lib/firebase';
+import { allFirebaseKeysProvided } from '@/lib/firebase-config';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -84,6 +85,33 @@ export default function AuthClient() {
         router.push('/dashboard');
     }
   }, [user, authLoading, router, isJustLoggedIn]);
+
+  if (!allFirebaseKeysProvided) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center p-4">
+        <Card className="max-w-md w-full bg-destructive/10 border-destructive text-destructive-foreground">
+          <CardHeader>
+            <CardTitle>Firebase Not Configured</CardTitle>
+            <CardDescription className="text-destructive-foreground/80">
+              The connection to Firebase could not be established.
+              Please ensure your environment variables are set correctly.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm font-mono">
+            <p>You need to add the following variables:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>NEXT_PUBLIC_FIREBASE_API_KEY=...</li>
+              <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...</li>
+              <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID=...</li>
+              <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...</li>
+              <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...</li>
+              <li>NEXT_PUBLIC_FIREBASE_APP_ID=...</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handleAuthError = (error: any) => {
     let title = 'Authentication Error';
