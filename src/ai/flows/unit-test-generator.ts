@@ -36,7 +36,7 @@ export async function generateUnitTests(input: UnitTestGeneratorInput): Promise<
 
 const prompt = ai.definePrompt({
   name: 'unitTestGeneratorPrompt',
-  model: 'googleai/gemini-1.5-flash-preview',
+  model: 'gemini-1.5-flash-preview',
   input: {schema: UnitTestGeneratorInputSchema},
   output: {schema: UnitTestGeneratorOutputSchema},
   prompt: `You are an AI that generates unit tests for given code.
