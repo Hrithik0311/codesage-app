@@ -13,7 +13,6 @@ import { UserProfile } from '@/components/UserProfile';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, get, query, limitToLast, onValue, orderByChild } from 'firebase/database';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -106,7 +105,7 @@ const ActivityItem = ({ activity }) => {
 
 
 export default function DashboardClient() {
-  const { user, loading, passedLessonIds } = useAuth();
+  const { user, loading, passedLessonIds, database } = useAuth();
   const router = useRouter();
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [isActivitiesLoading, setIsActivitiesLoading] = useState(true);
@@ -118,7 +117,7 @@ export default function DashboardClient() {
   }, [user, loading, router]);
   
   useEffect(() => {
-      if (user) {
+      if (user && database) {
           setIsActivitiesLoading(true);
           const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
           get(teamCodeRef).then((snapshot) => {
@@ -144,7 +143,7 @@ export default function DashboardClient() {
       } else if (!loading) {
           setIsActivitiesLoading(false); // Not logged in
       }
-  }, [user, loading]);
+  }, [user, loading, database]);
 
   if (loading || !user) {
     return (

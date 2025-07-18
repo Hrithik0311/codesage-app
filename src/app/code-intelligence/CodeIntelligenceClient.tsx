@@ -15,7 +15,6 @@ import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-comple
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
@@ -98,7 +97,7 @@ export default function CodeIntelligenceClient() {
     const [analysisResults, setAnalysisResults] = useState<Omit<CodeAnalysisOutput, 'refactoredCode'> | null>(null);
     const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
     const { toast } = useToast();
-    const { user, loading, notificationSettings } = useAuth();
+    const { user, loading, notificationSettings, database } = useAuth();
     const router = useRouter();
     const [teamCode, setTeamCode] = useState<string | null>(null);
 
@@ -106,7 +105,7 @@ export default function CodeIntelligenceClient() {
         if (!loading && !user) {
             router.push('/auth');
         }
-        if (user) {
+        if (user && database) {
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if (snapshot.exists()) {
@@ -114,7 +113,7 @@ export default function CodeIntelligenceClient() {
                 }
             });
         }
-    }, [user, loading, router]);
+    }, [user, loading, router, database]);
 
     const handleCodeChange = (newCode: string) => {
         setCode(newCode);
@@ -142,7 +141,7 @@ export default function CodeIntelligenceClient() {
                 programmingLanguage: language,
             });
             
-            if (user) {
+            if (user && database) {
                 if (teamCode) {
                     const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                     push(activitiesRef, {

@@ -2,12 +2,42 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, database } from '@/lib/firebase';
-import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update } from 'firebase/database';
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, User, type Auth } from 'firebase/auth';
+import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update, type Database } from 'firebase/database';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
+
+// --- Firebase Initialization ---
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  ...(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && {
+    databaseURL: `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseio.com`
+  })
+};
+
+const allFirebaseKeysProvided =
+  !!firebaseConfig.apiKey &&
+  !!firebaseConfig.authDomain &&
+  !!firebaseConfig.projectId;
+
+let app: FirebaseApp;
+let auth: Auth;
+let database: Database;
+
+if (allFirebaseKeysProvided) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    database = getDatabase(app);
+}
+// --- End Firebase Initialization ---
+
 
 interface Notification {
     id: string;
@@ -36,11 +66,29 @@ interface AuthContextType {
   markNotificationsAsRead: () => void;
   notificationSettings: NotificationSettings;
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
+  auth: Auth | null;
+  database: Database | null;
+  firebaseReady: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true, lessonProgress: new Map(), passedLessonIds: new Set(), updateLessonProgress: () => {}, resetAllProgress: () => {}, resetCourseProgress: () => {}, deleteAccountData: async () => {}, notifications: [], markNotificationsAsRead: () => {}, notificationSettings: { email: false, inApp: true }, updateNotificationSettings: () => {} });
+const AuthContext = createContext<AuthContextType>({ 
+    user: null, 
+    loading: true, 
+    lessonProgress: new Map(), 
+    passedLessonIds: new Set(), 
+    updateLessonProgress: () => {}, 
+    resetAllProgress: () => {}, 
+    resetCourseProgress: () => {}, 
+    deleteAccountData: async () => {}, 
+    notifications: [], 
+    markNotificationsAsRead: () => {}, 
+    notificationSettings: { email: false, inApp: true }, 
+    updateNotificationSettings: () => {},
+    auth: null,
+    database: null,
+    firebaseReady: false
+});
 
-// Create a single source of truth for all lesson data
 const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
 const lessonsById = new Map(allLessons.map(l => [l.id, l]));
 
@@ -53,6 +101,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: false, inApp: true });
 
   useEffect(() => {
+    if (!allFirebaseKeysProvided) {
+        setLoading(false);
+        return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -65,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let lessonsSub = () => {};
     let settingsSub = () => {};
 
-    if (user) {
+    if (user && allFirebaseKeysProvided) {
         if (user.displayName) {
           const userNameRef = dbRef(database, `users/${user.uid}/name`);
           set(userNameRef, user.displayName);
@@ -170,21 +222,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const updateLessonProgress = useCallback((lessonId: string, score: number) => {
-    if (user) {
+    if (user && allFirebaseKeysProvided) {
         const lessonRef = dbRef(database, `users/${user.uid}/lessonProgress/${lessonId}`);
         set(lessonRef, score);
     }
   }, [user]);
   
   const updateNotificationSettings = useCallback((settings: Partial<NotificationSettings>) => {
-      if (user) {
+      if (user && allFirebaseKeysProvided) {
         const settingsRef = dbRef(database, `users/${user.uid}/notificationSettings`);
         update(settingsRef, settings);
       }
   }, [user]);
 
   const resetAllProgress = useCallback(() => {
-    if (user) {
+    if (user && allFirebaseKeysProvided) {
       const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
       remove(lessonsRef).then(() => {
         setLessonProgress(new Map());
@@ -194,7 +246,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const resetCourseProgress = useCallback((lessonIdsToRemove: string[]) => {
-    if (user) {
+    if (user && allFirebaseKeysProvided) {
         const updates: { [key: string]: null } = {};
         lessonIdsToRemove.forEach(id => {
             updates[`/users/${user.uid}/lessonProgress/${id}`] = null;
@@ -204,7 +256,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const deleteAccountData = useCallback(async () => {
-      if (user) {
+      if (user && allFirebaseKeysProvided) {
         const userRootRef = dbRef(database, `users/${user.uid}`);
         await remove(userRootRef);
         
@@ -217,7 +269,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
-  const value = { user, loading, lessonProgress, passedLessonIds, updateLessonProgress, resetAllProgress, resetCourseProgress, deleteAccountData, notifications, markNotificationsAsRead, notificationSettings, updateNotificationSettings };
+  const value = { 
+      user, 
+      loading, 
+      lessonProgress, 
+      passedLessonIds, 
+      updateLessonProgress, 
+      resetAllProgress, 
+      resetCourseProgress, 
+      deleteAccountData, 
+      notifications, 
+      markNotificationsAsRead, 
+      notificationSettings, 
+      updateNotificationSettings,
+      auth: allFirebaseKeysProvided ? auth : null,
+      database: allFirebaseKeysProvided ? database : null,
+      firebaseReady: allFirebaseKeysProvided
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

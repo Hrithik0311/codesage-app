@@ -11,8 +11,6 @@ import {
   updateProfile,
   type Auth,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { allFirebaseKeysProvided } from '@/lib/firebase-config';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -56,20 +54,10 @@ const signUpSchema = z.object({
 
 export default function AuthClient() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, auth, firebaseReady } = useAuth();
   const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
   const { toast } = useToast();
   
-  const [authService, setAuthService] = useState<Auth | null>(null);
-
-  useEffect(() => {
-    // Ensure this runs only on the client where `auth` is guaranteed to be initialized.
-    if (allFirebaseKeysProvided) {
-      setAuthService(auth);
-    }
-  }, []);
-
-
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: { email: '', password: '' },
@@ -96,7 +84,7 @@ export default function AuthClient() {
     }
   }, [user, authLoading, router, isJustLoggedIn]);
 
-  if (!allFirebaseKeysProvided) {
+  if (!firebaseReady && !authLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center p-4">
         <Card className="max-w-md w-full bg-destructive/10 border-destructive text-destructive-foreground">
@@ -121,20 +109,6 @@ export default function AuthClient() {
         </Card>
       </div>
     );
-  }
-  
-  if (!authService) {
-      return (
-            <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                <CardHeader className="text-center">
-                <CardTitle className="font-headline text-2xl">Initializing Services</CardTitle>
-                <CardDescription>Please wait...</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center items-center p-8">
-                <div className="loading-spinner"></div>
-                </CardContent>
-            </Card>
-      );
   }
 
   const handleAuthError = (error: any) => {
@@ -176,8 +150,9 @@ export default function AuthClient() {
   };
 
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
+    if (!auth) return;
     try {
-      await signInWithEmailAndPassword(authService, values.email, values.password);
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       setIsJustLoggedIn(true);
     } catch (err) {
       handleAuthError(err);
@@ -185,8 +160,9 @@ export default function AuthClient() {
   };
 
   const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
+    if (!auth) return;
     try {
-      const userCred = await createUserWithEmailAndPassword(authService, values.email, values.password);
+      const userCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
       await updateProfile(userCred.user, { displayName: values.displayName });
       setIsJustLoggedIn(true);
     } catch (err) {
@@ -195,9 +171,10 @@ export default function AuthClient() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(authService, provider);
+      const result = await signInWithPopup(auth, provider);
       setIsJustLoggedIn(true);
     } catch (err: any) {
       handleAuthError(err);

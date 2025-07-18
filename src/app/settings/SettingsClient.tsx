@@ -28,7 +28,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, get } from 'firebase/database';
 import ThemeSelectionModal from '@/components/ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
@@ -42,7 +41,7 @@ const profileSchema = z.object({
 });
 
 export default function SettingsClient() {
-  const { user, loading, resetAllProgress, deleteAccountData, notificationSettings, updateNotificationSettings } = useAuth();
+  const { user, auth, database, loading, resetAllProgress, deleteAccountData, notificationSettings, updateNotificationSettings } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [teamInfo, setTeamInfo] = useState<{name: string, id: string, creatorUid: string} | null>(null);
@@ -66,25 +65,26 @@ export default function SettingsClient() {
     }
     if (user) {
         form.reset({ displayName: user.displayName || '' });
-        // Fetch team info
-        const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
-        get(teamCodeRef).then((snapshot) => {
-            if (snapshot.exists()) {
-                const teamCode = snapshot.val();
-                const teamDataRef = dbRef(database, `teams/${teamCode}`);
-                get(teamDataRef).then((teamSnapshot) => {
-                    if(teamSnapshot.exists()){
-                        const teamData = teamSnapshot.val();
-                        setTeamInfo({ id: teamCode, name: teamData.name, creatorUid: teamData.creatorUid });
-                    }
-                });
-            }
-        });
+        if (database) {
+            const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+            get(teamCodeRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const teamCode = snapshot.val();
+                    const teamDataRef = dbRef(database, `teams/${teamCode}`);
+                    get(teamDataRef).then((teamSnapshot) => {
+                        if(teamSnapshot.exists()){
+                            const teamData = teamSnapshot.val();
+                            setTeamInfo({ id: teamCode, name: teamData.name, creatorUid: teamData.creatorUid });
+                        }
+                    });
+                }
+            });
+        }
     }
-  }, [user, loading, router, form]);
+  }, [user, loading, router, form, database]);
 
   const handleUpdateProfile = async (values: z.infer<typeof profileSchema>) => {
-    if (!user) return;
+    if (!user || !auth) return;
     try {
       await updateProfile(user, { displayName: values.displayName });
       toast({

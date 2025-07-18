@@ -12,7 +12,6 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { useToast } from '@/hooks/use-toast';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
@@ -27,7 +26,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
   const pathname = usePathname();
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [isInitialLessonSet, setIsInitialLessonSet] = useState(false);
-  const { user, loading, updateLessonProgress, passedLessonIds, notificationSettings } = useAuth();
+  const { user, loading, updateLessonProgress, passedLessonIds, notificationSettings, database } = useAuth();
   const { toast } = useToast();
   const [teamCode, setTeamCode] = useState<string | null>(null);
   
@@ -35,7 +34,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
     if (!loading && !user) {
       router.push('/auth');
     }
-    if (user) {
+    if (user && database) {
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         get(teamCodeRef).then((snapshot) => {
             if(snapshot.exists()) {
@@ -43,7 +42,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
             }
         });
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, database]);
 
   const handleSelectLesson = useCallback((lessonId: string) => {
     setActiveLessonId(lessonId);
@@ -126,7 +125,7 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
     }
 
     if (isPassed && !wasAlreadyPassed) {
-        if (user) {
+        if (user && database) {
             if (teamCode) {
                 const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                 push(activitiesRef, {

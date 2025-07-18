@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -29,7 +28,7 @@ import { useTheme } from 'next-themes';
 import { NotificationBell } from './NotificationBell';
 
 export function UserProfile() {
-  const { user, loading } = useAuth();
+  const { user, loading, auth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -40,6 +39,7 @@ export function UserProfile() {
   const { theme, setTheme } = useTheme();
 
   const handleLogout = async () => {
+    if (!auth) return;
     try {
       await auth.signOut();
       window.location.href = '/';

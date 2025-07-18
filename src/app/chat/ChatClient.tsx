@@ -4,7 +4,6 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { database } from '@/lib/firebase';
 import { ref as dbRef, onValue, get, set, push, update, serverTimestamp, query, orderByChild, remove } from 'firebase/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +53,7 @@ const formatTimestamp = (timestamp: number | undefined): string => {
 
 // --- Main Component ---
 export default function ChatClient() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, database } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -157,7 +156,7 @@ export default function ChatClient() {
     return () => {
       if (chatsUnsubscribe) chatsUnsubscribe();
     };
-  }, [user, authLoading, toast, activeChatId]);
+  }, [user, authLoading, toast, activeChatId, database]);
 
   useEffect(() => {
     if (!activeChatId || !database) {
@@ -173,13 +172,13 @@ export default function ChatClient() {
     });
 
     return () => unsubscribe();
-  }, [activeChatId]);
+  }, [activeChatId, database]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const handleSendMessage = async () => {
     const textToSend = newMessage;
-    if (!textToSend.trim() || !user || !activeChat || isSending) return;
+    if (!textToSend.trim() || !user || !activeChat || isSending || !database) return;
     
     setIsSending(true);
     setNewMessage("");
