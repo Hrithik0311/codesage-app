@@ -15,7 +15,7 @@ import { codeAnalysis, type CodeAnalysisOutput } from '@/ai/flows/ai-code-comple
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { UserProfile } from '@/components/UserProfile';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
@@ -107,7 +107,6 @@ export default function CodeIntelligenceClient() {
             router.push('/auth');
         }
         if (user) {
-            const { database } = getFirebaseServices();
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if (snapshot.exists()) {
@@ -144,7 +143,6 @@ export default function CodeIntelligenceClient() {
             });
             
             if (user) {
-                const { database } = getFirebaseServices();
                 if (teamCode) {
                     const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                     push(activitiesRef, {

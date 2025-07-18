@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { getFirebaseServices } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -41,7 +41,6 @@ export function UserProfile() {
 
   const handleLogout = async () => {
     try {
-      const { auth } = getFirebaseServices();
       await auth.signOut();
       window.location.href = '/';
     } catch (error) {

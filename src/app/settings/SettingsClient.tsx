@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, get } from 'firebase/database';
 import ThemeSelectionModal from '@/components/ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
@@ -67,7 +67,6 @@ export default function SettingsClient() {
     if (user) {
         form.reset({ displayName: user.displayName || '' });
         // Fetch team info
-        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         get(teamCodeRef).then((snapshot) => {
             if (snapshot.exists()) {

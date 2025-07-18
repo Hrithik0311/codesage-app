@@ -24,7 +24,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, set, get, update, onValue, push, serverTimestamp, query, limitToLast, orderByChild, remove } from 'firebase/database';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -179,7 +179,6 @@ export default function CollaborationClient() {
           return;
       }
       setIsLoadingTeam(true);
-      const { database } = getFirebaseServices();
       const userTeamRef = dbRef(database, `users/${user.uid}/teamCode`);
       get(userTeamRef).then((snapshot) => {
           if (!isMounted) return;
@@ -228,7 +227,6 @@ export default function CollaborationClient() {
 
     useEffect(() => {
         if (!team) return;
-        const { database } = getFirebaseServices();
         const allMemberIds = Object.values(team.roles || {}).flatMap((roleMembers: any) => Object.keys(roleMembers));
         if (allMemberIds.length === 0) return;
         const statusRef = dbRef(database, 'status');
@@ -244,7 +242,6 @@ export default function CollaborationClient() {
     useEffect(() => {
         if (!team) return;
         setIsLoadingShares(true);
-        const { database } = getFirebaseServices();
         const sharesRef = dbRef(database, `teams/${team.id}/shares`);
         const sharesQuery = query(sharesRef, orderByChild('timestamp'), limitToLast(15));
         const unsubscribe = onValue(sharesQuery, (snapshot) => {
@@ -258,7 +255,6 @@ export default function CollaborationClient() {
 
     useEffect(() => {
         if (!team) { setIsLoadingPlanner(true); return; };
-        const { database } = getFirebaseServices();
         const plannerRef = dbRef(database, `teams/${team.id}/planner`);
         const initializePlanner = () => {
             const defaultColumns = [ { id: 'col-1', title: 'To Do' }, { id: 'col-2', title: 'In Progress' }, { id: 'col-3', title: 'Done' } ];
@@ -278,7 +274,6 @@ export default function CollaborationClient() {
 
     useEffect(() => {
         if (!team) { setIsEventsLoading(true); return; };
-        const { database } = getFirebaseServices();
         const eventsRef = dbRef(database, `teams/${team.id}/calendarEvents`);
         const unsubscribe = onValue(eventsRef, (snapshot) => {
             const eventsData: CalendarEvent[] = [];
@@ -298,7 +293,6 @@ export default function CollaborationClient() {
         };
         
         setIsLoadingMessages(true);
-        const { database } = getFirebaseServices();
         const announcementsRef = dbRef(database, `chats/${team.announcementsChatId}/messages`);
         const announcementsQuery = query(announcementsRef, orderByChild('timestamp'), limitToLast(50));
     
@@ -325,7 +319,6 @@ export default function CollaborationClient() {
     // --- Team Management Functions ---
     const handleCreateTeam = async (values: z.infer<typeof createTeamSchema>) => {
         if (!user) return;
-        const { database } = getFirebaseServices();
         const teamRef = dbRef(database, 'teams/' + values.teamCode);
         const snapshot = await get(teamRef);
         if (snapshot.exists()) { createForm.setError("teamCode", { type: "manual", message: "This team code is already taken." }); return; }
@@ -368,7 +361,6 @@ export default function CollaborationClient() {
 
     const handleJoinTeam = async (values: z.infer<typeof joinTeamSchema>) => {
         if (!user) return;
-        const { database } = getFirebaseServices();
         const teamRef = dbRef(database, 'teams/' + values.teamCode);
         const snapshot = await get(teamRef);
         if (!snapshot.exists()) { joinForm.setError("teamCode", { type: "manual", message: "This team code does not exist." }); return; }
@@ -410,7 +402,6 @@ export default function CollaborationClient() {
     
     const handleUpdateTeamSettings = async (values: z.infer<typeof settingsSchema>) => {
         if (!user || !team) return;
-        const { database } = getFirebaseServices();
         const updates: { [key: string]: any } = {};
         const allMemberEmails: string[] = [];
         
@@ -476,7 +467,6 @@ export default function CollaborationClient() {
         const textToSend = newMessage;
         setNewMessage("");
 
-        const { database } = getFirebaseServices();
         const messageData = {
             text: textToSend,
             senderId: user.uid,
@@ -504,13 +494,11 @@ export default function CollaborationClient() {
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 10 } }));
     function createTask(columnId: Id) {
         if (!team) return;
-        const { database } = getFirebaseServices();
         const newTask: Task = { id: uuidv4(), columnId, content: `Task ${tasks.length + 1}` };
         set(dbRef(database, `teams/${team.id}/planner/tasks/${newTask.id}`), newTask);
     }
     function createNewColumn() {
         if (!team) return;
-        const { database } = getFirebaseServices();
         const columnToAdd: Column = { id: uuidv4(), title: `Column ${columns.length + 1}` };
         set(dbRef(database, `teams/${team.id}/planner/columns/${columnToAdd.id}`), columnToAdd);
     }
@@ -522,7 +510,6 @@ export default function CollaborationClient() {
         setActiveTask(null);
         const { active, over } = event;
         if (!over || active.id === over.id || !team) return;
-        const { database } = getFirebaseServices();
         const activeTask = tasks.find(t => t.id === active.id);
         if (activeTask && activeTask.columnId !== over.id) {
             set(dbRef(database, `teams/${team.id}/planner/tasks/${active.id}/columnId`), over.id);
@@ -544,7 +531,6 @@ export default function CollaborationClient() {
 
     const handleAddEvent = async (values: z.infer<typeof eventSchema>) => {
         if (!user || !team || !date) return;
-        const { database } = getFirebaseServices();
         const newEventRef = push(dbRef(database, `teams/${team.id}/calendarEvents`));
         const newEvent = {
             date: format(date, 'yyyy-MM-dd'),
@@ -578,7 +564,6 @@ export default function CollaborationClient() {
 
     const handleDeleteEvent = async (eventId: string) => {
         if (!team) return;
-        const { database } = getFirebaseServices();
         const eventRef = dbRef(database, `teams/${team.id}/calendarEvents/${eventId}`);
         await remove(eventRef);
         toast({ title: "Event Deleted" });

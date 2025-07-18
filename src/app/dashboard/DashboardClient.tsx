@@ -13,7 +13,7 @@ import { UserProfile } from '@/components/UserProfile';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, get, query, limitToLast, onValue, orderByChild } from 'firebase/database';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -120,7 +120,6 @@ export default function DashboardClient() {
   useEffect(() => {
       if (user) {
           setIsActivitiesLoading(true);
-          const { database } = getFirebaseServices();
           const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
           get(teamCodeRef).then((snapshot) => {
               if (snapshot.exists()) {

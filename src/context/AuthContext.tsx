@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { getFirebaseServices } from '@/lib/firebase';
+import { auth, database } from '@/lib/firebase';
 import { ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update } from 'firebase/database';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: false, inApp: true });
 
   useEffect(() => {
-    const { auth } = getFirebaseServices();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -67,7 +66,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let settingsSub = () => {};
 
     if (user) {
-        const { database } = getFirebaseServices();
         if (user.displayName) {
           const userNameRef = dbRef(database, `users/${user.uid}/name`);
           set(userNameRef, user.displayName);
@@ -173,7 +171,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateLessonProgress = useCallback((lessonId: string, score: number) => {
     if (user) {
-        const { database } = getFirebaseServices();
         const lessonRef = dbRef(database, `users/${user.uid}/lessonProgress/${lessonId}`);
         set(lessonRef, score);
     }
@@ -181,7 +178,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   const updateNotificationSettings = useCallback((settings: Partial<NotificationSettings>) => {
       if (user) {
-        const { database } = getFirebaseServices();
         const settingsRef = dbRef(database, `users/${user.uid}/notificationSettings`);
         update(settingsRef, settings);
       }
@@ -189,7 +185,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetAllProgress = useCallback(() => {
     if (user) {
-      const { database } = getFirebaseServices();
       const lessonsRef = dbRef(database, `users/${user.uid}/lessonProgress`);
       remove(lessonsRef).then(() => {
         setLessonProgress(new Map());
@@ -200,7 +195,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetCourseProgress = useCallback((lessonIdsToRemove: string[]) => {
     if (user) {
-        const { database } = getFirebaseServices();
         const updates: { [key: string]: null } = {};
         lessonIdsToRemove.forEach(id => {
             updates[`/users/${user.uid}/lessonProgress/${id}`] = null;
@@ -211,7 +205,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const deleteAccountData = useCallback(async () => {
       if (user) {
-        const { database } = getFirebaseServices();
         const userRootRef = dbRef(database, `users/${user.uid}`);
         await remove(userRootRef);
         

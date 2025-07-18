@@ -9,8 +9,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
+  type Auth,
 } from 'firebase/auth';
-import { getFirebaseServices } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { allFirebaseKeysProvided } from '@/lib/firebase-config';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,11 +60,12 @@ export default function AuthClient() {
   const [isJustLoggedIn, setIsJustLoggedIn] = useState(false);
   const { toast } = useToast();
   
-  // Defer initialization until the component has mounted to ensure env vars are loaded.
-  const [auth, setAuth] = useState<any>(null);
+  const [authService, setAuthService] = useState<Auth | null>(null);
+
   useEffect(() => {
+    // Ensure this runs only on the client where `auth` is guaranteed to be initialized.
     if (allFirebaseKeysProvided) {
-      setAuth(getFirebaseServices().auth);
+      setAuthService(auth);
     }
   }, []);
 
@@ -121,7 +123,7 @@ export default function AuthClient() {
     );
   }
   
-  if (!auth) {
+  if (!authService) {
       return (
             <Card className="w-full max-w-md bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                 <CardHeader className="text-center">
@@ -175,7 +177,7 @@ export default function AuthClient() {
 
   const handleSignIn = async (values: z.infer<typeof signInSchema>) => {
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await signInWithEmailAndPassword(authService, values.email, values.password);
       setIsJustLoggedIn(true);
     } catch (err) {
       handleAuthError(err);
@@ -184,7 +186,7 @@ export default function AuthClient() {
 
   const handleSignUp = async (values: z.infer<typeof signUpSchema>) => {
     try {
-      const userCred = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCred = await createUserWithEmailAndPassword(authService, values.email, values.password);
       await updateProfile(userCred.user, { displayName: values.displayName });
       setIsJustLoggedIn(true);
     } catch (err) {
@@ -195,7 +197,7 @@ export default function AuthClient() {
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(authService, provider);
       setIsJustLoggedIn(true);
     } catch (err: any) {
       handleAuthError(err);

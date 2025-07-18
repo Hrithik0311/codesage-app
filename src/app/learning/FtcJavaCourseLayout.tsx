@@ -12,7 +12,7 @@ import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile } from '@/components/UserProfile';
 import { useToast } from '@/hooks/use-toast';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { sendNotificationEmail } from '@/ai/flows/send-notification-email';
 
@@ -36,7 +36,6 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
       router.push('/auth');
     }
     if (user) {
-        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         get(teamCodeRef).then((snapshot) => {
             if(snapshot.exists()) {
@@ -128,7 +127,6 @@ const FtcJavaCourseLayout: React.FC<FtcJavaCourseLayoutProps> = ({ lessons, cour
 
     if (isPassed && !wasAlreadyPassed) {
         if (user) {
-            const { database } = getFirebaseServices();
             if (teamCode) {
                 const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                 push(activitiesRef, {

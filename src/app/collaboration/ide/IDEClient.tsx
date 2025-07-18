@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, ShieldCheck, Copy, Save, Upload, FolderUp, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { getFirebaseServices } from '@/lib/firebase';
+import { database } from '@/lib/firebase';
 import { ref as dbRef, get, push, serverTimestamp } from 'firebase/database';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,7 +51,6 @@ function IDEContent() {
         const shareId = searchParams.get('shareId');
         const fileName = searchParams.get('fileName');
         if (shareId && user) {
-            const { database } = getFirebaseServices();
             const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
             get(teamCodeRef).then((snapshot) => {
                 if(snapshot.exists()) {
@@ -97,7 +96,6 @@ function IDEContent() {
     };
 
     const notifyTeamCreator = async (teamCode: string, title: string, body: string) => {
-        const { database } = getFirebaseServices();
         const teamRef = dbRef(database, `teams/${teamCode}/creatorUid`);
         const creatorUidSnapshot = await get(teamRef);
         if (creatorUidSnapshot.exists()) {
@@ -127,7 +125,6 @@ function IDEContent() {
              return;
         }
 
-        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
@@ -168,7 +165,6 @@ function IDEContent() {
             toast({ title: "Authentication Error", description: "You must be logged in to share files.", variant: "destructive" });
             return;
         }
-        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
@@ -242,7 +238,6 @@ function IDEContent() {
     const handleShareGroup = async (values: z.infer<typeof shareGroupSchema>) => {
         if (!user) return;
         
-        const { database } = getFirebaseServices();
         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
         const teamCodeSnapshot = await get(teamCodeRef);
         if (!teamCodeSnapshot.exists()) {
