@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
-  model: googleAI.model('gemini-1.5-flash-latest'),
+  model: googleAI.model('@google/gemini-1.5-flash'),
   prompt: `You are an expert AI programming tutor and automated refactoring tool specializing in FIRST Tech Challenge (FTC) Java code.
 
 Your task is to perform two actions in a single pass:
