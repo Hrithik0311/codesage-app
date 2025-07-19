@@ -117,6 +117,7 @@ export default function DashboardClient() {
   }, [user, loading, router]);
   
   useEffect(() => {
+      let unsubscribe = () => {};
       if (user && database) {
           setIsActivitiesLoading(true);
           const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
@@ -126,7 +127,7 @@ export default function DashboardClient() {
                   const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
                   const activitiesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(5));
                   
-                  const unsubscribe = onValue(activitiesQuery, (activitiesSnapshot) => {
+                  unsubscribe = onValue(activitiesQuery, (activitiesSnapshot) => {
                       const activitiesData: any[] = [];
                       activitiesSnapshot.forEach((child) => {
                           activitiesData.push({ id: child.key, ...child.val() });
@@ -134,7 +135,6 @@ export default function DashboardClient() {
                       setRecentActivities(activitiesData.reverse()); // newest first
                       setIsActivitiesLoading(false);
                   });
-                  return unsubscribe;
               } else {
                   setIsActivitiesLoading(false); // No team, no activities
                   setRecentActivities([]);
@@ -143,6 +143,7 @@ export default function DashboardClient() {
       } else if (!loading) {
           setIsActivitiesLoading(false); // Not logged in
       }
+      return () => unsubscribe();
   }, [user, loading, database]);
 
   if (loading || !user) {

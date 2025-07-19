@@ -705,10 +705,10 @@ export default function CollaborationClient() {
                                             ) : messages.length > 0 ? (
                                                 messages.map(msg => (
                                                     <div key={msg.id} className="flex items-start gap-3">
-                                                        <Avatar className="h-8 w-8 border"><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{msg.senderName.substring(0,1)}</AvatarFallback></Avatar>
+                                                        <Avatar className="h-8 w-8 border"><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{msg.senderName ? msg.senderName.substring(0,1) : '?'}</AvatarFallback></Avatar>
                                                         <div>
                                                             <div className="flex items-baseline gap-2">
-                                                                <p className="font-bold text-sm">{msg.senderName}</p>
+                                                                <p className="font-bold text-sm">{msg.senderName || 'Unknown User'}</p>
                                                                 <p className="text-xs text-muted-foreground">{formatTimestamp(msg.timestamp)}</p>
                                                             </div>
                                                             <div className="bg-muted/50 p-3 rounded-lg mt-1"><p className="text-sm whitespace-pre-wrap">{msg.text}</p></div>
@@ -748,7 +748,7 @@ export default function CollaborationClient() {
                                                     {Object.entries(members).length > 0 ? Object.entries(members).map(([memberId, memberData]) => (
                                                         <div key={memberId} className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3">
-                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberData.name.substring(0, 2)}</AvatarFallback></Avatar>
+                                                                <Avatar><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{memberData.name ? memberData.name.substring(0, 2) : '?'}</AvatarFallback></Avatar>
                                                                 <div className="flex flex-col"><p className="font-semibold text-foreground">{memberData.name}</p><p className="font-mono text-xs text-muted-foreground truncate max-w-[150px]">{memberId}</p>{user?.uid === memberId && <p className="text-xs text-accent font-semibold">(You)</p>}</div>
                                                             </div><StatusBadge status={memberStatuses[memberId]?.state} />
                                                         </div>
