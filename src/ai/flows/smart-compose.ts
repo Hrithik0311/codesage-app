@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
 const SmartComposeInputSchema = z.object({
   text: z.string().describe('The current text input from the user.'),
@@ -30,6 +31,7 @@ const prompt = ai.definePrompt({
   name: 'smartComposePrompt',
   input: {schema: SmartComposeInputSchema},
   output: {schema: SmartComposeOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are a helpful assistant that provides smart-compose suggestions.
 Your task is to complete the user's sentence concisely.
 - Only provide the completion, not the original text.

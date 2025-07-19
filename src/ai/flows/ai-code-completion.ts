@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
 const CodeAnalysisInputSchema = z.object({
   codeSnippet: z.string().describe('The code snippet to analyze.'),
@@ -40,6 +41,7 @@ const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are an expert AI programming tutor and automated refactoring tool specializing in FIRST Tech Challenge (FTC) Java code.
 
 Your task is to perform two actions in a single pass:

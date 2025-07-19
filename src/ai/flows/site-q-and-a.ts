@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
@@ -56,6 +57,7 @@ const prompt = ai.definePrompt({
       advancedLessonTitles: z.array(z.string()),
   })},
   output: {schema: SiteQuestionOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are CodeSage AI, a friendly and helpful assistant for the CodeSage website.
 Your goal is to answer user questions based on the information provided below about the site's content.
 Be concise and helpful.

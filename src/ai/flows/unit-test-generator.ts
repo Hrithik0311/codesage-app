@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
 const UnitTestGeneratorInputSchema = z.object({
   code: z
@@ -38,6 +39,7 @@ const prompt = ai.definePrompt({
   name: 'unitTestGeneratorPrompt',
   input: {schema: UnitTestGeneratorInputSchema},
   output: {schema: UnitTestGeneratorOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are an AI that generates unit tests for given code.
 
   Generate unit tests for the following code, ensuring they are comprehensive and cover various scenarios.
