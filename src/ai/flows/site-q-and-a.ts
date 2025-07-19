@@ -45,7 +45,6 @@ const advancedLessonTitles = ftcJavaLessonsAdvanced.map(l => l.title);
 
 const prompt = ai.definePrompt({
   name: 'siteQuestionPrompt',
-  model: 'gemini-1.5-flash',
   input: {schema: z.object({
       question: z.string(),
       totalLessons: z.number(),

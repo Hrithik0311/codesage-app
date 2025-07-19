@@ -28,7 +28,6 @@ export async function smartCompose(input: SmartComposeInput): Promise<SmartCompo
 
 const prompt = ai.definePrompt({
   name: 'smartComposePrompt',
-  model: 'gemini-1.5-flash',
   input: {schema: SmartComposeInputSchema},
   output: {schema: SmartComposeOutputSchema},
   prompt: `You are a helpful assistant that provides smart-compose suggestions.
