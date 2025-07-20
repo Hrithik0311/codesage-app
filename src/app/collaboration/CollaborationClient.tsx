@@ -695,15 +695,18 @@ export default function CollaborationClient() {
                     )}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 flex flex-col gap-8">
-                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50 flex-grow flex flex-col">
-                                <CardHeader><CardTitle className="flex items-center gap-3"><MessageSquare /> Team Chat</CardTitle><CardDescription>Your team's main communication channel.</CardDescription></CardHeader>
-                                <CardContent className="flex-grow p-0 flex flex-col">
-                                    <ScrollArea className="flex-grow h-96">
-                                        <div ref={chatContentRef} className="p-4 space-y-4">
+                             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-3"><MessageSquare /> Team Chat</CardTitle>
+                                    <CardDescription>A preview of the latest messages.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    <ScrollArea className="h-48">
+                                        <div className="space-y-4">
                                             {isLoadingMessages ? (
                                                 <div className="flex justify-center items-center h-full"><Skeleton className="h-24 w-full" /></div>
                                             ) : messages.length > 0 ? (
-                                                messages.map(msg => (
+                                                messages.slice(-5).map(msg => (
                                                     <div key={msg.id} className="flex items-start gap-3">
                                                         <Avatar className="h-8 w-8 border"><AvatarImage data-ai-hint="person" src={`https://placehold.co/40x40.png`} /><AvatarFallback>{msg.senderName ? msg.senderName.substring(0,1) : '?'}</AvatarFallback></Avatar>
                                                         <div>
@@ -711,28 +714,20 @@ export default function CollaborationClient() {
                                                                 <p className="font-bold text-sm">{msg.senderName || 'Unknown User'}</p>
                                                                 <p className="text-xs text-muted-foreground">{formatTimestamp(msg.timestamp)}</p>
                                                             </div>
-                                                            <div className="bg-muted/50 p-3 rounded-lg mt-1"><p className="text-sm whitespace-pre-wrap">{msg.text}</p></div>
+                                                            <div className="bg-muted/50 p-2 rounded-lg mt-1"><p className="text-sm whitespace-pre-wrap">{msg.text}</p></div>
                                                         </div>
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="flex h-full items-center justify-center text-muted-foreground">No messages yet. Start the conversation!</div>
+                                                <div className="flex h-full items-center justify-center text-muted-foreground p-8">No messages yet.</div>
                                             )}
                                         </div>
                                     </ScrollArea>
                                 </CardContent>
                                 <CardFooter className="border-t pt-4">
-                                    <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
-                                        <Input
-                                            placeholder={user?.uid === team.creatorUid ? "Send a message to the team..." : "Only the team captain can post here."}
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            disabled={isSending || user?.uid !== team.creatorUid}
-                                        />
-                                        <Button type="submit" size="icon" disabled={isSending || !newMessage.trim() || user?.uid !== team.creatorUid}>
-                                            <SendHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </form>
+                                     <Button asChild className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90">
+                                        <Link href="/chat"><MessageSquare className="mr-2 h-4 w-4" /> Open Full Chat</Link>
+                                    </Button>
                                 </CardFooter>
                             </Card>
                         </div>
@@ -868,7 +863,6 @@ export default function CollaborationClient() {
                              </CardContent>
                             <CardFooter className="flex justify-end gap-2 border-t pt-4">
                                  <Button variant="outline" onClick={createNewColumn}><Plus className="mr-2 h-4 w-4" />Add Column</Button>
-                                 <Button asChild className="bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90"><Link href="/chat"><MessageSquare className="mr-2 h-4 w-4" /> Open Full Chat</Link></Button>
                             </CardFooter>
                          </Card>
                      </div>

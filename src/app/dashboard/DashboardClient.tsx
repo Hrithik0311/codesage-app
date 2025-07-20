@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -66,9 +66,21 @@ const ActivityItem = ({ activity }) => {
 
     switch (type) {
         case 'commit':
+        case 'file':
+        case 'snippet':
+        case 'group':
             icon = GitCommit;
+            const actionText = {
+              'commit': 'committed',
+              'file': 'shared a file',
+              'snippet': 'shared a snippet',
+              'group': 'shared a file group'
+            }[type] || 'made an update';
+            
+            const detailText = details?.message || details?.fileName || activity.message || activity.groupName || 'an update';
+
             text = <p className="font-medium">
-                <span className="font-bold">{isYou ? 'You' : userName}</span> committed '{details.message}'
+                <span className="font-bold">{isYou ? 'You' : userName}</span> {actionText} '{detailText}'
             </p>;
             break;
         case 'lesson_completion':
@@ -103,12 +115,19 @@ const ActivityItem = ({ activity }) => {
     );
 };
 
+const quickTips = [
+    { icon: Lightbulb, title: "Use 'final' for variables", text: "In Java, declaring a variable with `final` prevents it from being changed. It's a good practice for configuration values like motor names." },
+    { icon: Bot, title: "Talk to the CodeSage AI", text: "Stuck on a problem? The AI chat in the bottom right can answer questions about FTC, FRC, and this website's content." },
+    { icon: Search, title: "Analyze Before You Test", text: "Run your code through the AI Code Assistant. It can spot potential null pointer exceptions and inefficiencies before you even deploy." },
+    { icon: Users, title: "Use the Team Hub", text: "The Collaboration Hub isn't just for code. Use the Planner and Calendar to organize tasks and deadlines for your team." },
+];
 
 export default function DashboardClient() {
   const { user, loading, passedLessonIds, database } = useAuth();
   const router = useRouter();
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [isActivitiesLoading, setIsActivitiesLoading] = useState(true);
+  const [activityStats, setActivityStats] = useState({ commits: 0, analyses: 0 });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -118,6 +137,7 @@ export default function DashboardClient() {
   
   useEffect(() => {
       let unsubscribe = () => {};
+      let statsUnsubscribe = () => {};
       if (user && database) {
           setIsActivitiesLoading(true);
           const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
@@ -125,9 +145,10 @@ export default function DashboardClient() {
               if (snapshot.exists()) {
                   const teamCode = snapshot.val();
                   const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
-                  const activitiesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(5));
                   
-                  unsubscribe = onValue(activitiesQuery, (activitiesSnapshot) => {
+                  // Listener for recent 5 activities
+                  const recentQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(5));
+                  unsubscribe = onValue(recentQuery, (activitiesSnapshot) => {
                       const activitiesData: any[] = [];
                       activitiesSnapshot.forEach((child) => {
                           activitiesData.push({ id: child.key, ...child.val() });
@@ -135,16 +156,42 @@ export default function DashboardClient() {
                       setRecentActivities(activitiesData.reverse()); // newest first
                       setIsActivitiesLoading(false);
                   });
+
+                  // Listener for all activities to calculate stats
+                  statsUnsubscribe = onValue(activitiesRef, (allActivitiesSnapshot) => {
+                      const allActivities = allActivitiesSnapshot.val() || {};
+                      const commitTypes = new Set(['commit', 'file', 'snippet', 'group']);
+                      let commitCount = 0;
+                      let analysisCount = 0;
+                      Object.values(allActivities).forEach((activity: any) => {
+                          if (commitTypes.has(activity.type)) {
+                              commitCount++;
+                          } else if (activity.type === 'analysis') {
+                              analysisCount++;
+                          }
+                      });
+                      setActivityStats({ commits: commitCount, analyses: analysisCount });
+                  });
+
               } else {
                   setIsActivitiesLoading(false); // No team, no activities
                   setRecentActivities([]);
+                  setActivityStats({ commits: 0, analyses: 0 });
               }
           }).catch(() => setIsActivitiesLoading(false));
       } else if (!loading) {
           setIsActivitiesLoading(false); // Not logged in
       }
-      return () => unsubscribe();
+      return () => {
+          unsubscribe();
+          statsUnsubscribe();
+      }
   }, [user, loading, database]);
+
+  const currentTip = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    return quickTips[dayOfYear % quickTips.length];
+  }, []);
 
   if (loading || !user) {
     return (
@@ -263,8 +310,8 @@ export default function DashboardClient() {
                          <h2 className="font-headline text-2xl font-bold mb-6">Activity Stats</h2>
                          <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                              <CardContent className="p-6 space-y-6">
-                                <ProgressItem icon={GitCommit} label="Team Commits" value={0} unit="commits" />
-                                <ProgressItem icon={BarChart} label="Analyses Run" value={0} unit="analyses" />
+                                <ProgressItem icon={GitCommit} label="Team Commits" value={activityStats.commits} unit="updates" />
+                                <ProgressItem icon={BarChart} label="Analyses Run" value={activityStats.analyses} unit="scans" />
                              </CardContent>
                          </Card>
                      </section>
@@ -272,10 +319,10 @@ export default function DashboardClient() {
                         <h2 className="font-headline text-2xl font-bold mb-6">Quick Tip</h2>
                         <Card className="bg-card/80 backdrop-blur-md shadow-lg border-border/50">
                             <CardContent className="p-6 flex items-start gap-4">
-                                <Lightbulb className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
+                                <currentTip.icon className="w-8 h-8 text-yellow-400 mt-1 flex-shrink-0" />
                                 <div>
-                                    <p className="font-semibold text-card-foreground mb-1">Use 'final' for variables</p>
-                                    <p className="text-muted-foreground text-sm">In Java, declaring a variable with `final` prevents it from being changed. It's a good practice for configuration values like motor names.</p>
+                                    <p className="font-semibold text-card-foreground mb-1">{currentTip.title}</p>
+                                    <p className="text-muted-foreground text-sm">{currentTip.text}</p>
                                 </div>
                             </CardContent>
                         </Card>

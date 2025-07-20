@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, User, type Auth } from 'firebase/auth';
-import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update, type Database } from 'firebase/database';
+import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update, type Database, query, orderByChild, limitToLast } from 'firebase/database';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
@@ -78,7 +78,7 @@ const AuthContext = createContext<AuthContextType>({
     deleteAccountData: async () => {}, 
     notifications: [], 
     markNotificationsAsRead: () => {}, 
-    notificationSettings: { email: false, inApp: true }, 
+    notificationSettings: { email: true, inApp: true }, 
     updateNotificationSettings: () => {},
     auth: null,
     database: null,
@@ -88,13 +88,45 @@ const AuthContext = createContext<AuthContextType>({
 const allLessons = [...ftcJavaLessons, ...ftcJavaLessonsIntermediate, ...ftcJavaLessonsAdvanced];
 const lessonsById = new Map(allLessons.map(l => [l.id, l]));
 
+function createNotification(activityId: string, activityData: any): Notification | null {
+  const { type, userName, details, timestamp, userId } = activityData;
+  
+  let title = "New Activity";
+  let description = `${userName} performed an action.`;
+  let link = "/collaboration";
+  
+  switch(type) {
+    case 'file':
+    case 'snippet':
+    case 'group':
+      title = "New Code Share";
+      description = `${userName} shared ${details?.groupName || details?.fileName || 'a code snippet'}.`;
+      link = `/collaboration/ide?shareId=${activityId}`;
+      break;
+    case 'lesson_completion':
+      title = "Lesson Complete!";
+      description = `${userName} completed the lesson: ${details.lessonTitle}`;
+      link = "/learning";
+      break;
+    case 'analysis':
+        title = "Code Analysis Run";
+        description = `${userName} ran an analysis on ${details.fileName}.`;
+        link = '/code-intelligence';
+        break;
+    default:
+        return null;
+  }
+
+  return { id: activityId, title, description, link, timestamp, read: false };
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [lessonProgress, setLessonProgress] = useState(new Map<string, number>());
   const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: false, inApp: true });
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: true, inApp: true });
 
   const firebaseReady = !!app;
 
@@ -114,6 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let connectedSub = () => {};
     let lessonsSub = () => {};
     let settingsSub = () => {};
+    let notificationsSub = () => {};
 
     if (user && firebaseReady) {
         if (user.displayName) {
@@ -191,19 +224,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (data) {
                 setNotificationSettings(data);
             } else {
-                set(settingsRef, { email: false, inApp: true });
+                set(settingsRef, { email: true, inApp: true });
             }
         });
 
-        setNotifications([
-          { id: '1', title: 'New Team Share', description: 'Alice shared "Autonomous.java"', link: '/collaboration', timestamp: Date.now() - 1000 * 60 * 5, read: false },
-          { id: '2', title: 'Lesson Complete!', description: 'You passed the "Mecanum Drive" lesson.', link: '/learning', timestamp: Date.now() - 1000 * 60 * 60 * 2, read: true },
-        ]);
+         const teamCodeRef = dbRef(database, `users/${user.uid}/teamCode`);
+         get(teamCodeRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                const teamCode = snapshot.val();
+                const activitiesRef = dbRef(database, `teams/${teamCode}/activities`);
+                const recentActivitiesQuery = query(activitiesRef, orderByChild('timestamp'), limitToLast(20));
+                
+                notificationsSub = onValue(recentActivitiesQuery, (activitySnapshot) => {
+                    const newNotifications: Notification[] = [];
+                    const seenIds = new Set();
+                    
+                    activitySnapshot.forEach(child => {
+                        const activity = { id: child.key, ...child.val() };
+                        if (activity.userId !== user.uid) { // Don't notify for own actions
+                            const notif = createNotification(activity.id, activity);
+                            if(notif) {
+                                newNotifications.push(notif);
+                                seenIds.add(notif.id);
+                            }
+                        }
+                    });
+                    
+                    // Merge with existing non-read notifications to avoid losing them
+                    setNotifications(prev => {
+                        const existingUnread = prev.filter(p => p.read && !seenIds.has(p.id));
+                        const final = [...existingUnread, ...newNotifications.reverse()];
+                        final.sort((a,b) => b.timestamp - a.timestamp);
+                        return final;
+                    });
+                });
+            }
+         });
+
 
         return () => {
             connectedSub();
             lessonsSub();
             settingsSub();
+            notificationsSub();
             window.removeEventListener('mousemove', resetIdleTimer);
             window.removeEventListener('keydown', resetIdleTimer);
             window.removeEventListener('scroll', resetIdleTimer);
