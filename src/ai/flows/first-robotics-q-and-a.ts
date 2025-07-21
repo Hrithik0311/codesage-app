@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
   name: 'firstRoboticsQuestionPrompt',
   input: {schema: FirstRoboticsQuestionInputSchema},
   output: {schema: FirstRoboticsQuestionOutputSchema},
-  model: 'gemini-1.5-flash',
+  model: 'googleai/@gemini-1.5-flash',
   prompt: `You are an expert AI assistant specializing in the FIRST Robotics Competition. Your knowledge covers all programs: FLL (FIRST LEGO League), FTC (FIRST Tech Challenge), and FRC (FIRST Robotics Competition).
 
 Your task is to answer the user's question within the specific context of the program they have chosen. Use your extensive, up-to-date knowledge base, including official game manuals, common community practices, and technical specifications.
