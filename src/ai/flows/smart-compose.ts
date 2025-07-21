@@ -31,7 +31,7 @@ const prompt = ai.definePrompt({
   name: 'smartComposePrompt',
   input: {schema: SmartComposeInputSchema},
   output: {schema: SmartComposeOutputSchema},
-  model: 'gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are a helpful assistant that provides smart-compose suggestions.
 Your task is to complete the user's sentence concisely.
 - Only provide the completion, not the original text.
