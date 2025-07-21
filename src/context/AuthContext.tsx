@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, User, type Auth } from 'firebase/auth';
-import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update, type Database, query, orderByChild, limitToLast } from 'firebase/database';
+import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp, remove, update, get, type Database, query, orderByChild, limitToLast } from 'firebase/database';
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
