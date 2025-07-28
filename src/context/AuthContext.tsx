@@ -58,7 +58,8 @@ interface PopupMessage {
     title: string;
     message: string;
     timestamp?: number;
-    type: 'announcement' | 'login_welcome';
+    type: 'announcement' | 'login' | 'maintenance';
+    enabled?: boolean;
 }
 
 interface AuthContextType {
@@ -171,12 +172,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(currentUser);
         if (currentUser) {
             const isNewUser = currentUser.metadata.creationTime === currentUser.metadata.lastSignInTime;
-            if (isNewUser) {
-                const loginPopupRef = dbRef(database, 'popups/login');
-                const snapshot = await get(loginPopupRef);
-                if (snapshot.exists()) {
-                    setPopupToShow({ id: 'login-welcome', type: 'login_welcome', ...snapshot.val() });
-                }
+            const popupsRef = dbRef(database, 'popups');
+            const snapshot = await get(popupsRef);
+            const popupsData = snapshot.val();
+            
+            if (popupsData?.maintenance?.enabled) {
+                 setPopupToShow({ id: 'maintenance', type: 'maintenance', ...popupsData.maintenance });
+            } else if (isNewUser && popupsData?.login?.enabled) {
+                setPopupToShow({ id: 'login-welcome', type: 'login', ...popupsData.login });
             }
         }
         setLoading(false);
@@ -306,7 +309,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
          
         const announcementsRef = query(dbRef(database, 'announcements'), limitToLast(1));
         announcementSub = onValue(announcementsRef, (snapshot) => {
-            if (snapshot.exists()) {
+            if (snapshot.exists() && !popupToShow) { // Only show if another popup isn't already showing
                 const announcementsData = snapshot.val();
                 const [id, data] = Object.entries(announcementsData)[0] as [string, Omit<PopupMessage, 'id' | 'type'>];
                 if (!seenAnnouncements.includes(id)) {
@@ -335,7 +338,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPassedLessonIds(new Set());
         setNotifications([]);
       }
-  }, [user, firebaseReady, seenAnnouncements]);
+  }, [user, firebaseReady, seenAnnouncements, popupToShow]);
 
   const updateLessonProgress = useCallback((lessonId: string, score: number) => {
     if (user && firebaseReady) {

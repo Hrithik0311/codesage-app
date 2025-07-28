@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ref as dbRef, onValue, get, set, remove, query, limitToLast, orderByChild, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
-import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban, Megaphone, Send, LogIn, Save } from 'lucide-react';
+import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban, Megaphone, Send, LogIn, Save, Wrench } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +35,7 @@ import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AppUser {
     id: string;
@@ -57,11 +58,13 @@ interface ActivityLog {
     timestamp: number;
 }
 
+type PopupType = 'login' | 'maintenance';
+
 const popupSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
   message: z.string().min(10, "Message must be at least 10 characters long."),
+  enabled: z.boolean().optional().default(true),
 });
-
 
 const ActivityIcon = ({ type }) => {
     switch (type) {
@@ -89,15 +92,16 @@ export default function AdminClient() {
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [selectedPopupType, setSelectedPopupType] = useState<PopupType>('login');
   
   const announcementForm = useForm<z.infer<typeof popupSchema>>({
     resolver: zodResolver(popupSchema),
-    defaultValues: { title: "", message: "" },
+    defaultValues: { title: "", message: "", enabled: true },
   });
   
-  const loginPopupForm = useForm<z.infer<typeof popupSchema>>({
+  const persistentPopupForm = useForm<z.infer<typeof popupSchema>>({
     resolver: zodResolver(popupSchema),
-    defaultValues: { title: "", message: "" },
+    defaultValues: { title: "", message: "", enabled: false },
   });
   
   useEffect(() => {
@@ -125,11 +129,14 @@ export default function AdminClient() {
         const usersRef = dbRef(database, 'users');
         const teamsRef = dbRef(database, 'teams');
         const activitiesRef = dbRef(database, 'activities');
-        const loginPopupRef = dbRef(database, 'popups/login');
-
-        onValue(loginPopupRef, (snapshot) => {
-            if (snapshot.exists()) {
-                loginPopupForm.reset(snapshot.val());
+        
+        const popupsRef = dbRef(database, 'popups');
+        const unsubscribePopups = onValue(popupsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data[selectedPopupType]) {
+                persistentPopupForm.reset(data[selectedPopupType]);
+            } else {
+                persistentPopupForm.reset({ title: "", message: "", enabled: false });
             }
         });
 
@@ -158,7 +165,7 @@ export default function AdminClient() {
             setActivities(activitiesData.reverse()); // Newest first
         });
 
-        Promise.all([get(usersRef), get(teamsRef), get(activitiesRef)]).finally(() => {
+        Promise.all([get(usersRef), get(teamsRef), get(activitiesRef), get(popupsRef)]).finally(() => {
             setIsDataLoading(false);
         });
 
@@ -166,9 +173,10 @@ export default function AdminClient() {
             unsubscribeUsers();
             unsubscribeTeams();
             unsubscribeActivities();
+            unsubscribePopups();
         };
     }
-  }, [isAdmin, database, loginPopupForm]);
+  }, [isAdmin, database, selectedPopupType, persistentPopupForm]);
 
   const handleRoleChange = (userId: string, newRole: 'admin' | 'user') => {
     if (!database) return;
@@ -203,7 +211,8 @@ export default function AdminClient() {
     const announcementsRef = dbRef(database, 'announcements');
     try {
         await push(announcementsRef, {
-            ...values,
+            title: values.title,
+            message: values.message,
             timestamp: serverTimestamp(),
             sentBy: user?.displayName || user?.email,
         });
@@ -211,7 +220,7 @@ export default function AdminClient() {
             title: 'Announcement Sent!',
             description: 'Your update has been sent to all users.',
         });
-        announcementForm.reset();
+        announcementForm.reset({ title: "", message: "", enabled: true });
     } catch (error: any) {
         toast({
             title: 'Error Sending Announcement',
@@ -221,18 +230,18 @@ export default function AdminClient() {
     }
   };
 
-  const handleSetLoginPopup = async (values: z.infer<typeof popupSchema>) => {
+  const handleSetPersistentPopup = async (values: z.infer<typeof popupSchema>) => {
     if (!database) return;
-    const loginPopupRef = dbRef(database, 'popups/login');
+    const popupRef = dbRef(database, `popups/${selectedPopupType}`);
     try {
-        await set(loginPopupRef, {
+        await set(popupRef, {
             ...values,
             updatedAt: serverTimestamp(),
             updatedBy: user?.displayName || user?.email,
         });
         toast({
-            title: 'Login Pop-up Updated!',
-            description: 'The welcome message has been set for new user sessions.',
+            title: 'Pop-up Updated!',
+            description: `The ${selectedPopupType} message has been set.`,
         });
     } catch (error: any) {
         toast({
@@ -327,16 +336,44 @@ export default function AdminClient() {
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-3"><LogIn /> Welcome On Login Pop-up</CardTitle>
-                    <CardDescription>This message will appear automatically for users when they start a new session. You can use basic HTML here.</CardDescription>
+                    <CardTitle className="flex items-center gap-3"><Wrench /> Persistent Pop-up Manager</CardTitle>
+                    <CardDescription>Configure pop-ups that stay active until disabled. Supports HTML.</CardDescription>
                 </CardHeader>
-                <Form {...loginPopupForm}>
-                    <form onSubmit={loginPopupForm.handleSubmit(handleSetLoginPopup)}>
+                <Form {...persistentPopupForm}>
+                    <form onSubmit={persistentPopupForm.handleSubmit(handleSetPersistentPopup)}>
                         <CardContent className="space-y-4">
-                            <FormField control={loginPopupForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Welcome to the new season!" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={loginPopupForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (HTML supported)</FormLabel><FormControl><Textarea placeholder="<h1>Welcome!</h1><p>Here are some updates...</p>" {...field} rows={5} /></FormControl><FormMessage /></FormItem>)} />
+                            <Select onValueChange={(value: PopupType) => setSelectedPopupType(value)} defaultValue={selectedPopupType}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a pop-up type to manage" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="login">Welcome on Login Pop-up</SelectItem>
+                                    <SelectItem value="maintenance">Maintenance Notice</SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            <FormField control={persistentPopupForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Welcome back!" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={persistentPopupForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (HTML supported)</FormLabel><FormControl><Textarea placeholder="<h1>Update</h1><p>Here are some updates...</p>" {...field} rows={5} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={persistentPopupForm.control} name="enabled" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <FormLabel>Enable this pop-up</FormLabel>
+                                    <FormMessage />
+                                  </div>
+                                  <FormControl>
+                                    <Button
+                                      type="button"
+                                      variant={field.value ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => field.onChange(!field.value)}
+                                    >
+                                      {field.value ? 'Enabled' : 'Disabled'}
+                                    </Button>
+                                  </FormControl>
+                                </FormItem>
+                            )}/>
                         </CardContent>
-                        <CardFooter><Button type="submit" disabled={loginPopupForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" />{loginPopupForm.formState.isSubmitting ? 'Saving...' : 'Set Login Pop-up'}</Button></CardFooter>
+                        <CardFooter><Button type="submit" disabled={persistentPopupForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" />{persistentPopupForm.formState.isSubmitting ? 'Saving...' : 'Set Pop-up'}</Button></CardFooter>
                     </form>
                 </Form>
             </Card>
