@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,31 +12,40 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette, Settings, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, LogOut, User, ClipboardCopy, Palette, Settings, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import ThemeSelectionModal from './ThemeSelectionModal';
 import ThemeCustomizerModal from '@/components/ThemeCustomizerModal';
 import { useTheme } from 'next-themes';
 import { NotificationBell } from './NotificationBell';
+import { ref as dbRef, get } from 'firebase/database';
 
 export function UserProfile() {
-  const { user, loading, auth } = useAuth();
+  const { user, loading, auth, database } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isCustomThemeModalOpen, setIsCustomThemeModalOpen] = useState(false);
   const [themeToEdit, setThemeToEdit] = useState<'custom' | 'liquid-glass' | null>(null);
   const [originalTheme, setOriginalTheme] = useState<string | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    if (user && database) {
+        const userRoleRef = dbRef(database, `users/${user.uid}/role`);
+        get(userRoleRef).then((snapshot) => {
+            if (snapshot.exists() && snapshot.val() === 'admin') {
+                setIsAdmin(true);
+            }
+        });
+    }
+  }, [user, database]);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -118,6 +127,14 @@ export function UserProfile() {
                 <span>Dashboard</span>
               </Link>
             </DropdownMenuItem>
+             {isAdmin && (
+                <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/admin">
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                    </Link>
+                </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/settings">
                 <Settings className="mr-2 h-4 w-4" />
