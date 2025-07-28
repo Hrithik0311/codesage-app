@@ -253,7 +253,7 @@ export default function AdminClient() {
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 flex flex-col gap-8">
                 <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3"><UserCog /> User Management</CardTitle>
@@ -339,6 +339,39 @@ export default function AdminClient() {
                                                     </AlertDialog>
                                                 </div>
                                             </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3"><FolderKanban /> Team Management</CardTitle>
+                        <CardDescription>A list of all created teams.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Team Name</TableHead>
+                                    <TableHead>Team ID</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isDataLoading ? (
+                                    [...Array(3)].map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    allTeams.map((team) => (
+                                        <TableRow key={team.id}>
+                                            <TableCell className="font-medium">{team.name}</TableCell>
+                                            <TableCell className="font-mono text-xs">{team.id}</TableCell>
                                         </TableRow>
                                     ))
                                 )}
