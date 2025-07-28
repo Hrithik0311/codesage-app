@@ -51,20 +51,16 @@ function ThemeEffect() {
                 docStyle.setProperty('--custom-foreground', hexToHsl(settings.foreground));
                 docStyle.setProperty('--custom-primary-foreground', hexToHsl(settings.primaryForeground));
             }
-
-            if (theme === 'liquid-glass') {
-                document.body.style.background = `linear-gradient(135deg, ${settings.backgroundStart}, ${settings.backgroundEnd})`;
-                // Set text color for liquid glass theme
-                document.body.style.color = settings.liquidForeground || '#FFFFFF';
-            } else {
-                document.body.style.background = '';
-                document.body.style.color = '';
-            }
+        }
+        
+        if (theme === 'liquid-glass') {
+            document.body.classList.add('theme-liquid-glass');
+        } else {
+            document.body.classList.remove('theme-liquid-glass');
         }
     } catch (e) {
         console.warn("Could not parse custom theme settings from localStorage.", e);
-        document.body.style.background = '';
-        document.body.style.color = '';
+        document.body.classList.remove('theme-liquid-glass');
     }
   }, [theme]);
 

@@ -45,7 +45,7 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="data-theme"
-          defaultTheme="dark"
+          defaultTheme="liquid-glass"
           enableSystem
           disableTransitionOnChange
         >
