@@ -8,6 +8,10 @@ import { getDatabase, ref as dbRef, onValue, set, onDisconnect, serverTimestamp,
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+
 
 // --- Firebase Initialization ---
 const firebaseConfig = {
@@ -47,6 +51,13 @@ interface Notification {
 interface NotificationSettings {
     email: boolean;
     inApp: boolean;
+}
+
+interface Announcement {
+    id: string;
+    title: string;
+    message: string;
+    timestamp: number;
 }
 
 interface AuthContextType {
@@ -120,6 +131,26 @@ function createNotification(activityId: string, activityData: any): Notification
   return { id: activityId, title, description, link, timestamp, read: false };
 }
 
+const AnnouncementPopup = ({ announcement, onDismiss }: { announcement: Announcement, onDismiss: () => void }) => {
+    return (
+        <Dialog open={!!announcement} onOpenChange={onDismiss}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{announcement.title}</DialogTitle>
+                    <DialogDescription className="whitespace-pre-wrap pt-4">
+                        {announcement.message}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button onClick={onDismiss}>Close</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +158,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: true, inApp: true });
+  const [latestAnnouncement, setLatestAnnouncement] = useState<Announcement | null>(null);
+  const [seenAnnouncements, setSeenAnnouncements] = useLocalStorage<string[]>('seenAnnouncements', []);
 
   const firebaseReady = !!app;
 
@@ -147,6 +180,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let lessonsSub = () => {};
     let settingsSub = () => {};
     let notificationsSub = () => {};
+    let announcementSub = () => {};
 
     if (user && firebaseReady) {
         if (user.displayName) {
@@ -260,6 +294,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
             }
          });
+         
+        // Announcement Listener
+        const announcementsRef = query(dbRef(database, 'announcements'), limitToLast(1));
+        announcementSub = onValue(announcementsRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const announcementsData = snapshot.val();
+                const [id, data] = Object.entries(announcementsData)[0] as [string, Omit<Announcement, 'id'>];
+                const announcement = { id, ...data };
+                if (!seenAnnouncements.includes(id)) {
+                    setLatestAnnouncement(announcement);
+                }
+            }
+        });
 
 
         return () => {
@@ -267,6 +314,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             lessonsSub();
             settingsSub();
             notificationsSub();
+            announcementSub();
             window.removeEventListener('mousemove', resetIdleTimer);
             window.removeEventListener('keydown', resetIdleTimer);
             window.removeEventListener('scroll', resetIdleTimer);
@@ -280,7 +328,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPassedLessonIds(new Set());
         setNotifications([]);
       }
-  }, [user, firebaseReady]);
+  }, [user, firebaseReady, seenAnnouncements]);
 
   const updateLessonProgress = useCallback((lessonId: string, score: number) => {
     if (user && firebaseReady) {
@@ -330,6 +378,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
+  const dismissAnnouncement = () => {
+    if (latestAnnouncement) {
+        setSeenAnnouncements([...seenAnnouncements, latestAnnouncement.id]);
+        setLatestAnnouncement(null);
+    }
+  }
+
   const value = { 
       user, 
       loading, 
@@ -348,7 +403,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       firebaseReady: firebaseReady
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+        {children}
+        {latestAnnouncement && <AnnouncementPopup announcement={latestAnnouncement} onDismiss={dismissAnnouncement} />}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

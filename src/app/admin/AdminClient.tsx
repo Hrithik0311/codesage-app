@@ -4,10 +4,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { ref as dbRef, onValue, get, set, remove, query, limitToLast, orderByChild } from 'firebase/database';
+import { ref as dbRef, onValue, get, set, remove, query, limitToLast, orderByChild, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
-import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban, Megaphone, Send } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,12 @@ import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 interface AppUser {
     id: string;
@@ -50,6 +56,11 @@ interface ActivityLog {
     details: any;
     timestamp: number;
 }
+
+const announcementSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters long."),
+  message: z.string().min(10, "Message must be at least 10 characters long."),
+});
 
 
 const ActivityIcon = ({ type }) => {
@@ -78,6 +89,11 @@ export default function AdminClient() {
   const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  
+  const announcementForm = useForm<z.infer<typeof announcementSchema>>({
+    resolver: zodResolver(announcementSchema),
+    defaultValues: { title: "", message: "" },
+  });
 
   useEffect(() => {
     if (authLoading) return;
@@ -171,6 +187,29 @@ export default function AdminClient() {
       });
   };
 
+  const handleSendAnnouncement = async (values: z.infer<typeof announcementSchema>) => {
+    if (!database) return;
+    const announcementsRef = dbRef(database, 'announcements');
+    try {
+        await push(announcementsRef, {
+            ...values,
+            timestamp: serverTimestamp(),
+            sentBy: user?.displayName || user?.email,
+        });
+        toast({
+            title: 'Announcement Sent!',
+            description: 'Your update has been sent to all users.',
+        });
+        announcementForm.reset();
+    } catch (error: any) {
+        toast({
+            title: 'Error Sending Announcement',
+            description: error.message,
+            variant: 'destructive',
+        });
+    }
+  };
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-background">
@@ -254,6 +293,46 @@ export default function AdminClient() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 flex flex-col gap-8">
+                 <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3"><Megaphone /> Send Announcement</CardTitle>
+                        <CardDescription>Send a system-wide pop-up message to all users.</CardDescription>
+                    </CardHeader>
+                    <Form {...announcementForm}>
+                        <form onSubmit={announcementForm.handleSubmit(handleSendAnnouncement)}>
+                            <CardContent className="space-y-4">
+                                <FormField
+                                    control={announcementForm.control}
+                                    name="title"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Title</FormLabel>
+                                            <FormControl><Input placeholder="e.g., Scheduled Maintenance" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={announcementForm.control}
+                                    name="message"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Message</FormLabel>
+                                            <FormControl><Textarea placeholder="Enter the full announcement details here..." {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </CardContent>
+                            <CardFooter>
+                                <Button type="submit" disabled={announcementForm.formState.isSubmitting}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    {announcementForm.formState.isSubmitting ? 'Sending...' : 'Send Update'}
+                                </Button>
+                            </CardFooter>
+                        </form>
+                    </Form>
+                </Card>
                 <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3"><UserCog /> User Management</CardTitle>
