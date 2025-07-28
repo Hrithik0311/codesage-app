@@ -13,12 +13,23 @@ export async function POST(request: Request) {
     );
   }
 
-  // Initialize Resend inside the handler to ensure the key is checked first.
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  if (!fromEmail) {
+    console.warn(
+      'RESEND_FROM_EMAIL environment variable is not set. ' +
+      'Defaulting to "onboarding@resend.dev". ' +
+      'This is for development only. You must use a custom domain you own for production.'
+    );
+  }
+
+  // Use the environment variable, or default to the resend.dev address for testing.
+  const fromAddress = fromEmail || 'CodeSage <onboarding@resend.dev>';
+
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'CodeSage <onboarding@resend.dev>', // You will need to use a verified domain in production
+      from: fromAddress,
       to: [to],
       subject,
       html,
