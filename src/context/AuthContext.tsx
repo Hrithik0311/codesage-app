@@ -53,11 +53,12 @@ interface NotificationSettings {
     inApp: boolean;
 }
 
-interface Announcement {
+interface PopupMessage {
     id: string;
     title: string;
     message: string;
-    timestamp: number;
+    timestamp?: number;
+    type: 'announcement' | 'login_welcome';
 }
 
 interface AuthContextType {
@@ -131,16 +132,14 @@ function createNotification(activityId: string, activityData: any): Notification
   return { id: activityId, title, description, link, timestamp, read: false };
 }
 
-const AnnouncementPopup = ({ announcement, onDismiss }: { announcement: Announcement, onDismiss: () => void }) => {
+const PopupDisplay = ({ popup, onDismiss }: { popup: PopupMessage, onDismiss: () => void }) => {
     return (
-        <Dialog open={!!announcement} onOpenChange={onDismiss}>
+        <Dialog open={!!popup} onOpenChange={onDismiss}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{announcement.title}</DialogTitle>
-                    <DialogDescription className="whitespace-pre-wrap pt-4">
-                        {announcement.message}
-                    </DialogDescription>
+                    <DialogTitle>{popup.title}</DialogTitle>
                 </DialogHeader>
+                <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: popup.message }} />
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button onClick={onDismiss}>Close</Button>
@@ -158,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [passedLessonIds, setPassedLessonIds] = useState(new Set<string>());
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({ email: true, inApp: true });
-  const [latestAnnouncement, setLatestAnnouncement] = useState<Announcement | null>(null);
+  const [popupToShow, setPopupToShow] = useState<PopupMessage | null>(null);
   const [seenAnnouncements, setSeenAnnouncements] = useLocalStorage<string[]>('seenAnnouncements', []);
 
   const firebaseReady = !!app;
@@ -168,9 +167,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
         return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        setUser(currentUser);
+        if (currentUser) {
+            const isNewUser = currentUser.metadata.creationTime === currentUser.metadata.lastSignInTime;
+            if (isNewUser) {
+                const loginPopupRef = dbRef(database, 'popups/login');
+                const snapshot = await get(loginPopupRef);
+                if (snapshot.exists()) {
+                    setPopupToShow({ id: 'login-welcome', type: 'login_welcome', ...snapshot.val() });
+                }
+            }
+        }
+        setLoading(false);
     });
     return () => unsubscribe();
   }, [firebaseReady]);
@@ -295,15 +304,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
          });
          
-        // Announcement Listener
         const announcementsRef = query(dbRef(database, 'announcements'), limitToLast(1));
         announcementSub = onValue(announcementsRef, (snapshot) => {
             if (snapshot.exists()) {
                 const announcementsData = snapshot.val();
-                const [id, data] = Object.entries(announcementsData)[0] as [string, Omit<Announcement, 'id'>];
-                const announcement = { id, ...data };
+                const [id, data] = Object.entries(announcementsData)[0] as [string, Omit<PopupMessage, 'id' | 'type'>];
                 if (!seenAnnouncements.includes(id)) {
-                    setLatestAnnouncement(announcement);
+                    setPopupToShow({ id, type: 'announcement', ...data });
                 }
             }
         });
@@ -378,11 +385,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
-  const dismissAnnouncement = () => {
-    if (latestAnnouncement) {
-        setSeenAnnouncements([...seenAnnouncements, latestAnnouncement.id]);
-        setLatestAnnouncement(null);
+  const dismissPopup = () => {
+    if (popupToShow?.type === 'announcement') {
+        setSeenAnnouncements([...seenAnnouncements, popupToShow.id]);
     }
+    setPopupToShow(null);
   }
 
   const value = { 
@@ -406,7 +413,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={value}>
         {children}
-        {latestAnnouncement && <AnnouncementPopup announcement={latestAnnouncement} onDismiss={dismissAnnouncement} />}
+        {popupToShow && <PopupDisplay popup={popupToShow} onDismiss={dismissPopup} />}
     </AuthContext.Provider>
   );
 };

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ref as dbRef, onValue, get, set, remove, query, limitToLast, orderByChild, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
-import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban, Megaphone, Send } from 'lucide-react';
+import { ShieldCheck, User, Users, ChevronLeft, UserPlus, UserCog, Trash2, ShieldQuestion, Shield, GitCommit, Search, BookOpen, Activity, FolderKanban, Megaphone, Send, LogIn, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
@@ -57,7 +57,7 @@ interface ActivityLog {
     timestamp: number;
 }
 
-const announcementSchema = z.object({
+const popupSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
   message: z.string().min(10, "Message must be at least 10 characters long."),
 });
@@ -90,11 +90,16 @@ export default function AdminClient() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   
-  const announcementForm = useForm<z.infer<typeof announcementSchema>>({
-    resolver: zodResolver(announcementSchema),
+  const announcementForm = useForm<z.infer<typeof popupSchema>>({
+    resolver: zodResolver(popupSchema),
     defaultValues: { title: "", message: "" },
   });
-
+  
+  const loginPopupForm = useForm<z.infer<typeof popupSchema>>({
+    resolver: zodResolver(popupSchema),
+    defaultValues: { title: "", message: "" },
+  });
+  
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -120,6 +125,13 @@ export default function AdminClient() {
         const usersRef = dbRef(database, 'users');
         const teamsRef = dbRef(database, 'teams');
         const activitiesRef = dbRef(database, 'activities');
+        const loginPopupRef = dbRef(database, 'popups/login');
+
+        onValue(loginPopupRef, (snapshot) => {
+            if (snapshot.exists()) {
+                loginPopupForm.reset(snapshot.val());
+            }
+        });
 
         const unsubscribeUsers = onValue(usersRef, (snapshot) => {
             const usersData = snapshot.val() || {};
@@ -146,7 +158,6 @@ export default function AdminClient() {
             setActivities(activitiesData.reverse()); // Newest first
         });
 
-        // Combine loading state logic
         Promise.all([get(usersRef), get(teamsRef), get(activitiesRef)]).finally(() => {
             setIsDataLoading(false);
         });
@@ -157,7 +168,7 @@ export default function AdminClient() {
             unsubscribeActivities();
         };
     }
-  }, [isAdmin, database]);
+  }, [isAdmin, database, loginPopupForm]);
 
   const handleRoleChange = (userId: string, newRole: 'admin' | 'user') => {
     if (!database) return;
@@ -187,7 +198,7 @@ export default function AdminClient() {
       });
   };
 
-  const handleSendAnnouncement = async (values: z.infer<typeof announcementSchema>) => {
+  const handleSendAnnouncement = async (values: z.infer<typeof popupSchema>) => {
     if (!database) return;
     const announcementsRef = dbRef(database, 'announcements');
     try {
@@ -204,6 +215,28 @@ export default function AdminClient() {
     } catch (error: any) {
         toast({
             title: 'Error Sending Announcement',
+            description: error.message,
+            variant: 'destructive',
+        });
+    }
+  };
+
+  const handleSetLoginPopup = async (values: z.infer<typeof popupSchema>) => {
+    if (!database) return;
+    const loginPopupRef = dbRef(database, 'popups/login');
+    try {
+        await set(loginPopupRef, {
+            ...values,
+            updatedAt: serverTimestamp(),
+            updatedBy: user?.displayName || user?.email,
+        });
+        toast({
+            title: 'Login Pop-up Updated!',
+            description: 'The welcome message has been set for new user sessions.',
+        });
+    } catch (error: any) {
+        toast({
+            title: 'Error Setting Pop-up',
             description: error.message,
             variant: 'destructive',
         });
@@ -290,49 +323,42 @@ export default function AdminClient() {
                 </CardContent>
             </Card>
         </section>
+        
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><LogIn /> Welcome On Login Pop-up</CardTitle>
+                    <CardDescription>This message will appear automatically for users when they start a new session. You can use basic HTML here.</CardDescription>
+                </CardHeader>
+                <Form {...loginPopupForm}>
+                    <form onSubmit={loginPopupForm.handleSubmit(handleSetLoginPopup)}>
+                        <CardContent className="space-y-4">
+                            <FormField control={loginPopupForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Welcome to the new season!" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={loginPopupForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (HTML supported)</FormLabel><FormControl><Textarea placeholder="<h1>Welcome!</h1><p>Here are some updates...</p>" {...field} rows={5} /></FormControl><FormMessage /></FormItem>)} />
+                        </CardContent>
+                        <CardFooter><Button type="submit" disabled={loginPopupForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" />{loginPopupForm.formState.isSubmitting ? 'Saving...' : 'Set Login Pop-up'}</Button></CardFooter>
+                    </form>
+                </Form>
+            </Card>
+             <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><Megaphone /> Send One-Time Announcement</CardTitle>
+                    <CardDescription>Send a system-wide pop-up message to all users. This will appear once per user. HTML is supported.</CardDescription>
+                </CardHeader>
+                <Form {...announcementForm}>
+                    <form onSubmit={announcementForm.handleSubmit(handleSendAnnouncement)}>
+                        <CardContent className="space-y-4">
+                            <FormField control={announcementForm.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., Scheduled Maintenance" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={announcementForm.control} name="message" render={({ field }) => (<FormItem><FormLabel>Message (HTML supported)</FormLabel><FormControl><Textarea placeholder="Enter the full announcement details here..." {...field} rows={5} /></FormControl><FormMessage /></FormItem>)} />
+                        </CardContent>
+                        <CardFooter><Button type="submit" disabled={announcementForm.formState.isSubmitting}><Send className="mr-2 h-4 w-4" />{announcementForm.formState.isSubmitting ? 'Sending...' : 'Send Update'}</Button></CardFooter>
+                    </form>
+                </Form>
+            </Card>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 flex flex-col gap-8">
-                 <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3"><Megaphone /> Send Announcement</CardTitle>
-                        <CardDescription>Send a system-wide pop-up message to all users.</CardDescription>
-                    </CardHeader>
-                    <Form {...announcementForm}>
-                        <form onSubmit={announcementForm.handleSubmit(handleSendAnnouncement)}>
-                            <CardContent className="space-y-4">
-                                <FormField
-                                    control={announcementForm.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Title</FormLabel>
-                                            <FormControl><Input placeholder="e.g., Scheduled Maintenance" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={announcementForm.control}
-                                    name="message"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Message</FormLabel>
-                                            <FormControl><Textarea placeholder="Enter the full announcement details here..." {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" disabled={announcementForm.formState.isSubmitting}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {announcementForm.formState.isSubmitting ? 'Sending...' : 'Send Update'}
-                                </Button>
-                            </CardFooter>
-                        </form>
-                    </Form>
-                </Card>
                 <Card className="bg-card/80 backdrop-blur-md shadow-2xl border-border/50">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-3"><UserCog /> User Management</CardTitle>
