@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -9,31 +8,32 @@
  * - SiteQuestionOutput - The return type for the answerSiteQuestion function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 
 import { ftcJavaLessons } from '@/data/ftc-java-lessons';
 import { ftcJavaLessonsIntermediate } from '@/data/ftc-java-lessons-intermediate';
 import { ftcJavaLessonsAdvanced } from '@/data/ftc-java-lessons-advanced';
 
-
+// Input schema
 const SiteQuestionInputSchema = z.object({
-  question: z.string().describe('The user\'s question about the website.'),
+  question: z.string().describe("The user's question about the website."),
 });
 export type SiteQuestionInput = z.infer<typeof SiteQuestionInputSchema>;
 
+// Output schema
 const SiteQuestionOutputSchema = z.object({
-  answer: z.string().describe('The AI\'s answer to the user\'s question.'),
+  answer: z.string().describe("The AI's answer to the user's question."),
 });
 export type SiteQuestionOutput = z.infer<typeof SiteQuestionOutputSchema>;
 
-
+// Exposed server function
 export async function answerSiteQuestion(input: SiteQuestionInput): Promise<SiteQuestionOutput> {
   return siteQuestionFlow(input);
 }
 
-// Prepare context data for the prompt
+// Prepare lesson data
 const totalBeginnerLessons = ftcJavaLessons.length;
 const totalIntermediateLessons = ftcJavaLessonsIntermediate.length;
 const totalAdvancedLessons = ftcJavaLessonsAdvanced.length;
@@ -43,10 +43,11 @@ const beginnerLessonTitles = ftcJavaLessons.map(l => l.title);
 const intermediateLessonTitles = ftcJavaLessonsIntermediate.map(l => l.title);
 const advancedLessonTitles = ftcJavaLessonsAdvanced.map(l => l.title);
 
-
+// Define prompt
 const prompt = ai.definePrompt({
   name: 'siteQuestionPrompt',
-  input: {schema: z.object({
+  input: {
+    schema: z.object({
       question: z.string(),
       totalLessons: z.number(),
       totalBeginnerLessons: z.number(),
@@ -55,8 +56,9 @@ const prompt = ai.definePrompt({
       beginnerLessonTitles: z.array(z.string()),
       intermediateLessonTitles: z.array(z.string()),
       advancedLessonTitles: z.array(z.string()),
-  })},
-  output: {schema: SiteQuestionOutputSchema},
+    }),
+  },
+  output: { schema: SiteQuestionOutputSchema },
   prompt: `You are CodeSage AI, a friendly and helpful assistant for the CodeSage website.
 Your goal is to answer user questions based on the information provided below about the site's content.
 Be concise and helpful.
@@ -88,6 +90,7 @@ Based *only* on the information above, provide a helpful answer. If the question
 `,
 });
 
+// Flow definition
 const siteQuestionFlow = ai.defineFlow(
   {
     name: 'siteQuestionFlow',
@@ -95,19 +98,21 @@ const siteQuestionFlow = ai.defineFlow(
     outputSchema: SiteQuestionOutputSchema,
   },
   async (input) => {
-
     const context = {
-        question: input.question,
-        totalLessons,
-        totalBeginnerLessons,
-        totalIntermediateLessons,
-        totalAdvancedLessons,
-        beginnerLessonTitles,
-        intermediateLessonTitles,
-        advancedLessonTitles
+      question: input.question,
+      totalLessons,
+      totalBeginnerLessons,
+      totalIntermediateLessons,
+      totalAdvancedLessons,
+      beginnerLessonTitles,
+      intermediateLessonTitles,
+      advancedLessonTitles,
     };
-    
-    const {output} = await prompt(context, {model: googleAI.model('gemini-1.5-flash')});
+
+    const { output } = await prompt(context, {
+      model: googleAI.model('gemini-1.5-pro'), // ✅ Fixed here
+    });
+
     return output!;
   }
 );
