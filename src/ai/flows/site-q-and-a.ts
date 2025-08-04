@@ -107,7 +107,7 @@ const siteQuestionFlow = ai.defineFlow(
         advancedLessonTitles
     };
     
-    const {output} = await prompt(context, {model: 'googleai/gemini-1.5-flash'});
+    const {output} = await prompt(context, {model: googleAI.model('gemini-1.5-flash')});
     return output!;
   }
 );

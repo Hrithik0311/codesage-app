@@ -74,7 +74,7 @@ const codeAnalysisFlow = ai.defineFlow(
     if (!input.codeSnippet?.trim() || input.codeSnippet.trim().length < 10) {
         return { performance: [], bugs: [], suggestions: [], refactoredCode: input.codeSnippet };
     }
-    const {output} = await prompt(input, {model: 'googleai/gemini-1.5-flash'});
+    const {output} = await prompt(input, {model: googleAI.model('gemini-1.5-flash')});
     return output!;
   }
 );

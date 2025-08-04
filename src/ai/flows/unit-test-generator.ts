@@ -57,7 +57,7 @@ const unitTestGeneratorFlow = ai.defineFlow(
     outputSchema: UnitTestGeneratorOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input, {model: 'googleai/gemini-1.5-flash'});
+    const {output} = await prompt(input, {model: googleAI.model('gemini-1.5-flash')});
     return output!;
   }
 );
