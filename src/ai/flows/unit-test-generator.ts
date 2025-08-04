@@ -39,7 +39,6 @@ const prompt = ai.definePrompt({
   name: 'unitTestGeneratorPrompt',
   input: {schema: UnitTestGeneratorInputSchema},
   output: {schema: UnitTestGeneratorOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an AI that generates unit tests for given code.
 
   Generate unit tests for the following code, ensuring they are comprehensive and cover various scenarios.
@@ -58,7 +57,7 @@ const unitTestGeneratorFlow = ai.defineFlow(
     outputSchema: UnitTestGeneratorOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, {model: 'googleai/gemini-1.5-flash'});
     return output!;
   }
 );

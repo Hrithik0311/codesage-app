@@ -41,7 +41,6 @@ const prompt = ai.definePrompt({
   name: 'codeAnalysisPrompt',
   input: {schema: CodeAnalysisInputSchema},
   output: {schema: CodeAnalysisOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert AI programming tutor and automated refactoring tool specializing in FIRST Tech Challenge (FTC) Java code.
 
 Your task is to perform two actions in a single pass:
@@ -75,7 +74,7 @@ const codeAnalysisFlow = ai.defineFlow(
     if (!input.codeSnippet?.trim() || input.codeSnippet.trim().length < 10) {
         return { performance: [], bugs: [], suggestions: [], refactoredCode: input.codeSnippet };
     }
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, {model: 'googleai/gemini-1.5-flash'});
     return output!;
   }
 );

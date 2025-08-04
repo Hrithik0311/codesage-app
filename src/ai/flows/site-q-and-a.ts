@@ -57,7 +57,6 @@ const prompt = ai.definePrompt({
       advancedLessonTitles: z.array(z.string()),
   })},
   output: {schema: SiteQuestionOutputSchema},
-  model: 'googleai/gemini-1.5-flash',
   prompt: `You are CodeSage AI, a friendly and helpful assistant for the CodeSage website.
 Your goal is to answer user questions based on the information provided below about the site's content.
 Be concise and helpful.
@@ -108,7 +107,7 @@ const siteQuestionFlow = ai.defineFlow(
         advancedLessonTitles
     };
     
-    const {output} = await prompt(context);
+    const {output} = await prompt(context, {model: 'googleai/gemini-1.5-flash'});
     return output!;
   }
 );
